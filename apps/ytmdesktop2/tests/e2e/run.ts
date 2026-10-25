@@ -13,12 +13,13 @@ import { scenarios as boot } from "./scenarios/boot.ts";
 import { scenarios as glass } from "./scenarios/glass.ts";
 import { scenarios as layout } from "./scenarios/layout.ts";
 import { scenarios as perf } from "./scenarios/perf.ts";
+import { scenarios as settings } from "./scenarios/settings.ts";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const RESULTS = path.join(HERE, "results");
 const args = process.argv.slice(2);
 // --perf runs the pNN baseline scenarios instead of the sNN functional ones
-const scenarios: Scenario[] = args.includes("--perf") ? perf : [...boot, ...layout, ...glass, ...background];
+const scenarios: Scenario[] = args.includes("--perf") ? perf : [...boot, ...layout, ...glass, ...background, ...settings];
 const only = args.filter((a) => !a.startsWith("--")).map((a) => a.toLowerCase());
 
 fs.mkdirSync(RESULTS, { recursive: true });

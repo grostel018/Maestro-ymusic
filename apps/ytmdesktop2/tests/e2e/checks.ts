@@ -23,4 +23,5 @@ export const CHECKS: Check[] = [
 	{ area: "Background / power", check: "ignore-gpu-blocklist is off by default and the backgrounding switches match the measured decision", evidence: ["s11"] },
 	{ area: "Performance", check: "CPU while paused and minimized for 60 s is measured and recorded", evidence: ["p6"] },
 	{ area: "Playback", check: "Playback keeps advancing while the window is minimized (at least 100 s in 120 s)", evidence: ["p7"] },
+	{ area: "Bench", check: "Settings seeded through launchApp survive startup migrations", evidence: ["s13"] },
 ];
