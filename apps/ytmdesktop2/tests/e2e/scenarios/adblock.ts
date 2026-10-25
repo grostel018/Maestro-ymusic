@@ -7,6 +7,9 @@ import type { Scenario } from "../lib/app.ts";
 import { AD_SHOWING, play } from "../lib/perf.ts";
 import { sleep, waitFor } from "../lib/wait.ts";
 
+/** YouTube's watch-history and playback-stats pings; the history allow-list in engine.ts keeps them unblocked. */
+const HISTORY_URL = /youtube\.com\/api\/stats\/(watchtime|playback)\b/;
+const BLOCKED_FILE = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "results", "s5-blocked-urls.txt");
 const AD_URL = /doubleclick\.net|googlesyndication|\/pagead\/|\/api\/stats\/ads/;
 const CURRENT_TIME = "document.querySelector('video')?.currentTime ?? 0";
 const AD_KEYS = ["adPlacements", "playerAds", "adSlots", "adBreakHeartbeatParams"];
@@ -15,7 +18,7 @@ const STATS = "__YTMD_TEST__.services.getProvider('adblock').stats()";
 export const scenarios: Scenario[] = [
 	{
 		id: "s5",
-		title: "Network blocking: ad and tracker requests fail with ERR_BLOCKED_BY_CLIENT and playback advances",
+		title: "Network blocking: ad and tracker requests fail with ERR_BLOCKED_BY_CLIENT, history pings pass and playback advances",
 		launch: { settings: { adblock: { enabled: true, network: true, prune: true, fallback: true, hideUpsells: true, stats: { total: 0 } } } },
 		run: async (t) => {
 			await waitFor(async () => (await t.mainEval<boolean>("!!globalThis.__YTMD_TEST__?.getMainWindow()?.views?.youtubeView")) || false, 60000, "the test hooks and main window");
@@ -33,8 +36,14 @@ export const scenarios: Scenario[] = [
 			const advanced = (await yt.eval<number>(CURRENT_TIME)) - before;
 			const stats = await t.mainEval<{ session: number; total: number }>(STATS);
 			const adHits = blocked.filter((u) => AD_URL.test(u));
-			console.log(`  s5: ${blocked.length} blocked (${adHits.length} ad URLs), stats ${JSON.stringify(stats)}, playback advanced ${advanced.toFixed(2)} s in 10 s`);
-			for (const u of adHits.slice(0, 5)) console.log(`    blocked: ${u.slice(0, 160)}`);
+			const historyBlocked = blocked.filter((u) => HISTORY_URL.test(u));
+			const historySeen = [...urls.values()].filter((u) => HISTORY_URL.test(u)).length;
+			// every blocked URL goes to the log and to results/, so a tracker list that starts eating history pings shows up
+			fs.writeFileSync(BLOCKED_FILE, `${blocked.join("\n")}\n`);
+			console.log(`  s5: ${blocked.length} blocked (${adHits.length} ad URLs), ${historySeen} history/playback-stats requests sent, stats ${JSON.stringify(stats)}, playback advanced ${advanced.toFixed(2)} s in 10 s`);
+			for (const u of blocked) console.log(`    blocked: ${u.slice(0, 200)}`);
+			console.log(`    blocked URL list: ${BLOCKED_FILE}`);
+			if (historyBlocked.length) throw new Error(`watch-history / playback-stats pings were blocked: ${historyBlocked.join(", ")}`);
 			if (!adHits.length) throw new Error(`no ad URL failed with ERR_BLOCKED_BY_CLIENT (blocked: ${blocked.slice(0, 5).join(", ") || "none"})`);
 			if (advanced < 8) throw new Error(`playback advanced only ${advanced.toFixed(2)} s in 10 s (need >= 8)`);
 			if (!(stats.session > 0)) throw new Error(`adblock.stats session count is ${stats.session}`);

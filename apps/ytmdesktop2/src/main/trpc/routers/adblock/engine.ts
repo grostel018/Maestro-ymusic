@@ -15,6 +15,25 @@ export function isEngineStale(mtimeMs: number, nowMs: number): boolean {
 /** The upsell CSS plugin is the cosmetic layer; Ghostery's cosmetic preload and observer stay off. */
 const COSMETIC_OFF = { loadCosmeticFilters: false };
 
+/**
+ * YouTube's watch-history and playback-stats pings. Tracker lists may block them, which would silently stop the
+ * account's history and recommendations, so they are always allowed (applied on top of every loaded engine).
+ */
+export const HISTORY_ALLOW_FILTERS = [
+	"@@||youtube.com/api/stats/watchtime",
+	"@@||youtube.com/api/stats/playback",
+	"@@||youtube.com/api/stats/delayplay",
+	"@@||youtube.com/api/stats/atr",
+	"@@||youtube.com/api/stats/qoe",
+	"@@||youtube.com/ptracking",
+];
+
+/** Adds the history allow-list to `engine`. */
+export function allowHistoryPings<T extends { updateFromDiff(diff: { added: string[] }): boolean }>(engine: T): T {
+	engine.updateFromDiff({ added: HISTORY_ALLOW_FILTERS });
+	return engine;
+}
+
 async function readCache(cachePath: string): Promise<ElectronBlocker | null> {
 	try {
 		return ElectronBlocker.deserialize(new Uint8Array(await fs.readFile(cachePath)));
@@ -48,17 +67,17 @@ export async function loadEngine(opts: { cachePath: string; fetchImpl: typeof fe
 		const stat = await fs.stat(opts.cachePath).catch(() => null);
 		cached = stat ? await readCache(opts.cachePath) : null;
 		const configOk = cached?.config.loadCosmeticFilters === false;
-		if (cached && stat && configOk && !isEngineStale(stat.mtimeMs, now())) return cached;
+		if (cached && stat && configOk && !isEngineStale(stat.mtimeMs, now())) return allowHistoryPings(cached);
 		// an old cache stays usable as a fallback, with cosmetics forced off
 		if (cached && !configOk) (cached.config as { loadCosmeticFilters: boolean }).loadCosmeticFilters = false;
 
 		const fresh = await ElectronBlocker.fromLists((url: string) => opts.fetchImpl(url), adsAndTrackingLists, COSMETIC_OFF);
 		await writeCache(opts.cachePath, fresh.serialize());
-		return fresh;
+		return allowHistoryPings(fresh);
 	} catch (e) {
 		if (cached) {
 			log.warn(`ad-block engine refresh failed, keeping the cached engine: ${(e as Error)?.message ?? e}`);
-			return cached;
+			return allowHistoryPings(cached);
 		}
 		log.warn(`ad-block engine failed to load: ${(e as Error)?.message ?? e}`);
 		return null;

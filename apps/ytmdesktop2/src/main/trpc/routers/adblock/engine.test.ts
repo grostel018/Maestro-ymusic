@@ -93,3 +93,32 @@ describe("loadEngine", () => {
 		});
 	});
 });
+
+describe("history allow-list", () => {
+	it("keeps watch-history and playback-stats pings allowed over a list that blocks them", async () => {
+		await withDir(async (dir) => {
+			const block = ["||youtube.com/api/stats/", "||youtube.com/ptracking", "||youtube.com/youtubei/v1/log_event", "||youtube.com/api/stats/ads?"].join("\n");
+			const engine = await loadEngine({ cachePath: path.join(dir, "engine.bin"), fetchImpl: lists(block) });
+			expect(engine).not.toBeNull();
+			for (const host of ["music.youtube.com", "www.youtube.com", "s.youtube.com"]) {
+				for (const p of ["watchtime", "playback", "delayplay", "atr", "qoe"]) {
+					expect(blocks(engine!, `https://${host}/api/stats/${p}?ns=yt&docid=x`), `${host} ${p}`).toBe(false);
+				}
+				expect(blocks(engine!, `https://${host}/ptracking?video_id=x`)).toBe(false);
+			}
+			// ad stats and other telemetry stay blocked
+			expect(blocks(engine!, "https://music.youtube.com/api/stats/ads?ver=2")).toBe(true);
+			expect(blocks(engine!, "https://music.youtube.com/youtubei/v1/log_event?alt=json")).toBe(true);
+		});
+	});
+
+	it("is applied to an engine loaded from the cache", async () => {
+		await withDir(async (dir) => {
+			const cachePath = path.join(dir, "engine.bin");
+			fs.writeFileSync(cachePath, ElectronBlocker.parse("||youtube.com/api/stats/", { loadCosmeticFilters: false }).serialize());
+			const engine = await loadEngine({ cachePath, fetchImpl: offline });
+			expect(engine && blocks(engine, "https://music.youtube.com/api/stats/watchtime?ns=yt")).toBe(false);
+			expect(engine && blocks(engine, "https://music.youtube.com/api/stats/ads?ver=2")).toBe(true);
+		});
+	});
+});
