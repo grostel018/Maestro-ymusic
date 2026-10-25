@@ -7,7 +7,8 @@ import { debounce } from "lodash-es";
 import { loadEngine } from "./engine";
 
 const RETRY_MS = 60 * 60 * 1000;
-const PERSIST_MS = 10_000;
+/** The all-time count is written (YAML rewrite + settings broadcast) at most once a minute, and on quit (OnDestroy). */
+const PERSIST_MS = 60_000;
 const FETCH_TIMEOUT_MS = 30_000;
 /** Page event from the fallback skipper: one handled ad. */
 const SKIPPED_EVENT = "adblock:skipped";

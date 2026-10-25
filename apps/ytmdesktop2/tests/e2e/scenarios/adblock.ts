@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { parse } from "yaml";
 import type { Scenario } from "../lib/app.ts";
 import { AD_SHOWING, play } from "../lib/perf.ts";
 import { sleep, waitFor } from "../lib/wait.ts";
@@ -47,6 +48,12 @@ export const scenarios: Scenario[] = [
 			if (!adHits.length) throw new Error(`no ad URL failed with ERR_BLOCKED_BY_CLIENT (blocked: ${blocked.slice(0, 5).join(", ") || "none"})`);
 			if (advanced < 8) throw new Error(`playback advanced only ${advanced.toFixed(2)} s in 10 s (need >= 8)`);
 			if (!(stats.session > 0)) throw new Error(`adblock.stats session count is ${stats.session}`);
+			// the all-time count is written at most once a minute, so this one comes from the flush on quit
+			const final = await t.mainEval<{ total: number }>(STATS);
+			await t.quit();
+			const saved = (parse(fs.readFileSync(path.join(t.profileDir, "app-settings.yml"), "utf8")) as { adblock?: { stats?: { total?: number } } }).adblock?.stats?.total;
+			console.log(`    stats.total on disk after quit: ${saved} (in memory before quit: ${final.total})`);
+			if (!(typeof saved === "number" && saved >= final.total)) throw new Error(`adblock.stats.total on disk is ${saved} after quit, expected >= ${final.total}`);
 		},
 	},
 	{
