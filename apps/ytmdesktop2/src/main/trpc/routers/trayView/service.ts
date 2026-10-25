@@ -147,7 +147,6 @@ export default class TrayViewProvider extends BaseProvider implements AfterInit,
 			win.setResizable(false);
 			win.setMinimizable(false);
 			win.setMaximizable(false);
-			win.webContents.setBackgroundThrottling(false);
 
 			const { state, saveState, restored } = await wrapWindowHandler(win, "trayview", {
 				width: TRAY_VIEW_WIDTH,

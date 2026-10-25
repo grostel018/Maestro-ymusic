@@ -21,6 +21,7 @@ export const CHECKS: Check[] = [
 	{ area: "Performance", check: "Resize sweep from 1000 to 1600 px is measured and the views follow the window", evidence: ["p4"] },
 	{ area: "Performance", check: "Views follow the window after entering and leaving fullscreen", evidence: ["p5"] },
 	{ area: "Background / power", check: "Minimized: the toolbar view reports hidden and YouTube playback keeps advancing", evidence: ["s9"] },
+	{ area: "Background / power", check: "The tray view keeps background throttling on and still shows the current track, including a change made while it was hidden", evidence: ["s16"] },
 	{ area: "Background / power", check: "A power-save blocker is held only while music plays", evidence: ["s10"] },
 	{ area: "Background / power", check: "ignore-gpu-blocklist is off by default and the backgrounding switches match the measured decision", evidence: ["s11"] },
 	{ area: "Performance", check: "CPU while paused and minimized for 60 s is measured and recorded", evidence: ["p6"] },

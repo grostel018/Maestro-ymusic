@@ -68,4 +68,34 @@ export const scenarios: Scenario[] = [
 			if (!disabled.split(",").includes("CalculateNativeWinOcclusion")) throw new Error(`disable-features lacks CalculateNativeWinOcclusion: ${disabled}`);
 		},
 	},
+	{
+		id: "s16",
+		title: "Tray view: throttled while hidden, shows the current track and catches up after a track change while hidden",
+		run: async (t) => {
+			await ready(t);
+			await play(t);
+			const yt = await t.view("youtube");
+			const ytTitle = () => yt.eval<string>("document.querySelector('#movie_player').getVideoData()?.title ?? ''");
+			const TRAY = "__YTMD_TEST__.services.getProvider('trayView')";
+			await t.mainEval(`${TRAY}.open().then(() => true)`);
+			const tray = await t.view(/#\/trayview/);
+			const showsTitle = async (title: string, what: string) =>
+				await waitFor(async () => (await tray.eval<string>("document.body.innerText")).includes(title) || false, 10000, what);
+			const first = await ytTitle();
+			await showsTitle(first, `the tray view to show "${first}"`);
+			const throttled = await t.mainEval<boolean>(`${TRAY}.getWindow().webContents.getBackgroundThrottling()`);
+			if (!throttled) throw new Error("the tray view has background throttling off; it should rest while hidden");
+			await t.mainEval(`${TRAY}.hide().then(() => true)`);
+			await waitFor(async () => !(await t.mainEval<boolean>(`${TRAY}.getWindow().isVisible()`)) || false, 5000, "the tray view to hide");
+			await yt.eval("document.querySelector('#movie_player').nextVideo()", { userGesture: true });
+			const second = await waitFor(async () => {
+				const x = await ytTitle();
+				return (x && x !== first && x) || false;
+			}, 30000, "YouTube Music to move to the next track");
+			await sleep(3000); // the change lands while the tray view is hidden
+			await t.mainEval(`${TRAY}.open().then(() => true)`);
+			await showsTitle(second, `the reopened tray view to show the new track "${second}"`);
+			console.log(`  s16: tray throttled while hidden=${throttled}; showed "${first}", then "${second}" after reopening`);
+		},
+	},
 ];
