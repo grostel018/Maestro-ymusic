@@ -3,6 +3,7 @@ import { attachQuitHandler } from "@main/handlers/quitHandler";
 import { isAppQuitting } from "@main/handlers/quitPolicy";
 import { attachTrayState } from "@main/handlers/trayState";
 import { initializeCustomElectronEnvironment } from "@main/infra/electron";
+import { exposeTestHooks } from "@main/infra/testHooks";
 import { serverMain } from "@main/ipc/serverEvents";
 import { runLifecycle, setLifecycleContext } from "@main/lifecycle";
 import { thumbnailCache } from "@main/services/thumbnailCache";
@@ -119,6 +120,7 @@ const runApp = async function () {
 
 		await waitMs(); // next tick
 		await serviceCollection.exec("OnInit");
+		exposeTestHooks({ serviceCollection, getMainWindow: () => mainWindow });
 		await runLifecycle("init");
 
 		const startupService = serviceCollection.getTypedProvider("startup");

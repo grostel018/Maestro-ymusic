@@ -36,7 +36,10 @@
 		"biome:check": "biome check ./src",
 		"biome:check:apply": "biome check ./src --write",
 		"test": "pnpm -w exec vitest run apps/ytmdesktop2",
-		"test:watch": "pnpm -w exec vitest apps/ytmdesktop2"
+		"test:watch": "pnpm -w exec vitest apps/ytmdesktop2",
+		"test:e2e": "electron-vite build && node tests/e2e/run.ts",
+		"test:perf": "electron-vite build && node tests/e2e/run.ts --perf",
+		"verify": "node tests/e2e/verify.ts"
 	},
 	"dependencies": {
 		"@base-ui/react": "^1.6.0",

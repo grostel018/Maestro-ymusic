@@ -39,7 +39,10 @@
 		"docs:build": "pnpm --filter ytmdesktop2-docs build",
 		"docs:build:pages": "pnpm --filter ytmdesktop2-docs build:pages",
 		"test": "vitest run",
-		"test:watch": "vitest"
+		"test:watch": "vitest",
+		"test:e2e": "pnpm --filter ytmdesktop2 test:e2e",
+		"test:perf": "pnpm --filter ytmdesktop2 test:perf",
+		"verify": "pnpm --filter ytmdesktop2 verify"
 	},
 	"license": "MIT",
 	"repository": "https://github.com/Venipa/ytmdesktop2",
