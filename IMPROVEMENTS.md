@@ -20,11 +20,11 @@ The ordered list of improvements still to make. Work top to bottom unless someth
 | Tier 1 - Core features and daily use | 8 |
 | Tier 2 - Expected features | 18 |
 | Tier 3 - Valuable extras | 25 |
-| Tier 4 - Nice to have | 4 |
+| Tier 4 - Nice to have | 5 |
 | Tier 5 - Low value for now | 0 |
-| **Total open** | **55** |
+| **Total open** | **56** |
 
-Done: 0. Next free ID: 56.
+Done: 8. Next free ID: 65.
 
 ## Tier 0 - Make the core experience work
 
@@ -104,7 +104,8 @@ Done: 0. Next free ID: 56.
 | 52 | 53 | Library | Phase 6: listening stats with top tracks and artists and time listened, from the existing track events | 26 | M | todo |
 | 53 | 54 | Bench | Offer the bench, layout fixes and video controls upstream as separate PRs cut from master | 20 | M | todo |
 | 54 | 44 | Audio | Phase 5: true overlapping crossfade with a second player (stretch goal) | 14 | L | todo |
-| 55 | 46 | Audio | Phase 5: independent pitch shift of +-6 semitones with a SoundTouch AudioWorklet (optional, last in the phase) | 12 | M | todo |
+| 55 | 56 | Performance | Reduce Home idle CPU (p1 measured 3.17%, budget 2.36%): most of it is YouTube Music's own page, so look at pausing off-screen animations and carousels | 14 | M | todo |
+| 56 | 46 | Audio | Phase 5: independent pitch shift of +-6 semitones with a SoundTouch AudioWorklet (optional, last in the phase) | 12 | M | todo |
 
 ## Tier 5 - Low value for now
 
@@ -115,7 +116,16 @@ Done: 0. Next free ID: 56.
 
 | ID | Improvement | Completed | Notes |
 |---|---|---|---|
+| 57 | Phase 0: Playwright e2e and perf bench (sNN / pNN scenarios, baseline file, VERIFICATION.md generator) | 2026-10-25 | 15 e2e scenarios and 8 perf scenarios; `pnpm test:e2e`, `pnpm test:perf`, `pnpm verify` |
+| 58 | Phase 1: view layout follows window (setSize, maximize, fullscreen) | 2026-10-25 | p4 avg 20.8 frames / 97 ms to 1.4 frames / 1.85 ms; p5 104 / 110 ms to 2 / 13 ms |
+| 59 | Phase 1: cheap glass (pre-blurred artwork, no full-page backdrop-filter; themes.glass opt-in) | 2026-10-25 | s4, s4b; frame p95 unchanged at 5.1 ms because the display is about 200 Hz |
+| 60 | Phase 1: Chromium rest/power hold (power-save blocker only while playing, GPU blocklist respected) | 2026-10-25 | s10, s11; backgrounding switches kept after measurement (no p6 gain from removing them) |
+| 61 | Phase 1: layer 1 ad blocker, network blocking of ad and tracker requests | 2026-10-25 | s5 |
+| 62 | Phase 1: layer 2 ad blocker, pruning ad payloads from YouTube responses | 2026-10-25 | s6 |
+| 63 | Phase 1: layer 3 ad blocker, fallback skipper (16x mute) and Premium upsell hiding | 2026-10-25 | s7, s8 |
+| 64 | Phase 1: ad block settings page with stats line and seeded-settings bench support | 2026-10-25 | s12, s13 |
 
 ## Change log
 
 - 2026-10-25: Backlog created with 55 items, seeded from the roadmap (phases 2-6).
+- 2026-10-25: Phases 0-1 finished and measured; recorded as done rows 57-64. Added item 56 after p1 missed its budget.

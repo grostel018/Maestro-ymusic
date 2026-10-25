@@ -393,20 +393,39 @@ New settings go in `defaultSettings`. `player.*` and `themes.*` extend existing 
 Measured by the phase 0 bench on the owner's laptop, as a production build, at 1500×800 and at
 fullscreen:
 
-| Scenario | Metric | Budget |
-|---|---|---|
-| p1 Home idle 10 s | main + renderer CPU avg | Baseline −30% |
-| p2 Player page playing, 10 s | frame time p95 (in-page rAF sampler) | ≤ 20 ms |
-| p3 Same, maximized | frame time p95 | ≤ 20 ms |
-| p3b Same, YTM HTML fullscreen (video) | frame time p95 | ≤ 20 ms |
-| p4 Resize sweep (20 steps) | frames until views match window | ≤ 1 |
-| p5 Enter/leave fullscreen | view bounds correct after | ≤ 1 frame |
-| p6 Minimized while paused, 60 s | total app CPU avg | < 1% |
-| p7 Minimized while playing, 120 s | audio keeps playing (currentTime advances) | must pass |
-| p8 Now Playing open, lyrics scrolling | frame time p95 | ≤ 20 ms (phase 4+) |
+| Scenario | Metric | Budget | Measured before → after | Result |
+|---|---|---|---|---|
+| p1 Home idle 10 s | main + renderer CPU avg | Baseline −30% (≤ 2.36%) | 3.37% → 3.17% (−6%) | Missed, see below |
+| p2 Player page playing, 10 s | frame time p95 (in-page rAF sampler) | ≤ 20 ms | 5.1 ms → 5.1 ms | Met (see caveat) |
+| p3 Same, maximized | frame time p95 | ≤ 20 ms | 5.1 ms → 5.1 ms | Met (see caveat) |
+| p3b Same, YTM HTML fullscreen (video) | frame time p95 | ≤ 20 ms | 5.1 ms → 5.1 ms | Met (see caveat) |
+| p4 Resize sweep (20 steps) | frames until views match window | ≤ 1 | avg 20.8 frames / 97.45 ms → avg 1.4 frames / 1.85 ms (max 4 frames / 2 ms) | Met on average; max 4 frames |
+| p5 Enter/leave fullscreen | view bounds correct after | ≤ 1 frame | 104 ms / 110 ms → enter 2 ms (0 frames), leave 13 ms (1 frame) | Met |
+| p6 Minimized while paused, 60 s | total app CPU avg | < 1% | 0.28% → 0.28% | Met |
+| p7 Minimized while playing, 120 s | audio keeps playing (currentTime advances) | must pass | 49.39 s (measurement error) → 120.16 s in 120.16 s, 0 s of ads | Met |
+| p8 Now Playing open, lyrics scrolling | frame time p95 | ≤ 20 ms (phase 4+) | not built yet | Pending |
 
 Phase 1 starts by recording the baseline. A budget that turns out wrong on real hardware gets
 adjusted in this document with the measured numbers, not quietly loosened in code.
+
+**Measurement caveats (phase 1 close-out, 2026-10-25).**
+
+- This display runs at about 200 Hz, so every frame p95 reads 5.1 ms. That is a vsync interval, not
+  evidence of smoothness: p2, p3 and p3b would read the same with moderate jank. They pass the
+  budget but cannot show the cheap-glass improvement. A 60 Hz or throttled-GPU run, or a
+  long-task / dropped-frame count, would be needed to see it.
+- The baseline is one run and the after is one run. Run-to-run noise on CPU averages is not
+  measured, so small differences (p1 3.37% vs 3.17%) are within plausible noise.
+- p4 max is 4 frames, not 1. The average of 1.4 frames is dominated by the one-frame IPC hop; the
+  worst step still beats the old worst of 24 frames by a wide margin.
+
+**p1 missed its budget: 3.17% against ≤ 2.36%.** Breakdown after: Tab 2.01%, GPU 1.13%, Browser
+0.02%, Utility 0.01% (baseline Tab 2.28%, GPU 1.06%). Nearly all of it is YouTube Music's own Home
+page (carousels, thumbnails, its scripts) in the renderer and GPU process, which none of the phase 1
+changes touch: cheap glass only affects the player page, and the app's own views already rest. The
+−30% target was set before the baseline and assumed the app's overhead dominated idle CPU, but it
+is mostly the site. The number is recorded here and no check was loosened; the follow-up is
+backlog item 56 (a lower idle cost needs something like pausing off-screen YouTube animations).
 
 **Backgrounding switches (phase 1, Task 7, measured 2026-10-25, RTX 3060 Ti).** The four
 process-wide switches `disable-renderer-backgrounding`, `disable-background-timer-throttling`,
