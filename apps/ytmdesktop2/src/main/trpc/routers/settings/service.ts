@@ -103,6 +103,14 @@ const defaultSettings = {
 		enabled: true,
 		binds: {} as Record<string, string | null>,
 	},
+	adblock: {
+		enabled: true,
+		network: true,
+		prune: true,
+		fallback: true,
+		hideUpsells: true,
+		stats: { total: 0 },
+	},
 };
 
 export type SettingsStore = typeof defaultSettings & {

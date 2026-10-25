@@ -4,6 +4,7 @@ import { app } from "electron";
 import { Migration } from "electron-conf";
 import { readFileSync, rmSync, statSync } from "fs";
 import path from "path";
+import { migrateAdblockDefaults } from "./adblockMigration";
 import type { SettingsStore } from "./service";
 
 const migrations: Omit<Migration<SettingsStore>, "version">[] = [
@@ -204,6 +205,11 @@ const migrations: Omit<Migration<SettingsStore>, "version">[] = [
 		hook(store) {
 			// `ignore-gpu-blocklist` used to be forced on Windows; it is now the opt-in `app.forceGpu`.
 			if (typeof (store.store as SettingsStore)?.app?.forceGpu !== "boolean") store.set("app.forceGpu", false);
+		},
+	},
+	{
+		hook(store) {
+			migrateAdblockDefaults(store);
 		},
 	},
 ];
