@@ -1,6 +1,7 @@
 // @ts-nocheck — tRPC 10 + TS 5.x nested CreateRouterInner assignability false positive.
 // `export type AppRouter = typeof appRouter` still infers full procedure I/O (not any).
 
+import { adblockRouter } from "@main/trpc/routers/adblock";
 import { apiRouter } from "@main/trpc/routers/api";
 import { appServiceRouter } from "@main/trpc/routers/app";
 import { authRouter } from "@main/trpc/routers/auth";
@@ -39,6 +40,7 @@ export const appRouter = router({
 	window: windowRouter,
 	discord: discordRouter,
 	shortcut: shortcutRouter,
+	adblock: adblockRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -24,4 +24,5 @@ export const CHECKS: Check[] = [
 	{ area: "Performance", check: "CPU while paused and minimized for 60 s is measured and recorded", evidence: ["p6"] },
 	{ area: "Playback", check: "Playback keeps advancing while the window is minimized (at least 100 s in 120 s)", evidence: ["p7"] },
 	{ area: "Bench", check: "Settings seeded through launchApp survive startup migrations", evidence: ["s13"] },
+	{ area: "Ad block", check: "Ad and tracker requests fail with ERR_BLOCKED_BY_CLIENT, the blocked count rises and playback advances", evidence: ["s5"] },
 ];

@@ -12,7 +12,7 @@ import { WindowManager } from "@main/windows/windowManager";
 import { onWindowLoad } from "@main/windows/windowUtils";
 import { logger } from "@shared/utils/console";
 import { waitMs } from "@shared/utils/promises";
-import { app, BrowserWindow, protocol } from "electron";
+import { app, BrowserWindow, protocol, session } from "electron";
 
 // Side-effect: register track router lifecycle handlers
 import "@main/trpc/routers/track";
@@ -109,6 +109,14 @@ const runApp = async function () {
 	app.on("ready", async () => {
 		thumbnailCache.registerProtocol();
 		await waitMs(); // next tick
+		// The YouTube page starts loading inside createRootWindow, so block before it (capped: never holds startup longer).
+		const adblockStart = Date.now();
+		try {
+			await serviceCollection.getTypedProvider("adblock").attach(session.defaultSession, { timeoutMs: 3000 });
+		} catch (e) {
+			log.error("adblock attach failed", e);
+		}
+		log.debug(`adblock attach took ${Date.now() - adblockStart} ms`);
 		mainWindow = await windowManager.createRootWindow();
 		attachTrpcWindow(mainWindow.main);
 		serviceCollection.registerWindows(mainWindow);
