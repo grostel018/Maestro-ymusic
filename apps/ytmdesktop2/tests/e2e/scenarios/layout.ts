@@ -1,7 +1,10 @@
 // Window layout: the toolbar and YouTube views follow the window, and YouTube Music's own fullscreen
 // button (HTML fullscreen) fills the screen without the toolbar.
+import fs from "node:fs";
+import path from "node:path";
+import { parse } from "yaml";
 import { computeViewBounds, type Rect } from "../../../src/main/windows/layout.ts";
-import type { Scenario, TestApp } from "../lib/app.ts";
+import { launchApp, type Scenario, type TestApp } from "../lib/app.ts";
 import type { CdpSession } from "../lib/cdp.ts";
 import { play } from "../lib/perf.ts";
 import { waitFor } from "../lib/wait.ts";
@@ -62,6 +65,37 @@ async function htmlFullscreenRoundTrip(t: TestApp, yt: CdpSession) {
 	return await expectLayout(t, false, "toolbar + YouTube after leaving HTML fullscreen");
 }
 
+type Saved = Rect & { maximized?: boolean };
+const savedWindowState = (t: TestApp) => (parse(fs.readFileSync(path.join(t.profileDir, "window-state-root.yml"), "utf8")) as { "window-state": Saved })["window-state"];
+/** Quitting must save the close handlers' state, so minimize-to-tray stays off. */
+const QUIT_SETTINGS = { app: { minimizeTrayOverride: false } };
+
+/** Enters HTML fullscreen, quits from it, checks the saved state, relaunches the same profile; returns the new layout. */
+async function quitFromFullscreenAndRelaunch(t: TestApp, expectMaximized: boolean) {
+	await play(t);
+	const yt = await t.view("youtube");
+	await yt.eval("document.querySelector('video').requestFullscreen()", { userGesture: true });
+	await waitFor(async () => (await readLayout(t)).fullScreen || false, 10000, "the window to go fullscreen");
+	const fullscreenBounds = await t.mainEval<Rect>(`${MW}.main.getBounds()`);
+	await t.quit();
+	const saved = savedWindowState(t);
+	if (!!saved.maximized !== expectMaximized) throw new Error(`saved maximized=${saved.maximized}, expected ${expectMaximized}: ${JSON.stringify(saved)}`);
+	if (saved.width >= fullscreenBounds.width && saved.height >= fullscreenBounds.height) throw new Error(`saved the fullscreen bounds ${JSON.stringify(saved)} (fullscreen ${JSON.stringify(fullscreenBounds)})`);
+	const again = await launchApp({ profileDir: t.profileDir, settings: QUIT_SETTINGS });
+	try {
+		await ready(again);
+		const l = await waitFor(async () => {
+			const x = await readLayout(again);
+			return (x.maximized === expectMaximized && !x.fullScreen && x) || false;
+		}, 5000, `the relaunched window to be ${expectMaximized ? "maximized" : "normal"} and not fullscreen`);
+		const bounds = await again.mainEval<Rect>(`${MW}.main.getBounds()`);
+		console.log(`    saved ${JSON.stringify(saved)}; relaunched maximized=${l.maximized} fullScreen=${l.fullScreen} bounds ${JSON.stringify(bounds)}`);
+		return { saved, bounds, layout: l };
+	} finally {
+		await again.close();
+	}
+}
+
 export const scenarios: Scenario[] = [
 	{
 		id: "s2",
@@ -102,6 +136,29 @@ export const scenarios: Scenario[] = [
 			await htmlFullscreenRoundTrip(t, yt);
 			await waitFor(async () => (await readLayout(t)).maximized || false, 5000, "the window to be maximized again after HTML fullscreen");
 			await expectLayout(t, false, "views to match the maximized window after HTML fullscreen");
+		},
+	},
+	{
+		id: "s14",
+		title: "Quitting during HTML fullscreen from maximized relaunches maximized, not fullscreen-sized",
+		launch: { settings: QUIT_SETTINGS },
+		run: async (t) => {
+			await ready(t);
+			await winDo(t, "win.maximize();");
+			await waitFor(async () => (await readLayout(t)).maximized || false, 5000, "the window to maximize");
+			await quitFromFullscreenAndRelaunch(t, true);
+		},
+	},
+	{
+		id: "s14b",
+		title: "Quitting during HTML fullscreen from a 1200x700 window relaunches at 1200x700",
+		launch: { settings: QUIT_SETTINGS },
+		run: async (t) => {
+			await ready(t);
+			await winDo(t, "if (win.isMaximized()) win.unmaximize(); win.setSize(1200, 700);");
+			await expectLayout(t, false, "views to match 1200x700");
+			const { bounds } = await quitFromFullscreenAndRelaunch(t, false);
+			if (bounds.width !== 1200 || bounds.height !== 700) throw new Error(`relaunched at ${bounds.width}x${bounds.height}, expected 1200x700`);
 		},
 	},
 ];

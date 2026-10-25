@@ -156,9 +156,10 @@ export async function launchApp(opts: LaunchOptions = {}): Promise<TestApp> {
 		},
 		async quit() {
 			if (!exited) {
-				await app.mainEval("process.mainModule.require('electron').app.quit()").catch(() => {
-					// the inspector closes as the process exits
-				});
+				// deferred: quitting inside Runtime.evaluate stalls; then detach so the inspector does not hold the exit
+				await app.mainEval("setTimeout(() => process.mainModule.require('electron').app.quit(), 100) && undefined");
+				main?.close();
+				main = null;
 				await Promise.race([exitPromise, sleep(15000)]);
 				if (!exited) throw new Error("the app did not exit within 15 s of app.quit()");
 			}

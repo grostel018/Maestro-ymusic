@@ -8,6 +8,7 @@ import { BrowserWindow, screen, shell, WebContentsView } from "electron";
 import { join } from "path";
 import appIconPath from "~/build/favicon.ico?asset";
 import { registerWindowDialogResponse } from "./dialogResponse";
+import { nextSavedWindowState } from "./layout";
 import { loadUrlOfWindow, syncWindowStateToWebContents } from "./webContentUtils";
 
 export type WindowOptions = {
@@ -378,7 +379,8 @@ export async function wrapWindowHandler(
 		width: defaultWidth,
 		height: defaultHeight,
 		persist,
-	}: { width: number; height: number; persist?: () => boolean },
+		preFullscreen,
+	}: { width: number; height: number; persist?: () => boolean; preFullscreen?: () => { maximized: boolean; fullScreen: boolean } | null },
 ) {
 	const key = "window-state";
 	const name = `window-state-${windowName}`;
@@ -391,18 +393,6 @@ export async function wrapWindowHandler(
 	const restore = () => store.get(key, defaultSize);
 	const raw = restore();
 	const restored = typeof raw?.x === "number" && typeof raw?.y === "number";
-
-	const getCurrentPosition = () => {
-		const [x, y] = win.getPosition();
-		const { width, height } = getSizeOfWindowNative(win);
-		return {
-			x,
-			y,
-			width,
-			height,
-			maximized: win.isMaximized(),
-		};
-	};
 
 	const windowWithinBounds = (windowState, bounds) => {
 		return (
@@ -438,12 +428,19 @@ export async function wrapWindowHandler(
 		}
 		return windowState;
 	};
+	/** Updates the in-memory state from the window (no write); fullscreen bounds are never taken. */
+	const snapshot = () => {
+		if (win.isDestroyed()) return;
+		state = nextSavedWindowState(
+			state,
+			{ bounds: win.getBounds(), maximized: win.isMaximized(), minimized: win.isMinimized(), fullScreen: win.isFullScreen() },
+			preFullscreen?.() ?? null,
+		);
+	};
 	const saveState = () => {
 		if (win.isDestroyed()) return;
 		if (persist && !persist()) return;
-		if (!win.isMinimized() && !win.isMaximized()) {
-			state = Object.assign({}, state, getCurrentPosition());
-		}
+		snapshot();
 		store.set(key, state);
 		log.debug("saveWindowState", state);
 	};
@@ -455,7 +452,7 @@ export async function wrapWindowHandler(
 		displayScaleFactor: platform.isWindows && state ? screen.getDisplayNearestPoint({ x: state.x, y: state.y }).scaleFactor : 1,
 	});
 	win.on("close", saveState);
-	return { state, saveState, restored };
+	return { state, saveState, snapshot, restored };
 }
 export async function onWindowLoad(
 	win: WebContentsView | BrowserWindow,

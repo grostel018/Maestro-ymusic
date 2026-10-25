@@ -73,6 +73,8 @@ export class WindowManager {
 	/** YouTube Music's own fullscreen (HTML fullscreen) is active: the toolbar is hidden. */
 	private htmlFullscreen = false;
 	private readonly fullscreenRestore = createFullscreenRestore();
+	/** Takes the window's normal bounds into the saved window state (set by initializeWindowState). */
+	private snapshotWindowState: (() => void) | null = null;
 
 	constructor(private readonly userAgent?: string) {}
 
@@ -263,6 +265,8 @@ export class WindowManager {
 		// disableHtmlFullscreenWindowResize is set on this view, so the window follows HTML fullscreen here
 		view.webContents.on("enter-html-full-screen", () => {
 			if (!this.mainWindow) return;
+			// keep the bounds from before fullscreen; a quit while fullscreen must not save the monitor-sized ones
+			if (!this.mainWindow.isFullScreen()) this.snapshotWindowState?.();
 			this.fullscreenRestore.enter({ maximized: this.mainWindow.isMaximized(), fullScreen: this.mainWindow.isFullScreen() });
 			this.htmlFullscreen = true;
 			this.mainWindow.setFullScreen(true);
@@ -358,7 +362,8 @@ export class WindowManager {
 	private async initializeWindowState(bounds: { width: number; height: number }) {
 		if (!this.mainWindow || !this.views) return;
 
-		const { state } = await wrapWindowHandler(this.mainWindow, "root", { ...bounds });
+		const { state, snapshot } = await wrapWindowHandler(this.mainWindow, "root", { ...bounds, preFullscreen: () => this.fullscreenRestore.peek() });
+		this.snapshotWindowState = snapshot;
 
 		if (state?.maximized) {
 			this.mainWindow.maximize();

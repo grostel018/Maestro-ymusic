@@ -11,6 +11,7 @@ export const CHECKS: Check[] = [
 	{ area: "Window layout", check: "Toolbar and YouTube views match the window after setSize, maximize and unmaximize", evidence: ["s2"] },
 	{ area: "Window layout", check: "YouTube Music's HTML fullscreen fills the screen without the toolbar and restores on exit", evidence: ["s3"] },
 	{ area: "Window layout", check: "HTML fullscreen started from a maximized window returns to maximized", evidence: ["s3b"] },
+	{ area: "Window layout", check: "Quitting during HTML fullscreen saves the pre-fullscreen state: a maximized window relaunches maximized, a 1200x700 one at 1200x700", evidence: ["s14", "s14b"] },
 	{ area: "Themes / performance", check: "The player page uses a pre-blurred artwork with no full-page backdrop-filter or blur() by default", evidence: ["s4"] },
 	{ area: "Themes / performance", check: "themes.glass restores the full-page backdrop-filter", evidence: ["s4b"] },
 	{ area: "Performance", check: "Home idle CPU over 10 s is measured and recorded", evidence: ["p1"] },
