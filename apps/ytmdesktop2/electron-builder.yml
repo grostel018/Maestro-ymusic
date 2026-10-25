@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/electron-userland/electron-builder/refs/heads/master/packages/app-builder-lib/scheme.json
 
-appId: net.venipa.ytmdesktop
-productName: YouTube Music for Desktop
+appId: com.ytmdesktop2.plus
+productName: YTMDesktop2 Plus
 extraMetadata:
   name: YouTube Music for Desktop
 directories:
@@ -26,9 +26,9 @@ asarUnpack:
   - "**/*.icns"
   - "**/assets/**"
 protocols:
-  - name: YouTube Music for Desktop
+  - name: YTMDesktop2 Plus
     schemes:
-      - ytmd
+      - ytmdplus
 win:
   executableName: ytmdesktop
   artifactName: ${name}-${version}-setup.${ext}
@@ -93,7 +93,7 @@ linux:
   category: AudioVideo
   icon: build/icon.icns
   mimeTypes:
-    - x-scheme-handler/ytmd
+    - x-scheme-handler/ytmdplus
 rpm:
   # RPM names cannot contain spaces (extraMetadata.name is the product title).
   packageName: ytmdesktop2

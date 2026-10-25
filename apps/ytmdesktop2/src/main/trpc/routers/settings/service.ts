@@ -7,6 +7,7 @@ import { createYmlStore } from "@main/lib/store/createYmlStore";
 import type { ThemesConfig } from "@main/trpc/routers/themes/types";
 import { trackService } from "@main/trpc/routers/track";
 import eventNames from "@shared/constants/eventNames";
+import { FORK } from "@shared/fork";
 import { VideoResSetting } from "@shared/utils/ISettings";
 import { App, IpcMainEvent, IpcMainInvokeEvent } from "electron";
 import { Migration } from "electron-conf";
@@ -23,7 +24,7 @@ const defaultSettings = {
 	},
 	app: {
 		channel: "stable" as "stable" | "beta" | "alpha",
-		autoupdate: true,
+		autoupdate: FORK.updatesEnabled as boolean,
 		autostart: true,
 		autostartMinimized: true,
 		getstarted: true,

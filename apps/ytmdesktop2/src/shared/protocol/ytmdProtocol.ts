@@ -1,3 +1,5 @@
+import { FORK } from "@shared/fork";
+
 /** Parsed `ytmd://` deep link. */
 export type YtmdParsed =
 	| { type: "watch"; videoId: string; playlistId?: string }
@@ -9,7 +11,8 @@ const INTEGRATION_PROVIDERS = new Set(["lastfm"]);
 
 /** `ytmd://` share / deep-link helpers (shared main + renderer). */
 export class YtmdLink {
-	static readonly scheme = "ytmd";
+	static readonly scheme = FORK.scheme;
+	private static readonly schemeRe = new RegExp(`^${FORK.scheme}://`, "i");
 
 	private static readonly videoIdRe = /^[A-Za-z0-9_-]{11}$/;
 	private static readonly playlistIdRe = /^[A-Za-z0-9_-]{2,128}$/;
@@ -93,7 +96,7 @@ export class YtmdLink {
 	 */
 	static resolve(url: string): YtmdParsed | null {
 		const raw = YtmdLink.unquote(url);
-		if (/^ytmd:\/\//i.test(raw)) return YtmdLink.parse(raw);
+		if (YtmdLink.schemeRe.test(raw)) return YtmdLink.parse(raw);
 		const asYtmd = YtmdLink.fromHttps(raw);
 		return asYtmd ? YtmdLink.parse(asYtmd) : null;
 	}
@@ -105,7 +108,7 @@ export class YtmdLink {
 	 */
 	static parse(url: string): YtmdParsed | null {
 		const raw = YtmdLink.unquote(url);
-		if (!/^ytmd:\/\//i.test(raw)) return null;
+		if (!YtmdLink.schemeRe.test(raw)) return null;
 
 		let parsed: URL;
 		try {
@@ -177,7 +180,7 @@ export class YtmdLink {
 		for (const arg of argv) {
 			if (typeof arg !== "string") continue;
 			const cleaned = YtmdLink.unquote(arg);
-			if (/^ytmd:\/\//i.test(cleaned)) return cleaned;
+			if (YtmdLink.schemeRe.test(cleaned)) return cleaned;
 		}
 		return null;
 	}

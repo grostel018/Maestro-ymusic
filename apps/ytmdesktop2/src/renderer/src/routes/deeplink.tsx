@@ -1,8 +1,9 @@
-import { Button } from "@/components/ui/button";
-import { useWindowControls } from "@/hooks/use-window-controls";
+import { FORK } from "@shared/fork";
 import { createFileRoute } from "@tanstack/react-router";
 import { ListMusicIcon, ListPlusIcon, PlayIcon, UserIcon, XIcon } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { useWindowControls } from "@/hooks/use-window-controls";
 
 export const Route = createFileRoute("/deeplink")({
 	component: DeeplinkPage,
@@ -18,7 +19,7 @@ function DeeplinkPage() {
 	const playlistId = params.get("playlistId");
 	const channelId = params.get("channelId");
 	const handle = params.get("handle");
-	const shareUrl = params.get("url") ?? "ytmd://";
+	const shareUrl = params.get("url") ?? `${FORK.scheme}://`;
 	const { dialogResponse } = useWindowControls();
 
 	function choose(action: "play" | "queue" | "open" | "close") {

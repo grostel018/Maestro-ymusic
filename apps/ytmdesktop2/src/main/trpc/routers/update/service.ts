@@ -5,9 +5,10 @@ import { isAppQuitting } from "@main/handlers/quitPolicy";
 import { isDevelopment, isProduction } from "@main/infra/devUtils";
 import SettingsProvider from "@main/trpc/routers/settings/service";
 import { createAppWindow } from "@main/windows/windowUtils";
+import { FORK } from "@shared/fork";
 import { cacheWithFile } from "@shared/utils/filecache";
-import { githubRepoFetch } from "@shared/utils/github";
 import type { GithubRelease } from "@shared/utils/github";
+import { githubRepoFetch } from "@shared/utils/github";
 import type { ProgressInfo, ReleaseNoteEntry, UpdateChannel, UpdateInfo } from "@shared/utils/updater";
 import {
 	electronUpdaterChannelFor,
@@ -378,6 +379,10 @@ export default class UpdateProvider extends BaseProvider implements BeforeStart,
 	}
 
 	BeforeStart() {
+		if (!FORK.updatesEnabled) {
+			this.logger.info("updates disabled for this fork");
+			return;
+		}
 		autoUpdater.logger = this.logger;
 		autoUpdater.setFeedURL({
 			provider: "github",
@@ -426,6 +431,7 @@ export default class UpdateProvider extends BaseProvider implements BeforeStart,
 	}
 
 	async AfterInit() {
+		if (!FORK.updatesEnabled) return;
 		this.settingsInstance.onSettingChange("app.channel", () => this.onChannelChanged(), { debounce: 250 });
 		this.settingsInstance.onSettingChange("app.autoupdate", (enabled) => this.onAutoUpdateToggled(!!enabled), {
 			debounce: 250,
@@ -571,6 +577,7 @@ export default class UpdateProvider extends BaseProvider implements BeforeStart,
 	}
 
 	async onCheckUpdate(options: { showDialog?: boolean; forceDialog?: boolean } = {}) {
+		if (!FORK.updatesEnabled) return null;
 		const showDialog = options.showDialog ?? true;
 		const forceDialog = options.forceDialog ?? false;
 		try {

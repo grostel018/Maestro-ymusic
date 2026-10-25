@@ -1,10 +1,10 @@
-import path from "node:path";
 import { is } from "@electron-toolkit/utils";
 import { Logger, logger } from "@shared/utils/console";
 import { ipcPromise } from "@shared/utils/ipcPromise";
 import { app, WebContentsView } from "electron";
 import { isProduction } from "./devUtils";
 import { attachAppLogging } from "./logging";
+import { resolveUserDataDir } from "./userDataPath";
 
 /** Linux .desktop / Wayland app_id. Must match electron-builder `appId` (GNOME portal rejects short ids). */
 export const LINUX_DESKTOP_ID = "net.venipa.ytmdesktop";
@@ -22,10 +22,10 @@ export function initializeCustomElectronEnvironment() {
 		app.setDesktopName(`${LINUX_DESKTOP_ID}.desktop`);
 	}
 
-	// Isolate dev from installed build - same userData = shared SingleInstanceLock -> silent app.exit().
+	// Isolate from the installed upstream app - same userData = shared SingleInstanceLock -> silent app.exit().
+	const userData = resolveUserDataDir({ isProduction, argv: process.argv, appData: app.getPath("appData") });
+	if (userData) app.setPath("userData", userData);
 	if (!isProduction) {
-		const appData = app.getPath("appData");
-		app.setPath("userData", path.join(appData, "ytmdesktop2-dev"));
 		app.commandLine.appendSwitch("disable-web-security");
 		app.commandLine.appendSwitch("disable-site-isolation-trials");
 		logger.info("dev env", { isDev: is.dev, userData: app.getPath("userData") });
