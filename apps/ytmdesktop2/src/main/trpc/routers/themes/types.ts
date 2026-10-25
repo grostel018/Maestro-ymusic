@@ -5,8 +5,10 @@ export interface ThemesConfig {
 	customFile: string | null;
 	watching: boolean;
 	thumbnailBackground?: boolean;
-	/** Glass / backdrop blur chrome (player page, bar, dialogs, thumbnail soften). */
+	/** Blur on the player bar, dialogs and menus. */
 	blur?: boolean;
+	/** Full-page glass (player page backdrop-filter and blur over the artwork); GPU heavy, off by default. */
+	glass?: boolean;
 }
 
 /** Legacy settings shape (pre-themes migration). */

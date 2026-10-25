@@ -89,6 +89,7 @@ const defaultSettings = {
 		watching: false,
 		thumbnailBackground: true,
 		blur: true,
+		glass: false,
 	} as ThemesConfig,
 	state: {
 		currentUrl: null,

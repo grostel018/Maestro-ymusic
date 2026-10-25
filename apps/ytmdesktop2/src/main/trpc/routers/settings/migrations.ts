@@ -194,6 +194,12 @@ const migrations: Omit<Migration<SettingsStore>, "version">[] = [
 			if (typeof current.lineBackground !== "boolean") store.set("lyrics.lineBackground", true);
 		},
 	},
+	{
+		hook(store) {
+			// Full-page glass became opt-in (it costs GPU every frame).
+			if (typeof (store.store as SettingsStore)?.themes?.glass !== "boolean") store.set("themes.glass", false);
+		},
+	},
 ];
 
 export default migrations;

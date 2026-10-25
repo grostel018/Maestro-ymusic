@@ -38,8 +38,11 @@ function ThemesSettingsPage() {
 				<FieldGroup>
 					<SettingsCheckbox configKey="themes.enabled">Enable Themes</SettingsCheckbox>
 					<SettingsCheckbox configKey="themes.thumbnailBackground">Enable Thumbnail Background</SettingsCheckbox>
-					<SettingsCheckbox configKey="themes.blur" description="Glass blur on player, bar, and dialogs. Turn off for better performance.">
+					<SettingsCheckbox configKey="themes.blur" description="Blur on the player bar, dialogs, and menus.">
 						Enable Blur
+					</SettingsCheckbox>
+					<SettingsCheckbox configKey="themes.glass" description="Blurs the whole player page behind the artwork. Looks richer, costs GPU every frame.">
+						Glass effect (uses more GPU)
 					</SettingsCheckbox>
 					{enabled && !enabledPending && (
 						<>

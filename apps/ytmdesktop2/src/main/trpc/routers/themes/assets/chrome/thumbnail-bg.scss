@@ -1,8 +1,10 @@
-// Thumbnail background (blur lives in chrome/blur.scss via themes.blur)
+// Thumbnail background (full-page glass over it lives in chrome/glass.scss via themes.glass)
 
 ytmusic-player-page:not([is-mweb-modernization-enabled]) .content.ytmusic-player-page:before {
   content: "";
-  background-image: var(--ytmd-thumbnail-url);
+  // Tiny pre-blurred copy made in the page (track-theme renderer); falls back to the full artwork.
+  background-image: var(--ytmd-thumbnail-blur-url, var(--ytmd-thumbnail-url));
+  image-rendering: auto;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -11,7 +13,7 @@ ytmusic-player-page:not([is-mweb-modernization-enabled]) .content.ytmusic-player
   mix-blend-mode: exclusion;
   border-radius: 8px;
   overflow: hidden;
-  transform: translate3d(0, 0, 1px) scale(1.1);
+  transform: translateZ(0) scale(1.1);
   position: absolute;
   top: -12px;
   left: calc(var(--ytmusic-guide-width) * -1);

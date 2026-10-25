@@ -2,6 +2,7 @@ import { AfterInit, BaseProvider } from "@main/core/baseProvider";
 import { onMusicReload } from "@main/lifecycle";
 import SettingsProvider from "@main/trpc/routers/settings/service";
 import chromeBlurScss from "@main/trpc/routers/themes/assets/chrome/blur.scss?raw";
+import chromeGlassScss from "@main/trpc/routers/themes/assets/chrome/glass.scss?raw";
 import chromeScrollbarScss from "@main/trpc/routers/themes/assets/chrome/scrollbar.scss?raw";
 import chromeThumbnailScss from "@main/trpc/routers/themes/assets/chrome/thumbnail-bg.scss?raw";
 import type { App } from "electron";
@@ -23,6 +24,7 @@ export default class ThemesProvider extends BaseProvider implements AfterInit {
 	private chromeCss: string | null = null;
 	private thumbnailCss: string | null = null;
 	private blurCss: string | null = null;
+	private glassCss: string | null = null;
 	private readonly DEBOUNCE_DELAY = 1000;
 	private reapplyChain: Promise<void> = Promise.resolve();
 
@@ -47,6 +49,7 @@ export default class ThemesProvider extends BaseProvider implements AfterInit {
 				watching: false,
 				thumbnailBackground: true,
 				blur: true,
+				glass: false,
 			}
 		);
 	}
@@ -72,6 +75,9 @@ private boundWebContentsId: number | null = null;
 		}
 		if (!this.blurCss) {
 			this.blurCss = await this.compiler.compileString(chromeBlurScss, "chrome:blur");
+		}
+		if (!this.glassCss) {
+			this.glassCss = await this.compiler.compileString(chromeGlassScss, "chrome:glass");
 		}
 	}
 
@@ -174,6 +180,10 @@ private boundWebContentsId: number | null = null;
 					await injector.inject("blur", this.blurCss);
 				}
 
+				if (config.glass && this.glassCss) {
+					await injector.inject("glass", this.glassCss);
+				}
+
 				if (config.enabled) await this.updateTheme();
 			});
 		return this.reapplyChain;
@@ -185,9 +195,16 @@ private boundWebContentsId: number | null = null;
 		await this.ensureChromeCompiled();
 		if (enabled && this.thumbnailCss) await injector.inject("thumbnail", this.thumbnailCss);
 		else await injector.clear("thumbnail");
-		// Blur softens thumbnail ::before — re-inject after so filter wins cascade.
-		const blurOn = this.getConfig().blur ?? true;
-		if (blurOn) await this.applyBlur(true);
+		// Glass filters the thumbnail ::before — re-inject after so its filter wins the cascade.
+		if (this.getConfig().glass) await this.applyGlass(true);
+	}
+
+	private async applyGlass(enabled: boolean): Promise<void> {
+		const injector = this.getInjector();
+		if (!injector) return;
+		await this.ensureChromeCompiled();
+		if (enabled && this.glassCss) await injector.inject("glass", this.glassCss);
+		else await injector.clear("glass");
 	}
 
 	private async applyBlur(enabled: boolean): Promise<void> {
@@ -209,6 +226,11 @@ private boundWebContentsId: number | null = null;
 
 		if (key === "themes.blur") {
 			await this.applyBlur(!!config.blur);
+			return;
+		}
+
+		if (key === "themes.glass") {
+			await this.applyGlass(!!config.glass);
 			return;
 		}
 
@@ -256,7 +278,7 @@ private boundWebContentsId: number | null = null;
 		await this.ensureChromeCompiled();
 
 		this.settingsInstance.onSettingChange(
-			["themes.enabled", "themes.selected", "themes.customFile", "themes.watching", "themes.thumbnailBackground", "themes.blur"],
+			["themes.enabled", "themes.selected", "themes.customFile", "themes.watching", "themes.thumbnailBackground", "themes.blur", "themes.glass"],
 			(value, prev, key) => void this.onThemesSettingChange(value, prev, key),
 			{ debounce: 1000 },
 		);
