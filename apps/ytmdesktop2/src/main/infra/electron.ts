@@ -5,7 +5,7 @@ import { ipcPromise } from "@shared/utils/ipcPromise";
 import { app, WebContentsView } from "electron";
 import { isProduction } from "./devUtils";
 import { attachAppLogging } from "./logging";
-import { resolveUserDataDir } from "./userDataPath";
+import { applyUserDataDir } from "./userDataBootstrap";
 
 /** Linux .desktop / Wayland app_id. Must match electron-builder `appId` (GNOME portal rejects short ids). */
 export const LINUX_DESKTOP_ID = FORK.appId;
@@ -24,8 +24,8 @@ export function initializeCustomElectronEnvironment() {
 	}
 
 	// Isolate from the installed upstream app - same userData = shared SingleInstanceLock -> silent app.exit().
-	const userData = resolveUserDataDir({ isProduction, argv: process.argv, appData: app.getPath("appData") });
-	if (userData) app.setPath("userData", userData);
+	// Normally already applied by the first import of main.ts, before any store module was evaluated.
+	applyUserDataDir();
 	if (!isProduction) {
 		app.commandLine.appendSwitch("disable-web-security");
 		app.commandLine.appendSwitch("disable-site-isolation-trials");

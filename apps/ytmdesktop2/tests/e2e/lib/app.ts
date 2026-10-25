@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { type CdpSession, connect, listTargets } from "./cdp.ts";
-import { seedProfile } from "./profile.ts";
+import { seedProfile, writeSettings } from "./profile.ts";
 import { sleep, waitFor } from "./wait.ts";
 
 export const PORTS = { cdp: 9361, inspect: 9362 };
@@ -23,6 +23,8 @@ export type TestApp = {
 	view(match: "youtube" | "toolbar" | RegExp): Promise<CdpSession>;
 	profileDir: string;
 	workDir: string;
+	/** Quits through `app.quit()` (window close handlers run, state is saved) and waits for the process to exit. */
+	quit(): Promise<void>;
 	close(): Promise<void>;
 };
 
@@ -32,12 +34,20 @@ export type Scenario = {
 	title: string;
 	/** Needs the signed-in bench profile (`E2E_PROFILE=signed-in`); skipped otherwise. */
 	account?: boolean;
-	/** Options for the app launched for this scenario. */
-	launch?: LaunchOptions;
+	/** Options for the app launched for this scenario; a function is called when the scenario starts. */
+	launch?: LaunchOptions | (() => LaunchOptions);
 	run: (t: TestApp) => Promise<void>;
 };
 
-export type LaunchOptions = { extraArgs?: string[]; settings?: Record<string, unknown> };
+export type LaunchOptions = {
+	extraArgs?: string[];
+	settings?: Record<string, unknown>;
+	/** Reuse this profile folder (e.g. a relaunch) instead of a new `profile-N`; the settings are merged into it. */
+	profileDir?: string;
+	/** `false` launches without `--user-data-dir` (the app picks its own folder); isolate it with `env.YTMD_E2E_APPDATA`. */
+	userDataFlag?: boolean;
+	env?: Record<string, string>;
+};
 
 let workDir: string | null = null;
 let launches = 0;
@@ -96,13 +106,15 @@ async function rejectConsent(): Promise<boolean> {
 export async function launchApp(opts: LaunchOptions = {}): Promise<TestApp> {
 	const work = getWorkDir();
 	const n = ++launches;
-	const profileDir = path.join(work, `profile-${n}`);
-	seedProfile(profileDir, opts.settings);
+	const profileDir = opts.profileDir ?? path.join(work, `profile-${n}`);
+	if (opts.profileDir && fs.existsSync(profileDir)) writeSettings(profileDir, opts.settings);
+	else seedProfile(profileDir, opts.settings);
 	const logFd = fs.openSync(path.join(work, `electron-${n}.log`), "w");
+	const userDataArgs = opts.userDataFlag === false ? [] : [`--user-data-dir=${profileDir}`];
 	const proc: ChildProcess = spawn(
 		ELECTRON,
-		[APP_DIR, `--user-data-dir=${profileDir}`, `--remote-debugging-port=${PORTS.cdp}`, `--inspect=${PORTS.inspect}`, ...(opts.extraArgs ?? [])],
-		{ env: { ...process.env, YTMD_E2E: "1" }, stdio: ["ignore", logFd, logFd] },
+		[APP_DIR, ...userDataArgs, `--remote-debugging-port=${PORTS.cdp}`, `--inspect=${PORTS.inspect}`, ...(opts.extraArgs ?? [])],
+		{ env: { ...process.env, ...opts.env, YTMD_E2E: "1" }, stdio: ["ignore", logFd, logFd] },
 	);
 	fs.closeSync(logFd);
 	let exited = false;
@@ -141,6 +153,16 @@ export async function launchApp(opts: LaunchOptions = {}): Promise<TestApp> {
 			const s = await connect(target.webSocketDebuggerUrl);
 			sessions.push(s);
 			return s;
+		},
+		async quit() {
+			if (!exited) {
+				await app.mainEval("process.mainModule.require('electron').app.quit()").catch(() => {
+					// the inspector closes as the process exits
+				});
+				await Promise.race([exitPromise, sleep(15000)]);
+				if (!exited) throw new Error("the app did not exit within 15 s of app.quit()");
+			}
+			await app.close();
 		},
 		async close() {
 			for (const s of sessions.splice(0)) s.close();

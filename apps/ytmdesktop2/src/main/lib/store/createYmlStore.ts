@@ -1,4 +1,5 @@
 import path from "node:path";
+import { findFilesOutside } from "@main/infra/userDataPath";
 import slugify, { type SlugifyOptions } from "@shared/slug";
 import { base64 } from "@shared/utils/base64";
 import { logger } from "@shared/utils/console";
@@ -15,14 +16,28 @@ const slugifyOptions = {
 	trim: true,
 	remove: /[*+~.()'"!:@]/g,
 } as SlugifyOptions;
-const getStoreUserData = () => app.getPath("userData");
-if (!statSync(getStoreUserData(), { throwIfNoEntry: false })) mkdirSync(getStoreUserData(), { recursive: true });
-logger.debug("getStoreUserData", getStoreUserData());
+const getStoreUserData = () => {
+	const dir = app.getPath("userData");
+	if (!statSync(dir, { throwIfNoEntry: false })) mkdirSync(dir, { recursive: true });
+	return dir;
+};
+/** Every file a store or encryptor of this module opened, for the startup check against userData. */
+const storeFiles: string[] = [];
+const track = <S extends { fileName: string }>(store: S): S => {
+	storeFiles.push(store.fileName);
+	return store;
+};
+
+/** Store and key files that are not directly in the current userData (each one is a profile leak). */
+export function findStoreFilesOutsideUserData(): string[] {
+	return findFilesOutside(storeFiles, app.getPath("userData"));
+}
 /** Persistent secret for a named encryptor (key file next to userData). */
 export function getOrCreateEncryptionSecret(name: string): string {
 	const encryptionKeyPath = path.join(getStoreUserData(), slugify(name, slugifyOptions) + ".key");
   const storeMasterSecret = base64.encode(name.padStart(32, "0"));
 	const enc = new Encryption({ secret: storeMasterSecret }); // secret requires 32 characters
+	storeFiles.push(encryptionKeyPath);
 	if (!existsSync(encryptionKeyPath)) writeFileSync(encryptionKeyPath, enc.encrypt({ name, secret: generateRandom(32) }));
 	const encryptionKey = readFileSync(encryptionKeyPath).toString("utf8");
 	const payload = enc.decrypt<{ name: string; secret: string }>(encryptionKey);
@@ -37,7 +52,8 @@ export function createEncryption(name: string, algorithm: "aes-256-gcm" | "aes-2
 
 
 export const createYmlStore = <T extends Record<string, any> = Record<string, any>>(name: string, options: Options<T> = {} as Options<T>) =>
-	new Store<T>({
+	track(new Store<T>({
+		dir: getStoreUserData(),
 		ext: ".yml",
 		...options,
 		serializer: {
@@ -49,11 +65,12 @@ export const createYmlStore = <T extends Record<string, any> = Record<string, an
 			},
 		},
 		name,
-	});
+	}));
 
 export const createEncryptedStore = <T extends Record<string, any> = Record<string, any>>(name: string, options: Options<T> = {} as Options<T>) => {
 	const storeEncryptor = createEncryption(name, "aes-256-cbc");
-	return new Store<T>({
+	return track(new Store<T>({
+		dir: getStoreUserData(),
 		ext: ".ytm",
 		...options,
 		serializer: {
@@ -76,5 +93,5 @@ export const createEncryptedStore = <T extends Record<string, any> = Record<stri
 			},
 		},
 		name,
-	});
+	}));
 };

@@ -1,3 +1,6 @@
+// Must stay the first import: sets userData before any module below opens a store (see userDataBootstrap.ts).
+import "@main/infra/userDataBootstrap";
+
 import { createEventCollection, createServiceCollection } from "@main/core/serviceCollection";
 import { attachQuitHandler } from "@main/handlers/quitHandler";
 import { isAppQuitting } from "@main/handlers/quitPolicy";
@@ -5,6 +8,7 @@ import { attachTrayState } from "@main/handlers/trayState";
 import { initializeCustomElectronEnvironment } from "@main/infra/electron";
 import { exposeTestHooks } from "@main/infra/testHooks";
 import { serverMain } from "@main/ipc/serverEvents";
+import { findStoreFilesOutsideUserData } from "@main/lib/store/createYmlStore";
 import { runLifecycle, setLifecycleContext } from "@main/lifecycle";
 import { thumbnailCache } from "@main/services/thumbnailCache";
 import { attachTrpcWindow, initElectronTrpc } from "@main/trpc/handler";
@@ -118,6 +122,9 @@ const runApp = async function () {
 		}
 		log.debug(`adblock attach took ${Date.now() - adblockStart} ms`);
 		mainWindow = await windowManager.createRootWindow();
+		const strayStores = findStoreFilesOutsideUserData();
+		if (strayStores.length) log.error(`store files outside userData ${app.getPath("userData")}`, strayStores);
+		else log.debug(`every store file is in userData ${app.getPath("userData")}`);
 		attachTrpcWindow(mainWindow.main);
 		serviceCollection.registerWindows(mainWindow);
 		setLifecycleContext({

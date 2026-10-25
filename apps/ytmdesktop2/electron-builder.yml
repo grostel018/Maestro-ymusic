@@ -2,8 +2,11 @@
 
 appId: com.ytmdesktop2.plus
 productName: YTMDesktop2 Plus
+# Packaged package.json identity: Electron derives the default userData folder from it, so it must never match
+# the installed upstream app (%APPDATA%\YouTube Music for Desktop). Keep in sync with src/shared/fork.ts.
 extraMetadata:
-  name: YouTube Music for Desktop
+  name: ytmdesktop2-plus
+  productName: YTMDesktop2 Plus
 directories:
   buildResources: build
 files:
@@ -95,7 +98,7 @@ linux:
   mimeTypes:
     - x-scheme-handler/ytmdplus
 rpm:
-  # RPM names cannot contain spaces (extraMetadata.name is the product title).
+  # RPM names cannot contain spaces.
   packageName: ytmdesktop2
   artifactName: ytmdesktop2-${version}.${arch}.${ext}
   maintainer: "Venipa <admin@venipa.net>"

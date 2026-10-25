@@ -2,6 +2,8 @@
 export const FORK = {
 	appId: "com.ytmdesktop2.plus",
 	productName: "YTMDesktop2 Plus",
+	/** electron-builder `extraMetadata.name` of the packaged app. */
+	packageName: "ytmdesktop2-plus",
 	userDataName: "ytmdesktop2-plus",
 	scheme: "ytmdplus",
 	updatesEnabled: false,
