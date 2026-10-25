@@ -19,7 +19,8 @@ const scenarios: Scenario[] = args.includes("--perf") ? perf : boot;
 const only = args.filter((a) => !a.startsWith("--")).map((a) => a.toLowerCase());
 
 fs.mkdirSync(RESULTS, { recursive: true });
-const LOG = path.join(RESULTS, "last-suite.log");
+// functional (sNN) and perf (pNN) runs keep separate logs so one does not erase the other; verify.ts reads both
+const LOG = path.join(RESULTS, args.includes("--perf") ? "last-perf.log" : "last-suite.log");
 fs.writeFileSync(LOG, "");
 function log(...parts: unknown[]) {
 	const line = parts.map(String).join(" ");
