@@ -10,6 +10,7 @@ const EMIT_ALLOWLIST = new Set<string>([
 	"track:title-change",
 	"app.loadEnd",
 	"nav:queue-change",
+	"adblock:skipped",
 ]);
 
 /** Channels page-world `ytmd.on` may subscribe to. */

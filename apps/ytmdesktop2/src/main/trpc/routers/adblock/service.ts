@@ -1,6 +1,7 @@
 import path from "node:path";
 import type { ElectronBlocker } from "@ghostery/adblocker-electron";
 import { BaseProvider, OnDestroy } from "@main/core/baseProvider";
+import { serverMain } from "@main/ipc/serverEvents";
 import { app, net, type Session } from "electron";
 import { debounce } from "lodash-es";
 import { loadEngine } from "./engine";
@@ -8,6 +9,8 @@ import { loadEngine } from "./engine";
 const RETRY_MS = 60 * 60 * 1000;
 const PERSIST_MS = 10_000;
 const FETCH_TIMEOUT_MS = 30_000;
+/** Page event from the fallback skipper: one handled ad. */
+const SKIPPED_EVENT = "adblock:skipped";
 const TOGGLE_KEYS = ["adblock", "adblock.enabled", "adblock.network"];
 
 /**
@@ -27,6 +30,7 @@ export default class AdblockProvider extends BaseProvider implements OnDestroy {
 
 	constructor() {
 		super("adblock");
+		serverMain.on(SKIPPED_EVENT, () => this.onBlocked());
 	}
 
 	private get settings() {

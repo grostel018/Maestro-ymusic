@@ -62,4 +62,48 @@ export const scenarios: Scenario[] = [
 			if (adSamples) throw new Error(`#movie_player had ad-showing in ${adSamples} of ${samples} samples`);
 		},
 	},
+	{
+		id: "s7",
+		title: "Fallback skipper: ad-showing mutes the video at 16x within 1 s and removing it restores both",
+		launch: { settings: { adblock: { enabled: true, network: true, prune: true, fallback: true, hideUpsells: true, stats: { total: 0 } } } },
+		run: async (t) => {
+			const yt = await t.view("youtube");
+			await play(t);
+			const read = () => yt.eval<{ muted: boolean; rate: number }>("(() => { const v = document.querySelector('video'); return { muted: v.muted, rate: v.playbackRate }; })()");
+			const before = await read();
+			const statsBefore = await t.mainEval<{ session: number }>(STATS);
+			await yt.eval("document.querySelector('#movie_player').classList.add('ad-showing')");
+			const startedAt = Date.now();
+			await waitFor(async () => {
+				const s = await read();
+				return (s.muted === true && s.rate === 16) || false;
+			}, 1000, "the video muted at 16x within 1 s of ad-showing");
+			const sped = Date.now() - startedAt;
+			await yt.eval("document.querySelector('#movie_player').classList.remove('ad-showing')");
+			await waitFor(async () => {
+				const s = await read();
+				return (s.muted === before.muted && s.rate === before.rate) || false;
+			}, 1000, "muted and playbackRate restored within 1 s of ad-showing leaving");
+			const statsAfter = await t.mainEval<{ session: number }>(STATS);
+			console.log(`  s7: before ${JSON.stringify(before)}, muted at 16x after ${sped} ms, restored, skipped counted +${statsAfter.session - statsBefore.session}`);
+			if (!(statsAfter.session > statsBefore.session)) throw new Error(`stats.session did not rise (${statsBefore.session} -> ${statsAfter.session})`);
+		},
+	},
+	{
+		id: "s8",
+		title: "Upsell hiding: promo and enforcement elements are display none, visible once hideUpsells is off",
+		launch: { settings: { adblock: { enabled: true, network: true, prune: true, fallback: true, hideUpsells: true, stats: { total: 0 } } } },
+		run: async (t) => {
+			await waitFor(async () => (await t.mainEval<boolean>("!!globalThis.__YTMD_TEST__?.getMainWindow()?.views?.youtubeView")) || false, 60000, "the test hooks and main window");
+			const yt = await t.view("youtube");
+			await waitFor(async () => (await yt.eval<boolean>("!!document.querySelector('ytmusic-app')")) || false, 60000, "ytmusic-app");
+			const TAGS = ["ytmusic-mealbar-promo-renderer", "ytmusic-enforcement-message-view-model"];
+			await yt.eval(`(() => { for (const tag of ${JSON.stringify(TAGS)}) { const e = document.createElement(tag); e.id = 'ytmd-test-' + tag; e.textContent = 'x'; document.querySelector('ytmusic-app').appendChild(e); } })()`);
+			const displays = () => yt.eval<string[]>(`${JSON.stringify(TAGS)}.map((tag) => getComputedStyle(document.getElementById('ytmd-test-' + tag)).display)`);
+			await waitFor(async () => ((await displays()).every((d) => d === "none")) || false, 3000, "upsell elements to be display none");
+			await t.mainEval("__YTMD_TEST__.services.getProvider('settings').set('adblock.hideUpsells', false) && undefined");
+			await waitFor(async () => ((await displays()).every((d) => d !== "none")) || false, 3000, "upsell elements to show with hideUpsells off");
+			console.log(`  s8: hidden while on, shown after hideUpsells=false (${(await displays()).join(", ")})`);
+		},
+	},
 ];

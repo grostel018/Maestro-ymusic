@@ -26,4 +26,6 @@ export const CHECKS: Check[] = [
 	{ area: "Bench", check: "Settings seeded through launchApp survive startup migrations", evidence: ["s13"] },
 	{ area: "Ad block", check: "Ad and tracker requests fail with ERR_BLOCKED_BY_CLIENT, the blocked count rises and playback advances", evidence: ["s5"] },
 	{ area: "Ad block", check: "Ad payloads are pruned from YouTube's responses: no ad keys in the player response and no ad shows for 60 s", evidence: ["s6"] },
+	{ area: "Ad block", check: "An ad-showing player is muted at 16x within 1 s and both are restored when the ad ends, counted as skipped", evidence: ["s7"] },
+	{ area: "Ad block", check: "Premium upsell elements are hidden while hideUpsells is on and shown when it is off", evidence: ["s8"] },
 ];
