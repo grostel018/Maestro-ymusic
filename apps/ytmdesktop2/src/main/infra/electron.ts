@@ -1,4 +1,5 @@
 import { is } from "@electron-toolkit/utils";
+import { FORK } from "@shared/fork";
 import { Logger, logger } from "@shared/utils/console";
 import { ipcPromise } from "@shared/utils/ipcPromise";
 import { app, WebContentsView } from "electron";
@@ -7,7 +8,7 @@ import { attachAppLogging } from "./logging";
 import { resolveUserDataDir } from "./userDataPath";
 
 /** Linux .desktop / Wayland app_id. Must match electron-builder `appId` (GNOME portal rejects short ids). */
-export const LINUX_DESKTOP_ID = "net.venipa.ytmdesktop";
+export const LINUX_DESKTOP_ID = FORK.appId;
 
 let isInitialized = false;
 
