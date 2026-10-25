@@ -1,5 +1,8 @@
 // Ad block: the network layer (Ghostery engine on the default session) blocks ad and tracker requests (s5);
 // the prune layer strips ad payloads from YouTube's responses in the page before the player reads them (s6).
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Scenario } from "../lib/app.ts";
 import { AD_SHOWING, play } from "../lib/perf.ts";
 import { sleep, waitFor } from "../lib/wait.ts";
@@ -111,6 +114,42 @@ export const scenarios: Scenario[] = [
 			await t.mainEval("__YTMD_TEST__.services.getProvider('settings').set('adblock.hideUpsells', false) && undefined");
 			await waitFor(async () => ((await displays()).every((d) => d !== "none")) || false, 3000, "upsell elements to show with hideUpsells off");
 			console.log(`  s8: hidden while on, shown after hideUpsells=false (${(await displays()).join(", ")})`);
+		},
+	},
+	{
+		id: "s12",
+		title: "Settings page: the five ad block switches show the seeded values and the stats line renders",
+		launch: { settings: { adblock: { enabled: true, network: true, prune: false, fallback: true, hideUpsells: false, stats: { total: 7 } } } },
+		run: async (t) => {
+			await waitFor(async () => (await t.mainEval<boolean>("!!globalThis.__YTMD_TEST__?.getMainWindow()?.views?.youtubeView")) || false, 60000, "the test hooks and main window");
+			await t.mainEval("__YTMD_TEST__.services.getProvider('app').openSettingsWindow().then(() => true)");
+			// the settings window is a hash-routed page of the renderer; the toolbar view lives under #/youtube/
+			const page = await t.view(/#\/(?!youtube)/);
+			await page.eval("location.hash = '#/player/adblock'");
+			const labels = ["Block ads", "Block ad servers", "Remove ads from YouTube responses", "Skip ads that slip through", "Hide Premium pop-ups"];
+			const READ = `(() => {
+				const out = {};
+				for (const f of document.querySelectorAll('[data-slot="field"]')) {
+					const sw = f.querySelector('[role="switch"]');
+					if (sw && !sw.disabled) out[f.querySelector('label')?.textContent.trim() ?? ''] = sw.getAttribute('aria-checked') === 'true';
+				}
+				return out;
+			})()`;
+			await waitFor(async () => (Object.keys(await page.eval<Record<string, boolean>>(READ)).length >= labels.length) || false, 15000, "the five ad block switches to load their values");
+			await waitFor(async () => (Number(/All time: (\d+)/.exec(await page.eval<string>("document.body.innerText"))?.[1] ?? 0) >= 7) || false, 15000, "the stats line to show an all-time total of at least the seeded 7");
+			const seen = await page.eval<Record<string, boolean>>(READ);
+			const want: Record<string, boolean> = { "Block ads": true, "Block ad servers": true, "Remove ads from YouTube responses": false, "Skip ads that slip through": true, "Hide Premium pop-ups": false };
+			const wrong = labels.filter((l) => seen[l] !== want[l]);
+			const text = await page.eval<string>("document.body.innerText");
+			const stats = /Blocked this session: \d+ · All time: \d+/.exec(text)?.[0];
+			const badges = (text.match(/Restart required/g) ?? []).length;
+			const shot = (await page.call("Page.captureScreenshot", { format: "png" })) as { data: string };
+			const file = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "results", "s12-adblock-settings.png");
+			fs.writeFileSync(file, Buffer.from(shot.data, "base64"));
+			console.log(`  s12: switches ${JSON.stringify(seen)}, stats "${stats}", ${badges} restart badges, screenshot ${file}`);
+			if (wrong.length) throw new Error(`switches differ from the seeded values: ${wrong.join(", ")}`);
+			if (!stats) throw new Error(`no "Blocked this session: N" stats line in: ${text.slice(0, 300)}`);
+			if (badges !== 2) throw new Error(`expected 2 "Restart required" badges, saw ${badges}`);
 		},
 	},
 ];

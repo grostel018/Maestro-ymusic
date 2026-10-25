@@ -17,6 +17,7 @@ import {
 	RiQrCodeLine,
 	RiServerLine,
 	RiSettings3Line,
+	RiShieldCheckLine,
 	RiShieldKeyholeLine,
 } from "@remixicon/react";
 import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
@@ -60,6 +61,7 @@ const tabs = {
 const playerSubs = [
 	{ to: "/player/general", label: "General", icon: RiMusic2Line },
 	{ to: "/player/lyrics", label: "Lyrics", icon: RiChatQuoteLine },
+	{ to: "/player/adblock", label: "Ad block", icon: RiShieldCheckLine },
 	{ to: "/player/shortcuts", label: "Shortcuts", icon: RiCommandLine },
 ] as const;
 
