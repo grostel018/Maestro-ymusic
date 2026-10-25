@@ -15,30 +15,51 @@ export function isEngineStale(mtimeMs: number, nowMs: number): boolean {
 /** The upsell CSS plugin is the cosmetic layer; Ghostery's cosmetic preload and observer stay off. */
 const COSMETIC_OFF = { loadCosmeticFilters: false };
 
+async function readCache(cachePath: string): Promise<ElectronBlocker | null> {
+	try {
+		return ElectronBlocker.deserialize(new Uint8Array(await fs.readFile(cachePath)));
+	} catch {
+		return null; // missing, corrupt, or written by another engine version
+	}
+}
+
+/** Writes to a temp file then renames over the cache, so a failed write never leaves a broken or missing cache. */
+async function writeCache(cachePath: string, data: Uint8Array): Promise<void> {
+	const tmp = `${cachePath}.${process.pid}.tmp`;
+	try {
+		await fs.mkdir(path.dirname(cachePath), { recursive: true });
+		await fs.writeFile(tmp, data);
+		await fs.rename(tmp, cachePath);
+	} catch (e) {
+		await fs.rm(tmp, { force: true }).catch(() => {});
+		log.warn(`ad-block engine cache not written: ${(e as Error)?.message ?? e}`);
+	}
+}
+
 /**
- * Loads the Ghostery ads-and-tracking engine from `cachePath`, or builds it from the prebuilt lists and
- * writes the cache. A stale cache is deleted first. Never throws: any failure resolves `null`.
+ * Loads the Ghostery ads-and-tracking engine from `cachePath`, or builds it from the lists and writes the cache.
+ * A stale cache (or one written with cosmetics on) is rebuilt; it is replaced only once the new engine is built and
+ * written, so a failed refresh keeps the old engine. Never throws: no engine at all resolves `null`.
  */
 export async function loadEngine(opts: { cachePath: string; fetchImpl: typeof fetch; now?: () => number }): Promise<ElectronBlocker | null> {
 	const now = opts.now ?? Date.now;
+	let cached: ElectronBlocker | null = null;
 	try {
 		const stat = await fs.stat(opts.cachePath).catch(() => null);
-		if (stat && isEngineStale(stat.mtimeMs, now())) await fs.rm(opts.cachePath, { force: true });
-		await fs.mkdir(path.dirname(opts.cachePath), { recursive: true });
-		const build = () =>
-			ElectronBlocker.fromLists((url: string) => opts.fetchImpl(url), adsAndTrackingLists, COSMETIC_OFF, {
-				path: opts.cachePath,
-				read: async (p) => new Uint8Array(await fs.readFile(p)),
-				write: (p, buffer) => fs.writeFile(p, buffer),
-			});
-		let blocker = await build();
-		if (blocker.config.loadCosmeticFilters !== false) {
-			// a cache written before cosmetics were turned off carries the old config
-			await fs.rm(opts.cachePath, { force: true });
-			blocker = await build();
-		}
-		return blocker;
+		cached = stat ? await readCache(opts.cachePath) : null;
+		const configOk = cached?.config.loadCosmeticFilters === false;
+		if (cached && stat && configOk && !isEngineStale(stat.mtimeMs, now())) return cached;
+		// an old cache stays usable as a fallback, with cosmetics forced off
+		if (cached && !configOk) (cached.config as { loadCosmeticFilters: boolean }).loadCosmeticFilters = false;
+
+		const fresh = await ElectronBlocker.fromLists((url: string) => opts.fetchImpl(url), adsAndTrackingLists, COSMETIC_OFF);
+		await writeCache(opts.cachePath, fresh.serialize());
+		return fresh;
 	} catch (e) {
+		if (cached) {
+			log.warn(`ad-block engine refresh failed, keeping the cached engine: ${(e as Error)?.message ?? e}`);
+			return cached;
+		}
 		log.warn(`ad-block engine failed to load: ${(e as Error)?.message ?? e}`);
 		return null;
 	}
