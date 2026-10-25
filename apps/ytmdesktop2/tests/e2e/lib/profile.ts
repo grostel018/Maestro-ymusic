@@ -33,7 +33,7 @@ const MIGRATIONS_FILE = path.join(import.meta.dirname, "..", "..", "..", "src", 
  * one replays them all over the seeded values. The count comes from migrations.ts (one `hook(` per entry).
  */
 export function currentMigrationVersion(): number {
-	const count = (fs.readFileSync(MIGRATIONS_FILE, "utf8").match(/^		hook\(/gm) ?? []).length;
+	const count = (fs.readFileSync(MIGRATIONS_FILE, "utf8").match(/^\s*hook\s*[(:]/gm) ?? []).length;
 	if (!count) throw new Error(`no migration hooks found in ${MIGRATIONS_FILE}`);
 	return count - 1;
 }
