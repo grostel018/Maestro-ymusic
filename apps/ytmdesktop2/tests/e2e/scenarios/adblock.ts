@@ -84,6 +84,13 @@ export const scenarios: Scenario[] = [
 				const s = await read();
 				return (s.muted === before.muted && s.rate === before.rate) || false;
 			}, 1000, "muted and playbackRate restored within 1 s of ad-showing leaving");
+			// second ad: YTM can swap the <video> element mid-ad, the replacement must be restored too
+			await yt.eval("document.querySelector('#movie_player').classList.add('ad-showing')");
+			await waitFor(async () => (await read()).muted || false, 1000, "the second ad muted");
+			await yt.eval(`(() => { const old = document.querySelector('video'); const n = old.cloneNode(false); n.id = 'ytmd-swapped'; old.after(n); old.remove(); n.playbackRate = 1.25; })()`);
+			await waitFor(async () => (await yt.eval<boolean>("(() => { const v = document.querySelector('video'); return v.id === 'ytmd-swapped' && v.muted && v.playbackRate === 16; })()")) || false, 1000, "the swapped video muted at 16x");
+			await yt.eval("document.querySelector('#movie_player').classList.remove('ad-showing')");
+			await waitFor(async () => (await yt.eval<boolean>("(() => { const v = document.querySelector('video'); return v.id === 'ytmd-swapped' && !v.muted && v.playbackRate === 1.25; })()")) || false, 1000, "the swapped video restored (unmuted, 1.25x)");
 			const statsAfter = await t.mainEval<{ session: number }>(STATS);
 			console.log(`  s7: before ${JSON.stringify(before)}, muted at 16x after ${sped} ms, restored, skipped counted +${statsAfter.session - statsBefore.session}`);
 			if (!(statsAfter.session > statsBefore.session)) throw new Error(`stats.session did not rise (${statsBefore.session} -> ${statsAfter.session})`);

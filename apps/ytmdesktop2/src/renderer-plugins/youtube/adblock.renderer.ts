@@ -33,14 +33,17 @@ const adblockRenderer: RendererPluginRegistration = {
 		let observed: Element | null = null;
 		let attachTimer: ReturnType<typeof setInterval> | null = null;
 		let pollTimer: ReturnType<typeof setInterval> | null = null;
-		let saved: { muted: boolean; rate: number } | null = null;
-		let video: HTMLVideoElement | null = null;
+		/** Pre-ad state of every <video> touched during the current ad (YTM may swap the element mid-ad). */
+		const saved = new Map<HTMLVideoElement, { muted: boolean; rate: number }>();
+		let adActive = false;
+		let stopped = false;
 
 		const fallbackOn = () => cfg.enabled !== false && cfg.fallback !== false;
 		const upsellOn = () => cfg.enabled !== false && cfg.hideUpsells !== false;
 
 		const applyUpsell = () => {
 			try {
+				if (stopped) return;
 				const existing = document.getElementById(STYLE_ID);
 				if (upsellOn()) {
 					if (existing) return;
@@ -56,14 +59,13 @@ const adblockRenderer: RendererPluginRegistration = {
 
 		const tickAd = () => {
 			try {
+				if (stopped) return;
 				const player = observed;
-				if (!player || !player.classList.contains(AD_CLASS) || !fallbackOn()) return endAd();
+				if (!player || !player.isConnected || !player.classList.contains(AD_CLASS) || !fallbackOn()) return onClassChange();
 				const v = document.querySelector("video");
 				if (!v) return;
-				if (!saved) {
-					video = v;
-					saved = { muted: v.muted, rate: v.playbackRate };
-				}
+				if (!saved.has(v)) saved.set(v, { muted: v.muted, rate: v.playbackRate });
+				adActive = true;
 				v.muted = true;
 				v.playbackRate = AD_RATE;
 				const btn = Array.from(document.querySelectorAll<HTMLElement>(SKIP_SELECTOR)).find(isVisible);
@@ -73,41 +75,48 @@ const adblockRenderer: RendererPluginRegistration = {
 			}
 		};
 
-		function endAd() {
+		/** Restores every touched <video>. `ended` is false when the fallback was switched off mid-ad. */
+		function endAd(ended: boolean) {
 			try {
 				if (pollTimer) clearInterval(pollTimer);
 				pollTimer = null;
-				if (saved) {
-					const v = video ?? document.querySelector("video");
-					if (v) {
-						v.muted = saved.muted;
-						v.playbackRate = saved.rate;
+				for (const [v, st] of saved) {
+					try {
+						v.muted = st.muted;
+						v.playbackRate = st.rate;
+					} catch (err) {
+						ctx.log.error("ad restore failed", err);
 					}
-					saved = null;
-					video = null;
-					ctx.ytmd?.emit(SKIPPED_EVENT);
 				}
+				saved.clear();
+				if (adActive && ended) ctx.ytmd?.emit(SKIPPED_EVENT);
+				adActive = false;
 			} catch (err) {
 				ctx.log.error("ad restore failed", err);
 			}
 		}
 
-		const onClassChange = () => {
+		function onClassChange() {
 			try {
-				const showing = !!observed?.classList.contains(AD_CLASS) && fallbackOn();
-				if (showing && !pollTimer) {
-					tickAd();
-					pollTimer = setInterval(tickAd, POLL_MS);
-				} else if (!showing) endAd();
+				if (stopped) return;
+				const adOn = !!observed?.isConnected && observed.classList.contains(AD_CLASS);
+				if (adOn && fallbackOn()) {
+					if (!pollTimer) {
+						pollTimer = setInterval(tickAd, POLL_MS);
+						tickAd();
+					}
+				} else if (pollTimer || saved.size) endAd(!adOn);
 			} catch (err) {
 				ctx.log.error("ad-showing handler failed", err);
 			}
-		};
+		}
 
 		const attach = () => {
 			try {
+				if (stopped) return;
 				const player = document.getElementById("movie_player");
 				if (!player || player === observed) return;
+				if (observed) endAd(true);
 				observer?.disconnect();
 				observed = player;
 				observer = new MutationObserver(onClassChange);
@@ -125,6 +134,7 @@ const adblockRenderer: RendererPluginRegistration = {
 			} catch (err) {
 				ctx.log.error("adblock settings read failed", err);
 			}
+			if (stopped) return;
 			applyUpsell();
 			onClassChange();
 		};
@@ -144,10 +154,13 @@ const adblockRenderer: RendererPluginRegistration = {
 		});
 
 		return () => {
+			stopped = true;
 			if (attachTimer) clearInterval(attachTimer);
 			offSettings?.();
 			observer?.disconnect();
-			endAd();
+			observer = null;
+			endAd(true);
+			observed = null;
 			document.getElementById(STYLE_ID)?.remove();
 		};
 	},
