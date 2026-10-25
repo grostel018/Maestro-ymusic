@@ -48,7 +48,7 @@ const lines = [
 	`Checked on ${date}. **${ok}/${CHECKS.length} verified.**`,
 	"",
 	"Every row is tied to evidence: an end-to-end scenario (`sNN`) or a perf scenario (`pNN`), run by `tests/e2e/run.ts` against the real built app. " +
-		"A row is ticked only when all of its evidence passed in the last run. Perf rows other than p7 mean \"measured and recorded\"; their numbers are in `tests/e2e/results/perf-*.json`. " +
+		"A row is ticked only when all of its evidence passed in the last run. Perf rows other than p7 mean \"measured and recorded\"; their numbers are in `tests/e2e/results/perf-*.json`, and a tick means \"measured\", not \"within budget\": budgets are judged in section 8 of the design spec. " +
 		"Regenerate with `pnpm verify` after each batch.",
 	"",
 	`Suite: ${anySummary ? `${sumPassed}/${sumTotal} passed` : "no summary found"}`,

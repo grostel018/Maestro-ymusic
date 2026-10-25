@@ -399,7 +399,7 @@ fullscreen:
 | p2 Player page playing, 10 s | frame time p95 (in-page rAF sampler) | ≤ 20 ms | 5.1 ms → 5.1 ms | Met (see caveat) |
 | p3 Same, maximized | frame time p95 | ≤ 20 ms | 5.1 ms → 5.1 ms | Met (see caveat) |
 | p3b Same, YTM HTML fullscreen (video) | frame time p95 | ≤ 20 ms | 5.1 ms → 5.1 ms | Met (see caveat) |
-| p4 Resize sweep (20 steps) | frames until views match window | ≤ 1 | avg 20.8 frames / 97.45 ms → avg 1.4 frames / 1.85 ms (max 4 frames / 2 ms) | Met on average; max 4 frames |
+| p4 Resize sweep (20 steps) | frames until views match window | ≤ 1 | avg 20.8 frames / 97.45 ms → avg 1.4 frames / 1.85 ms (max 4 frames / 2 ms) | Missed by frame count (avg 1.4, max 4); avg 1.85 ms is about 0.4 frame at 200 Hz |
 | p5 Enter/leave fullscreen | view bounds correct after | ≤ 1 frame | 104 ms / 110 ms → enter 2 ms (0 frames), leave 13 ms (1 frame) | Met |
 | p6 Minimized while paused, 60 s | total app CPU avg | < 1% | 0.28% → 0.28% | Met |
 | p7 Minimized while playing, 120 s | audio keeps playing (currentTime advances) | must pass | 49.39 s (measurement error) → 120.16 s in 120.16 s, 0 s of ads | Met |
@@ -416,8 +416,10 @@ adjusted in this document with the measured numbers, not quietly loosened in cod
   long-task / dropped-frame count, would be needed to see it.
 - The baseline is one run and the after is one run. Run-to-run noise on CPU averages is not
   measured, so small differences (p1 3.37% vs 3.17%) are within plausible noise.
-- p4 max is 4 frames, not 1. The average of 1.4 frames is dominated by the one-frame IPC hop; the
-  worst step still beats the old worst of 24 frames by a wide margin.
+- p4 misses the frame budget: avg 1.4 frames, max 4 (steps of 0, 3 and 4 frames occur, with no clear
+  one-frame floor). In time the sweep settles in about 2 ms, under half a frame at 200 Hz, so the
+  frame count may partly reflect how the sampler counts frames at this refresh rate. That is a
+  hypothesis, not measured. The old worst case was 24 frames / 104 ms.
 
 **p1 missed its budget: 3.17% against ≤ 2.36%.** Breakdown after: Tab 2.01%, GPU 1.13%, Browser
 0.02%, Utility 0.01% (baseline Tab 2.28%, GPU 1.06%). Nearly all of it is YouTube Music's own Home

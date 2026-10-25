@@ -1,6 +1,6 @@
 # YTMDesktop2 Plus - Improvement Backlog
 
-The ordered list of improvements still to make. Work top to bottom unless something is urgent. Seeded from phases 2-6 of docs/superpowers/specs/2026-10-25-desktop-music-overhaul-design.md; phases 0-1 are tracked by their implementation plan.
+The ordered list of improvements still to make. Work top to bottom unless something is urgent. Seeded from phases 2-6 of docs/superpowers/specs/2026-10-25-desktop-music-overhaul-design.md; phases 0-1 are finished and recorded in the Done table.
 
 ## How this file is maintained
 
@@ -117,7 +117,7 @@ Done: 8. Next free ID: 65.
 | ID | Improvement | Completed | Notes |
 |---|---|---|---|
 | 57 | Phase 0: Playwright e2e and perf bench (sNN / pNN scenarios, baseline file, VERIFICATION.md generator) | 2026-10-25 | 15 e2e scenarios and 8 perf scenarios; `pnpm test:e2e`, `pnpm test:perf`, `pnpm verify` |
-| 58 | Phase 1: view layout follows window (setSize, maximize, fullscreen) | 2026-10-25 | p4 avg 20.8 frames / 97 ms to 1.4 frames / 1.85 ms; p5 104 / 110 ms to 2 / 13 ms |
+| 58 | Phase 1: view layout follows window (setSize, maximize, fullscreen) | 2026-10-25 | p4 avg 20.8 frames / 97 ms to 1.4 frames / 1.85 ms (frame budget of 1 still missed: max 4 frames, about 0.4 frame at 200 Hz); p5 104 / 110 ms to 2 / 13 ms |
 | 59 | Phase 1: cheap glass (pre-blurred artwork, no full-page backdrop-filter; themes.glass opt-in) | 2026-10-25 | s4, s4b; frame p95 unchanged at 5.1 ms because the display is about 200 Hz |
 | 60 | Phase 1: Chromium rest/power hold (power-save blocker only while playing, GPU blocklist respected) | 2026-10-25 | s10, s11; backgrounding switches kept after measurement (no p6 gain from removing them) |
 | 61 | Phase 1: layer 1 ad blocker, network blocking of ad and tracker requests | 2026-10-25 | s5 |
