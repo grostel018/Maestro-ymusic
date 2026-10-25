@@ -10,7 +10,9 @@ import { LockSizeOptions, loadUrlOfWebContents, lockSizeToParent } from "./webCo
 
 const log = createLogger("windows").child("view");
 
-type CreateApiViewOptions = { lockSize: LockSizeOptions } & Pick<WebPreferences, "transparent">;
+/** `lockSize: false` leaves sizing to the caller (the main window lays its views out itself). */
+type ViewSizeOptions = { lockSize?: LockSizeOptions | false };
+type CreateApiViewOptions = ViewSizeOptions & Pick<WebPreferences, "transparent">;
 export const createApiView = async <T extends WebContentsView>(path: string, postFunc?: (ctx: T) => Promise<void> | void, options?: CreateApiViewOptions): Promise<T> => {
 	const view = new WebContentsView({
 		webPreferences: {
@@ -29,13 +31,14 @@ export const createApiView = async <T extends WebContentsView>(path: string, pos
 	await loadUrlOfWebContents(view.webContents, path);
 	if (postFunc) await Promise.resolve(postFunc(view));
 	const wnd = BrowserWindow.fromWebContents(view.webContents);
-	if (wnd) lockSizeToParent(wnd, options?.lockSize)(view);
+	if (wnd && options?.lockSize !== false) lockSizeToParent(wnd, options?.lockSize)(view);
 	return view;
 };
 export const createView = async <T extends WebContentsView>(
 	preload: string,
 	postFunc?: (ctx: T) => Promise<void> | void,
 	options: WebContentsViewConstructorOptions["webPreferences"] = {},
+	sizeOptions: ViewSizeOptions = {},
 ): Promise<T> => {
 	const view = new WebContentsView({
 		webPreferences: {
@@ -53,7 +56,7 @@ export const createView = async <T extends WebContentsView>(
 	view.webContents.setBackgroundThrottling(false);
 	if (postFunc) await Promise.resolve(postFunc(view));
 	const wnd = BrowserWindow.fromWebContents(view.webContents);
-	if (wnd) lockSizeToParent(wnd)(view);
+	if (wnd && sizeOptions.lockSize !== false) lockSizeToParent(wnd, sizeOptions.lockSize)(view);
 	return view;
 };
 export const createPopup = async (options?: BrowserWindowConstructorOptions) => {

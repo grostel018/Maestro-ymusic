@@ -1,19 +1,21 @@
 import { applyYoutubeZoom, bindYoutubeWebContents, TOOLBAR_HEIGHT } from "@main/domain/uiZoom";
-import { getLifecycleContext } from "@main/lifecycle";
-import { chromecastArgvFor, CHROMECAST_SETTING_KEY } from "@shared/chromecast/flag";
 import { defaultUrl, isDevelopment, isProdDebug, isProduction } from "@main/infra/devUtils";
 import { toChromeUserAgent } from "@main/infra/userAgent";
 import { serverMain } from "@main/ipc/serverEvents";
+import { getLifecycleContext } from "@main/lifecycle";
+import { CHROMECAST_SETTING_KEY, chromecastArgvFor } from "@shared/chromecast/flag";
 import { logger } from "@shared/utils/console";
 import translations from "@translations/index";
 import { app, BrowserWindow, BrowserWindowConstructorOptions, WebContentsView } from "electron";
 import { debounce } from "lodash-es";
 import { join } from "path";
 import appIconPath from "~/build/favicon.ico?asset";
+import { computeViewBounds, createFullscreenRestore } from "./layout";
 import { createWindowContext } from "./mappedWindow";
 import { createApiView, createView, googleLoginPopup } from "./view";
 import { pushWindowStates } from "./webContentUtils";
 import { getBoundsWithScaleFactor, wrapWindowHandler } from "./windowUtils";
+
 function isChromecastSettingEnabled(): boolean {
 	try {
 		const settings = getLifecycleContext().getProvider("settings") as { get?: (key: string, fallback?: boolean) => boolean };
@@ -52,6 +54,9 @@ export class WindowManager {
 	private loadingView: WebContentsView | null = null;
 	private isGoogleLoginProcessing = false;
 	private userAgentResolved: string | null = null;
+	/** YouTube Music's own fullscreen (HTML fullscreen) is active: the toolbar is hidden. */
+	private htmlFullscreen = false;
+	private readonly fullscreenRestore = createFullscreenRestore();
 
 	constructor(private readonly userAgent?: string) {}
 
@@ -130,20 +135,19 @@ export class WindowManager {
 	}
 
 	private async createLoadingView() {
-		const view = await createApiView("/youtube/loading", (view) => {
-			if (!this.mainWindow) return;
+		const view = await createApiView(
+			"/youtube/loading",
+			(view) => {
+				if (!this.mainWindow) return;
 
-			this.mainWindow.contentView.addChildView(view);
-			if (isDevelopment || isProdDebug) view.webContents.openDevTools({ mode: "detach" });
+				this.mainWindow.contentView.addChildView(view);
+				if (isDevelopment || isProdDebug) view.webContents.openDevTools({ mode: "detach" });
 
-			const [width, height] = this.mainWindow.getSize();
-			view.setBounds({
-				x: 0,
-				y: 0,
-				width,
-				height,
-			});
-		});
+				const [width, height] = this.mainWindow.getContentSize();
+				view.setBounds({ x: 0, y: 0, width, height });
+			},
+			{ lockSize: false },
+		);
 		return view;
 	}
 
@@ -155,13 +159,7 @@ export class WindowManager {
 
 				this.applyChromeUserAgent(view);
 				this.mainWindow.contentView.addChildView(view);
-				const [width, height] = this.mainWindow.getSize();
-				view.setBounds({
-					y: TOOLBAR_HEIGHT,
-					x: 0,
-					height: height - TOOLBAR_HEIGHT,
-					width,
-				});
+				view.setBounds(this.computeBounds().youtube);
 				bindYoutubeWebContents(view.webContents);
 
 				this.setupYoutubeViewEvents(view);
@@ -173,6 +171,7 @@ export class WindowManager {
 				backgroundThrottling: false,
 				additionalArguments: [chromecastArgvFor(isChromecastSettingEnabled())],
 			},
+			{ lockSize: false },
 		);
 	}
 
@@ -182,18 +181,15 @@ export class WindowManager {
 			(view) => {
 				if (!this.mainWindow) return;
 
+				// opaque: a transparent toolbar shows whatever was composited below it while the window resizes
+				view.setBackgroundColor("#030404");
 				this.mainWindow.contentView.addChildView(view);
 				this.mainWindow.contentView.addChildView(this.loadingView!);
-				const [width] = this.mainWindow.getSize();
-				view.setBounds({
-					height: TOOLBAR_HEIGHT,
-					width,
-					x: 0,
-					y: 0,
-				});
+				const { toolbar } = this.computeBounds();
+				if (toolbar) view.setBounds(toolbar);
 				if (isDevelopment) view.webContents.openDevTools({ mode: "detach" });
 			},
-			{ lockSize: { resize: "width" }, transparent: true },
+			{ lockSize: false },
 		);
 	}
 
@@ -248,6 +244,24 @@ export class WindowManager {
 		// 	}, 2500);
 		// });
 		view.webContents.on("page-title-updated", (ev, title) => view.webContents.emit("window-title-updated", title));
+		// disableHtmlFullscreenWindowResize is set on this view, so the window follows HTML fullscreen here
+		view.webContents.on("enter-html-full-screen", () => {
+			if (!this.mainWindow) return;
+			this.fullscreenRestore.enter({ maximized: this.mainWindow.isMaximized(), fullScreen: this.mainWindow.isFullScreen() });
+			this.htmlFullscreen = true;
+			this.mainWindow.setFullScreen(true);
+			this.applyLayout();
+		});
+		view.webContents.on("leave-html-full-screen", () => {
+			if (!this.mainWindow) return;
+			this.htmlFullscreen = false;
+			const prev = this.fullscreenRestore.leave();
+			if (prev) {
+				this.mainWindow.setFullScreen(prev.fullScreen);
+				if (prev.maximized) this.mainWindow.maximize();
+			}
+			this.applyLayout();
+		});
 	}
 
 	private async handleGoogleLogin(location: string, view: WebContentsView) {
@@ -273,7 +287,7 @@ export class WindowManager {
 		const handleLoadEnd = () => {
 			if (!this.mainWindow || !this.loadingView || !this.views) return;
 			this.mainWindow.contentView.removeChildView(this.loadingView);
-			this.mainWindow.contentView.addChildView(this.views.toolbarView);
+			if (!this.htmlFullscreen) this.mainWindow.contentView.addChildView(this.views.toolbarView);
 			this._youtubeReady = true;
 			applyYoutubeZoom();
 		};
@@ -288,41 +302,42 @@ export class WindowManager {
 		serverMain.on("app.loadEnd", handleLoadEnd);
 		serverMain.on("app.loadStart", handleLoadStart);
 	}
-	private fromMaximized = false;
 	private setupWindowEvents() {
 		if (!this.mainWindow || !this.views) return;
-		this.mainWindow.on("maximize", () => {
-			this.fromMaximized = true;
-			this.updateViewBounds();
-		});
-		this.mainWindow.on("unmaximize", () => {
-			this.fromMaximized = false;
-			this.updateViewBounds();
-		});
-		this.mainWindow.on(
-			"resize",
-			debounce(() => {
-				this.updateViewBounds();
-			}, 100),
-		);
+		// synchronous on purpose: a debounced layout lets the views trail the window by several frames
+		const layout = () => this.applyLayout();
+		this.mainWindow.on("resize", layout);
+		this.mainWindow.on("maximize", layout);
+		this.mainWindow.on("unmaximize", layout);
+		this.mainWindow.on("enter-full-screen", layout);
+		this.mainWindow.on("leave-full-screen", layout);
 	}
-	private updateViewBounds() {
-		if (!this.mainWindow || !this.views) return;
+	private computeBounds() {
+		const [width, height] = this.mainWindow?.getContentSize() ?? [0, 0];
+		return computeViewBounds({ width, height }, { toolbarHeight: TOOLBAR_HEIGHT, htmlFullscreen: this.htmlFullscreen });
+	}
+	/** The single place that sizes the main window's views. */
+	private applyLayout() {
+		if (!this.mainWindow || this.mainWindow.isDestroyed() || !this.views) return;
 
-		const [winWidth, winHeight] = this.mainWindow.getContentSize();
-		logger.debug("updateViewBounds", { winWidth, winHeight, toolbarH: TOOLBAR_HEIGHT });
-		this.views.toolbarView.setBounds({
-			x: 0,
-			y: 0,
-			width: winWidth,
-			height: TOOLBAR_HEIGHT,
-		});
-		this.views.youtubeView.setBounds({
-			x: 0,
-			y: TOOLBAR_HEIGHT,
-			width: winWidth,
-			height: winHeight - TOOLBAR_HEIGHT,
-		});
+		const { contentView } = this.mainWindow;
+		const { toolbarView, youtubeView } = this.views;
+		const { toolbar, youtube } = this.computeBounds();
+		youtubeView.setBounds(youtube);
+		if (!toolbar) {
+			if (contentView.children.includes(toolbarView)) contentView.removeChildView(toolbarView);
+		} else {
+			if (!contentView.children.includes(toolbarView)) {
+				contentView.addChildView(toolbarView);
+				// keep the loading view above the toolbar while YouTube is still loading
+				if (this.loadingView && contentView.children.includes(this.loadingView)) contentView.addChildView(this.loadingView);
+			}
+			toolbarView.setBounds(toolbar);
+		}
+		if (this.loadingView) {
+			const [width, height] = this.mainWindow.getContentSize();
+			this.loadingView.setBounds({ x: 0, y: 0, width, height });
+		}
 	}
 	private async initializeWindowState(bounds: { width: number; height: number }) {
 		if (!this.mainWindow || !this.views) return;

@@ -7,6 +7,9 @@ export type Check = { area: string; check: string; evidence: string[] };
  */
 export const CHECKS: Check[] = [
 	{ area: "Boot", check: "The production build boots into music.youtube.com on an isolated profile", evidence: ["s1"] },
+	{ area: "Window layout", check: "Toolbar and YouTube views match the window after setSize, maximize and unmaximize", evidence: ["s2"] },
+	{ area: "Window layout", check: "YouTube Music's HTML fullscreen fills the screen without the toolbar and restores on exit", evidence: ["s3"] },
+	{ area: "Window layout", check: "HTML fullscreen started from a maximized window returns to maximized", evidence: ["s3b"] },
 	{ area: "Performance", check: "Home idle CPU over 10 s is measured and recorded", evidence: ["p1"] },
 	{ area: "Performance", check: "Frame times while playing at 1500x800 are measured and recorded", evidence: ["p2"] },
 	{ area: "Performance", check: "Frame times while playing maximized are measured and recorded", evidence: ["p3"] },
