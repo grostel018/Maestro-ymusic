@@ -6,14 +6,16 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { APP_DIR, createWorkDir, ELECTRON, gpuInfo, launchApp, type Scenario, type TestApp } from "./lib/app.ts";
+import { perfFile } from "./lib/perf.ts";
 import { SIGNED_IN_PROFILE, useSignedInProfile, writeSettings } from "./lib/profile.ts";
 import { scenarios as boot } from "./scenarios/boot.ts";
+import { scenarios as perf } from "./scenarios/perf.ts";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const RESULTS = path.join(HERE, "results");
-const scenarios: Scenario[] = [...boot];
-
 const args = process.argv.slice(2);
+// --perf runs the pNN baseline scenarios instead of the sNN functional ones
+const scenarios: Scenario[] = args.includes("--perf") ? perf : boot;
 const only = args.filter((a) => !a.startsWith("--")).map((a) => a.toLowerCase());
 
 fs.mkdirSync(RESULTS, { recursive: true });
@@ -75,6 +77,7 @@ for (const s of selected) {
 }
 
 log(`${passed}/${passed + failed} passed`);
+if (args.includes("--perf")) log(`perf results: ${perfFile}`);
 if (failed || process.env.E2E_KEEP === "1") log(`kept: ${workDir}`);
 else fs.rmSync(workDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
 process.exit(failed ? 1 : 0);

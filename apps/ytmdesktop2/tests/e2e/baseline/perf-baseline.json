@@ -1,0 +1,210 @@
+{
+  "runStamp": "2026-10-25T16-14-54-328Z",
+  "results": {
+    "p1": {
+      "avgPct": 3.37,
+      "byType": {
+        "Browser": 0.02,
+        "GPU": 1.06,
+        "Utility": 0.01,
+        "Tab": 2.28
+      }
+    },
+    "p2": {
+      "p50": 5,
+      "p95": 5.1,
+      "max": 5.1,
+      "droppedPct": 0,
+      "frames": 1999
+    },
+    "p3": {
+      "p50": 5,
+      "p95": 5.1,
+      "max": 5.1,
+      "droppedPct": 0,
+      "frames": 1999
+    },
+    "p3b": {
+      "p50": 5,
+      "p95": 5.1,
+      "max": 5.2,
+      "droppedPct": 0,
+      "frames": 1999
+    },
+    "p4": {
+      "notConverged": 0,
+      "maxFrames": 24,
+      "avgFrames": 20.8,
+      "maxMs": 104,
+      "avgMs": 97.45,
+      "steps": [
+        {
+          "width": 1000,
+          "ms": 0,
+          "frames": 3,
+          "converged": true
+        },
+        {
+          "width": 1032,
+          "ms": 102,
+          "frames": 20,
+          "converged": true
+        },
+        {
+          "width": 1063,
+          "ms": 103,
+          "frames": 20,
+          "converged": true
+        },
+        {
+          "width": 1095,
+          "ms": 103,
+          "frames": 24,
+          "converged": true
+        },
+        {
+          "width": 1126,
+          "ms": 102,
+          "frames": 24,
+          "converged": true
+        },
+        {
+          "width": 1158,
+          "ms": 102,
+          "frames": 20,
+          "converged": true
+        },
+        {
+          "width": 1189,
+          "ms": 102,
+          "frames": 23,
+          "converged": true
+        },
+        {
+          "width": 1221,
+          "ms": 102,
+          "frames": 20,
+          "converged": true
+        },
+        {
+          "width": 1253,
+          "ms": 102,
+          "frames": 23,
+          "converged": true
+        },
+        {
+          "width": 1284,
+          "ms": 103,
+          "frames": 24,
+          "converged": true
+        },
+        {
+          "width": 1316,
+          "ms": 104,
+          "frames": 23,
+          "converged": true
+        },
+        {
+          "width": 1347,
+          "ms": 103,
+          "frames": 23,
+          "converged": true
+        },
+        {
+          "width": 1379,
+          "ms": 102,
+          "frames": 20,
+          "converged": true
+        },
+        {
+          "width": 1411,
+          "ms": 102,
+          "frames": 21,
+          "converged": true
+        },
+        {
+          "width": 1442,
+          "ms": 103,
+          "frames": 20,
+          "converged": true
+        },
+        {
+          "width": 1474,
+          "ms": 103,
+          "frames": 23,
+          "converged": true
+        },
+        {
+          "width": 1505,
+          "ms": 103,
+          "frames": 23,
+          "converged": true
+        },
+        {
+          "width": 1537,
+          "ms": 103,
+          "frames": 22,
+          "converged": true
+        },
+        {
+          "width": 1568,
+          "ms": 103,
+          "frames": 20,
+          "converged": true
+        },
+        {
+          "width": 1600,
+          "ms": 102,
+          "frames": 20,
+          "converged": true
+        }
+      ]
+    },
+    "p5": {
+      "enter": {
+        "ms": 104,
+        "frames": 21,
+        "converged": true
+      },
+      "leave": {
+        "ms": 110,
+        "frames": 22,
+        "converged": true
+      }
+    },
+    "p6": {
+      "avgPct": 0.28,
+      "byType": {
+        "Browser": 0.04,
+        "GPU": 0.07,
+        "Utility": 0.01,
+        "Tab": 0.16
+      }
+    },
+    "p7": {
+      "advancedS": 49.39,
+      "wallS": 120,
+      "required": 100,
+      "pass": false
+    }
+  },
+  "gpu": {
+    "featureStatus": {
+      "2d_canvas": "enabled",
+      "direct_rendering_display_compositor": "disabled_off_ok",
+      "gpu_compositing": "enabled",
+      "multiple_raster_threads": "enabled_on",
+      "opengl": "enabled_on",
+      "rasterization": "enabled_force",
+      "raw_draw": "disabled_off_ok",
+      "skia_graphite": "disabled_off",
+      "trees_in_viz": "disabled_off",
+      "video_decode": "enabled",
+      "video_encode": "enabled",
+      "webgl": "enabled",
+      "webgpu": "enabled",
+      "webnn": "disabled_off"
+    },
+    "devices": "NVIDIA GeForce RTX 3060 Ti, Microsoft Basic Render Driver"
+  }
+}
