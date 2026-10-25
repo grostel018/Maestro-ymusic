@@ -1,8 +1,8 @@
-import { AfterInit, BaseProvider, BeforeStart, OnDestroy } from "@main/core/baseProvider";
+import { AfterInit, BaseProvider, OnDestroy } from "@main/core/baseProvider";
 import { type TrackState, trackService } from "@main/trpc/routers/track";
 import { TrackData } from "@shared/track/trackData";
 import { MediaPlayerMediaType, MediaPlayerPlaybackStatus, MediaPlayerThumbnail, MediaPlayerThumbnailType, MediaPlayer as MediaServiceProvider } from "@venipa/xosms";
-import { type App, app } from "electron";
+import type { App } from "electron";
 import { clamp } from "lodash-es";
 
 /**
@@ -12,7 +12,7 @@ import { clamp } from "lodash-es";
  */
 const MPRIS_SERVICE_NAME = "ytmdesktop2";
 
-export default class MediaControlProvider extends BaseProvider implements AfterInit, BeforeStart, OnDestroy {
+export default class MediaControlProvider extends BaseProvider implements AfterInit, OnDestroy {
 	private _mediaProvider: MediaServiceProvider | null = null;
 	private xosmsLog = this.logger.child("xosms");
 	private disposeSubscriptions: (() => void)[] = [];
@@ -22,14 +22,6 @@ export default class MediaControlProvider extends BaseProvider implements AfterI
 
 	constructor(private app: App) {
 		super("mediaController");
-	}
-
-	async BeforeStart() {
-		try {
-			app.commandLine.appendSwitch("in-progress-gpu");
-		} catch (error) {
-			this.logger.error("Failed to set command line switches:", error);
-		}
 	}
 
 	/** xosms CalleeHandled: `(err, button)` */

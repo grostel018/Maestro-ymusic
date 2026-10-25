@@ -25,7 +25,33 @@ async function frameRun(id: string, t: TestApp) {
 	console.log(`  ${id}: ${JSON.stringify(summary)} frames=${deltas.length}`);
 }
 
-const currentTime = (yt: CdpSession) => yt.eval<number>("document.querySelector('video')?.currentTime ?? 0");
+/**
+ * Media time played over `ms`, sampled each second. The track and any ad share one `<video>`, and the
+ * next track starts from 0, so a backwards jump counts the new media's time instead of a negative step.
+ * A step above 3 s (a seek) counts as 1 s. A stalled or paused player adds nothing.
+ */
+async function playedSeconds(yt: CdpSession, ms: number) {
+	const read = () =>
+		yt.eval<{ ct: number; ad: boolean }>(
+			"({ ct: document.querySelector('video')?.currentTime ?? 0, ad: !!document.querySelector('#movie_player')?.classList.contains('ad-showing') })",
+		);
+	const t0 = Date.now();
+	let prev = await read();
+	let advancedS = 0;
+	let adS = 0;
+	let resets = 0;
+	while (Date.now() - t0 < ms) {
+		await sleep(1000);
+		const cur = await read();
+		let step = cur.ct >= prev.ct ? cur.ct - prev.ct : cur.ct;
+		if (cur.ct < prev.ct) resets++;
+		if (step > 3) step = 1;
+		advancedS += step;
+		if (cur.ad) adS += step;
+		prev = cur;
+	}
+	return { advancedS, adS, resets, wallS: (Date.now() - t0) / 1000 };
+}
 
 /** Time and renderer frames until the YouTube view's bounds follow the window's content width after `change`. */
 async function convergence(t: TestApp, yt: CdpSession, change: string) {
@@ -153,13 +179,11 @@ export const scenarios: Scenario[] = [
 			await play(t);
 			const yt = await t.view("youtube");
 			await evalWin(t, "win.minimize();");
-			const before = await currentTime(yt);
-			const t0 = Date.now();
-			await sleep(120000);
-			const advanced = round((await currentTime(yt)) - before);
-			const wallS = round((Date.now() - t0) / 1000);
-			recordPerf("p7", { advancedS: advanced, wallS, required: 100, pass: advanced >= 100 });
-			console.log(`  p7: advanced ${advanced}s in ${wallS}s`);
+			const r = await playedSeconds(yt, 120000);
+			const advanced = round(r.advancedS);
+			const wallS = round(r.wallS);
+			recordPerf("p7", { advancedS: advanced, wallS, adS: round(r.adS), resets: r.resets, required: 100, pass: advanced >= 100 });
+			console.log(`  p7: advanced ${advanced}s in ${wallS}s (ads ${round(r.adS)}s, media changes ${r.resets})`);
 			if (advanced < 100) throw new Error(`playback advanced only ${advanced} s in ${wallS} s while minimized (need >= 100)`);
 		},
 	},

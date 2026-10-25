@@ -21,12 +21,11 @@ export const createApiView = async <T extends WebContentsView>(path: string, pos
 			contextIsolation: true,
 			webSecurity: isProduction,
 			allowRunningInsecureContent: !isProduction,
-			backgroundThrottling: false,
+			// app chrome (toolbar, loading, notices) may rest when hidden; only the YouTube view plays
 			preload: join(__dirname, "../preload/api.js"),
 			transparent: options?.transparent,
 		},
 	}) as T;
-	view.webContents.setBackgroundThrottling(false);
 	lockAppChromeZoom(view.webContents);
 	await loadUrlOfWebContents(view.webContents, path);
 	if (postFunc) await Promise.resolve(postFunc(view));

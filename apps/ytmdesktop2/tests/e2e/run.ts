@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { APP_DIR, createWorkDir, ELECTRON, gpuInfo, launchApp, type Scenario, type TestApp } from "./lib/app.ts";
 import { perfFile } from "./lib/perf.ts";
 import { SIGNED_IN_PROFILE, useSignedInProfile, writeSettings } from "./lib/profile.ts";
+import { scenarios as background } from "./scenarios/background.ts";
 import { scenarios as boot } from "./scenarios/boot.ts";
 import { scenarios as glass } from "./scenarios/glass.ts";
 import { scenarios as layout } from "./scenarios/layout.ts";
@@ -17,7 +18,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const RESULTS = path.join(HERE, "results");
 const args = process.argv.slice(2);
 // --perf runs the pNN baseline scenarios instead of the sNN functional ones
-const scenarios: Scenario[] = args.includes("--perf") ? perf : [...boot, ...layout, ...glass];
+const scenarios: Scenario[] = args.includes("--perf") ? perf : [...boot, ...layout, ...glass, ...background];
 const only = args.filter((a) => !a.startsWith("--")).map((a) => a.toLowerCase());
 
 fs.mkdirSync(RESULTS, { recursive: true });

@@ -200,6 +200,12 @@ const migrations: Omit<Migration<SettingsStore>, "version">[] = [
 			if (typeof (store.store as SettingsStore)?.themes?.glass !== "boolean") store.set("themes.glass", false);
 		},
 	},
+	{
+		hook(store) {
+			// `ignore-gpu-blocklist` used to be forced on Windows; it is now the opt-in `app.forceGpu`.
+			if (typeof (store.store as SettingsStore)?.app?.forceGpu !== "boolean") store.set("app.forceGpu", false);
+		},
+	},
 ];
 
 export default migrations;

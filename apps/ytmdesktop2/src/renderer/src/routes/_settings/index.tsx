@@ -52,6 +52,9 @@ function GenericSettingsPage() {
 						<SettingsCheckbox configKey="app.disableHardwareAccel" description="Requires an app restart to apply.">
 							Disable Hardware Acceleration
 						</SettingsCheckbox>
+						<SettingsCheckbox configKey="app.forceGpu" description="Use the GPU even if Chromium blocklists your driver. Requires an app restart to apply.">
+							Force GPU acceleration
+						</SettingsCheckbox>
 					</FieldGroup>
 				</CardContent>
 			</Card>

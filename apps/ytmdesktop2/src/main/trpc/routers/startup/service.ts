@@ -1,13 +1,17 @@
 import { platform } from "@electron-toolkit/utils";
-import { AfterInit, BaseProvider, BeforeStart } from "@main/core/baseProvider";
+import { AfterInit, BaseProvider, BeforeStart, OnDestroy } from "@main/core/baseProvider";
+import { createPowerHold, type PowerHold } from "@main/domain/powerHold";
+import { chromiumSwitches } from "@main/infra/chromiumSwitches";
 import { isDevelopment, isProduction } from "@main/infra/devUtils";
-import SettingsProvider from "@main/trpc/routers/settings/service";
+import { serverMain } from "@main/ipc/serverEvents";
+import SettingsProvider, { readSettings } from "@main/trpc/routers/settings/service";
+import IPC_EVENT_NAMES from "@shared/constants/eventNames";
 import { App, powerSaveBlocker } from "electron";
 import { basename } from "path";
 
 const GTK_VERSION = /^[2-4]+$/.test(process.env.GTK_VERSION ?? "") ? process.env.GTK_VERSION : "3";
 
-export default class StartupProvider extends BaseProvider implements AfterInit, BeforeStart {
+export default class StartupProvider extends BaseProvider implements AfterInit, BeforeStart, OnDestroy {
 	get settingsInstance(): SettingsProvider {
 		return this.getProvider("settings");
 	}
@@ -17,50 +21,35 @@ export default class StartupProvider extends BaseProvider implements AfterInit, 
 	get isInitialMinimized() {
 		return !!this.settingsInstance.instance?.app?.autostartMinimized;
 	}
+	private readonly powerHold: PowerHold | null = platform.isMacOS
+		? null // app suspension on mac prevents sleep
+		: createPowerHold({ start: () => powerSaveBlocker.start("prevent-app-suspension"), stop: (id) => powerSaveBlocker.stop(id) });
 	constructor(private app: App) {
 		super("startup");
-		if (platform.isWindows) {
-			app.commandLine.appendSwitch("enable-gpu-rasterization"); // may fix large playlist / ui only hang issue
-      app.commandLine.appendSwitch("ignore-gpu-blocklist"); // allow GPU rasterization on all devices + hardware acceleration
+		const { switches, enableFeatures, disableFeatures } = chromiumSwitches({
+			platform: process.platform as "win32" | "darwin" | "linux",
+			// providers are not registered yet; the settings store is already loaded at import
+			forceGpu: !!readSettings()?.app?.forceGpu,
+			isDevelopment,
+			gtkVersion: GTK_VERSION,
+		});
+		for (const [name, value] of switches) {
+			if (value === undefined) app.commandLine.appendSwitch(name);
+			else app.commandLine.appendSwitch(name, value);
 		}
-		// Keep renderers (esp. YouTube WebContentsView) off Chromium background/EcoQoS throttling
-		app.commandLine.appendSwitch("disable-renderer-backgrounding");
-		app.commandLine.appendSwitch("disable-background-timer-throttling");
-		app.commandLine.appendSwitch("disable-backgrounding-occluded-windows");
-		if (isDevelopment) app.commandLine.appendSwitch("disable-web-security");
-		// OS HiDPI / deviceScaleFactor (Retina, Windows 125%/150%). Do not force-device-scale-factor —
-		// that freezes layout at 1× and breaks high-DPI. Page zoom for app chrome is locked separately.
-		app.commandLine.appendSwitch("high-dpi-support", "1");
-		if (platform.isLinux && GTK_VERSION) this.app.commandLine.appendSwitch("gtk-version", GTK_VERSION);
-		if (platform.isLinux) this.app.commandLine.appendSwitch("ozone-platform-hint", "auto");
-		this.app.commandLine.appendSwitch(
-			"enable-features",
-			[
-				"OverlayScrollbar",
-				"FluentOverlayScrollbar",
-				"CanvasOopRasterization",
-				"SharedArrayBuffer",
-				platform.isLinux && ["UseOzonePlatform", "WaylandWindowDecorations", "GlobalShortcutsPortal"],
-			]
-				.flat()
-				.filter(Boolean)
-				.join(","),
-		);
-		this.app.commandLine.appendSwitch(
-			"disable-features",
-			[
-				"CalculateNativeWinOcclusion",
-				"IntensiveWakeUpThrottling",
-				"UseEcoQoSForBackgroundProcess",
-				"MediaSessionService", // xosms / OS media keys — keep out of Chromium MediaSession
-			].join(","),
-		);
+		app.commandLine.appendSwitch("enable-features", enableFeatures.join(","));
+		app.commandLine.appendSwitch("disable-features", disableFeatures.join(","));
+	}
+	/** Whether a power-save blocker is held (only while music plays). */
+	isPowerHeld() {
+		return !!this.powerHold?.isHeld();
 	}
 	async BeforeStart() {
 		if (this.settingsInstance.instance.app.disableHardwareAccel) this.app.disableHardwareAcceleration();
-		if (!platform.isMacOS) {
-			powerSaveBlocker.start("prevent-app-suspension"); // app suspension on mac prevents sleep
-		}
+		serverMain.on(IPC_EVENT_NAMES.TRACK_PLAYSTATE, (_ev: unknown, isPlaying: unknown) => this.powerHold?.set(!!isPlaying));
+	}
+	async OnDestroy() {
+		this.powerHold?.set(false);
 	}
 	private get startArgs() {
 		return ["--processStart", `"${basename(process.execPath)}"`, "--startup"];

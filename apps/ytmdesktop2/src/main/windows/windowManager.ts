@@ -1,5 +1,5 @@
 import { applyYoutubeZoom, bindYoutubeWebContents, TOOLBAR_HEIGHT } from "@main/domain/uiZoom";
-import { defaultUrl, isDevelopment, isProdDebug, isProduction } from "@main/infra/devUtils";
+import { defaultUrl, isProduction } from "@main/infra/devUtils";
 import { toChromeUserAgent } from "@main/infra/userAgent";
 import { serverMain } from "@main/ipc/serverEvents";
 import { getLifecycleContext } from "@main/lifecycle";
@@ -15,6 +15,9 @@ import { createWindowContext } from "./mappedWindow";
 import { createApiView, createView, googleLoginPopup } from "./view";
 import { pushWindowStates } from "./webContentUtils";
 import { getBoundsWithScaleFactor, wrapWindowHandler } from "./windowUtils";
+
+/** DevTools windows cost a renderer each; open them only when asked (`YTMD_DEVTOOLS=1`). */
+const autoOpenDevtools = () => process.env.YTMD_DEVTOOLS === "1";
 
 function isChromecastSettingEnabled(): boolean {
 	try {
@@ -141,7 +144,7 @@ export class WindowManager {
 				if (!this.mainWindow) return;
 
 				this.mainWindow.contentView.addChildView(view);
-				if (isDevelopment || isProdDebug) view.webContents.openDevTools({ mode: "detach" });
+				if (autoOpenDevtools()) view.webContents.openDevTools({ mode: "detach" });
 
 				const [width, height] = this.mainWindow.getContentSize();
 				view.setBounds({ x: 0, y: 0, width, height });
@@ -187,7 +190,7 @@ export class WindowManager {
 				this.mainWindow.contentView.addChildView(this.loadingView!);
 				const { toolbar } = this.computeBounds();
 				if (toolbar) view.setBounds(toolbar);
-				if (isDevelopment) view.webContents.openDevTools({ mode: "detach" });
+				if (autoOpenDevtools()) view.webContents.openDevTools({ mode: "detach" });
 			},
 			{ lockSize: false },
 		);
@@ -356,7 +359,7 @@ export class WindowManager {
 		logger.debug("windowState", this.mainWindow.getBounds());
 
 		await this.views.youtubeView.webContents.loadURL(defaultUrl).then(() => {
-			if (isDevelopment || isProdDebug) {
+			if (autoOpenDevtools()) {
 				this.views!.youtubeView.webContents.openDevTools({ mode: "detach" });
 			}
 

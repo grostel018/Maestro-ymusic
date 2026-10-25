@@ -408,6 +408,19 @@ fullscreen:
 Phase 1 starts by recording the baseline. A budget that turns out wrong on real hardware gets
 adjusted in this document with the measured numbers, not quietly loosened in code.
 
+**Backgrounding switches (phase 1, Task 7, measured 2026-10-25, RTX 3060 Ti).** The four
+process-wide switches `disable-renderer-backgrounding`, `disable-background-timer-throttling`,
+`disable-backgrounding-occluded-windows` and the `CalculateNativeWinOcclusion` feature were kept only if
+removing them cut p6 CPU by at least 30% with p7 passing. Measured: removed, p6 0.26% and p7 120.16 s
+in 120 s; kept, p6 0.25% and p7 120.16 s in 120 s (baseline p6 0.28%). No gain, so they stay. App
+views (toolbar, loading, notices) still rest when hidden through per-view `backgroundThrottling`;
+only the YouTube view opts out.
+
+**p7 baseline failure (49.39 s in 120 s) was the measurement, not playback.** The signed-out bench
+profile gets pre-roll ads (seen: a 15 s ad, then a 265 s one) that play in the same `<video>` as the
+track, so the old p7 read the ad's `currentTime` and then a reset. Playback itself advanced in real
+time while minimized. The bench now skips ads before measuring and p7 sums media time across resets.
+
 ## 9. What's left to the builder
 
 - Exact file and module boundaries inside each plugin, test names, and scenario numbering beyond

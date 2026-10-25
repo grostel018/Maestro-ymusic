@@ -1,3 +1,4 @@
+import { version as releaseVersion } from "node:os";
 import { AfterInit, BaseProvider, BeforeStart } from "@main/core/baseProvider";
 import { applyYoutubeZoom, applyZoomToWebContents, clampZoomFactor } from "@main/domain/uiZoom";
 import { requestAppRelaunch } from "@main/handlers/quitHandler";
@@ -11,7 +12,6 @@ import { centerWindowOnParent, createAppDialogWindow, createAppWindow, shortcutO
 import { stripUndefined } from "@shared/utils/object";
 import { App, BrowserWindow, IpcMainEvent, IpcMainInvokeEvent, shell } from "electron";
 import { debounce } from "lodash-es";
-import { version as releaseVersion } from "node:os";
 
 const STATE_PAUSE_TIME = 30e4;
 const TEST_RESTART_NEEDED_DIALOG = isDevelopment && process.env.TEST_RESTART_NEEDED_DIALOG === "1";
@@ -30,6 +30,12 @@ const DEFAULT_RESTART_DIALOG_HEIGHT = 260;
 const SETTINGS_REQUIRING_RESTART: Record<string, RestartDialogOptions> = {
   "app.disableHardwareAccel": {
     message: "Hardware acceleration changes require a restart to apply.",
+    icon: "warning",
+    width: 400,
+    height: 260,
+  },
+  "app.forceGpu": {
+    message: "GPU changes require a restart to apply.",
     icon: "warning",
     width: 400,
     height: 260,

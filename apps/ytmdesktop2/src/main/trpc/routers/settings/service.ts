@@ -32,6 +32,8 @@ const defaultSettings = {
 		minimizeTrayOverride: false,
 		enableStatisticsAndErrorTracing: true,
 		disableHardwareAccel: false,
+		/** Ignore Chromium's GPU blocklist. Off: blocklisted drivers fall back to software. Restart to apply. */
+		forceGpu: false,
 		enableTaskbarProgress: true,
 		zoomFactor: 1,
 	},
@@ -120,6 +122,9 @@ const _settingsStore = createYmlStore<SettingsStore>("app-settings", {
 			}) as Migration<SettingsStore>,
 	),
 });
+
+/** The settings store, for code that runs before providers are registered (Chromium switches). */
+export const readSettings = (): SettingsStore => _settingsStore.store;
 
 export default class SettingsProvider extends BaseProvider implements OnDestroy, BeforeStart, AfterInit {
 	readonly onChange = new Subject<SettingsStore>();

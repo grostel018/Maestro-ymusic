@@ -76,7 +76,21 @@ export async function sampleCpu(t: TestApp, ms: number): Promise<{ avgPct: numbe
 	return { avgPct: round(total / n), byType };
 }
 
-/** Opens `TRACK_URL` in the YouTube view and starts playback until `currentTime > 1`. */
+/**
+ * One step past YouTube's ads: the signed-out bench profile gets pre-roll (and mid-roll) ads, and the
+ * ad plays in the same `<video>` as the track, so its `currentTime` would be read as the track's.
+ * Clicks "Skip" or seeks the ad to its end. Returns whether an ad was showing.
+ */
+export const SKIP_AD = `(() => {
+	const p = document.querySelector('#movie_player');
+	if (!p?.classList.contains('ad-showing')) return false;
+	document.querySelector('.ytp-skip-ad-button, .ytp-ad-skip-button-modern, .ytp-ad-skip-button')?.click();
+	const v = document.querySelector('video');
+	if (v && Number.isFinite(v.duration) && v.duration > 0) v.currentTime = v.duration;
+	return true;
+})()`;
+
+/** Opens `TRACK_URL` in the YouTube view, gets past any ads, and plays until the track itself passes 1 s. */
 export async function play(t: TestApp): Promise<void> {
 	const yt = await t.view("youtube");
 	await yt.eval(`location.href = ${JSON.stringify(TRACK_URL)}`);
@@ -84,10 +98,15 @@ export async function play(t: TestApp): Promise<void> {
 	await waitFor(async () => (await yt.eval<boolean>("!!document.querySelector('#movie_player')?.playVideo")) || false, 60000, "the YouTube Music player");
 	await waitFor(
 		async () => {
+			if (await yt.eval<boolean>(SKIP_AD, { userGesture: true })) return false;
 			await yt.eval("document.querySelector('#movie_player').playVideo()", { userGesture: true });
-			return (await yt.eval<number>("document.querySelector('video')?.currentTime ?? 0")) > 1 || false;
+			return (
+				(await yt.eval<boolean>(
+					"document.querySelector('#movie_player').getPlayerState() === 1 && (document.querySelector('video')?.currentTime ?? 0) > 1",
+				)) || false
+			);
 		},
-		60000,
-		"playback to pass 1 s",
+		90000,
+		"the track (past any ads) to play past 1 s",
 	);
 }
