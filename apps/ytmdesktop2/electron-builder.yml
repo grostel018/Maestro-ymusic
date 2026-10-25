@@ -33,7 +33,8 @@ protocols:
     schemes:
       - ytmdplus
 win:
-  executableName: ytmdesktop
+  # Distinct from upstream (ytmdesktop.exe): NSIS closes running instances by image name.
+  executableName: ytmdesktop-plus
   artifactName: ${name}-${version}-setup.${ext}
   compression: maximum
   target:

@@ -16,4 +16,9 @@ describe("electron-builder.yml fork identity", () => {
 		// Electron derives the default userData folder from these; upstream's is "YouTube Music for Desktop"
 		expect(builder.extraMetadata).toMatchObject({ name: FORK.packageName, productName: FORK.productName });
 	});
+
+	it("names the Windows executable apart from upstream's ytmdesktop.exe", () => {
+		expect(builder.win.executableName).toBe(FORK.winExecutableName);
+		expect(builder.win.executableName).not.toBe("ytmdesktop");
+	});
 });

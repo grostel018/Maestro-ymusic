@@ -4,6 +4,8 @@ export const FORK = {
 	productName: "YTMDesktop2 Plus",
 	/** electron-builder `extraMetadata.name` of the packaged app. */
 	packageName: "ytmdesktop2-plus",
+	/** Windows executable (upstream ships ytmdesktop.exe; the NSIS installer closes running apps by image name). */
+	winExecutableName: "ytmdesktop-plus",
 	userDataName: "ytmdesktop2-plus",
 	scheme: "ytmdplus",
 	updatesEnabled: false,
