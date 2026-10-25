@@ -1,0 +1,101 @@
+{
+	"playabilityStatus": {
+		"status": "OK"
+	},
+	"streamingData": {
+		"expiresInSeconds": "21540",
+		"formats": [
+			{
+				"itag": 18,
+				"mimeType": "video/mp4; codecs=\"avc1.42001E, mp4a.40.2\"",
+				"bitrate": 444226,
+				"url": "REDACTED"
+			}
+		],
+		"adaptiveFormats": [
+			{
+				"itag": 313,
+				"mimeType": "video/webm; codecs=\"vp9\"",
+				"bitrate": 18076636,
+				"url": "REDACTED"
+			},
+			{
+				"itag": 271,
+				"mimeType": "video/webm; codecs=\"vp9\"",
+				"bitrate": 8978328,
+				"url": "REDACTED"
+			}
+		]
+	},
+	"playerAds": [
+		{
+			"playerLegacyDesktopWatchAdsRenderer": {
+				"playerAdParams": {
+					"showContentThumbnail": true,
+					"enabledEngageTypes": "3,6,4,5,17"
+				},
+				"gutParams": {
+					"tag": "\\4061\\ytpwmpu"
+				},
+				"showCompanion": true,
+				"showInstream": true,
+				"useGut": true
+			}
+		}
+	],
+	"videoDetails": {
+		"videoId": "dQw4w9WgXcQ",
+		"title": "Never Gonna Give You Up",
+		"lengthSeconds": "213",
+		"channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
+		"author": "Rick Astley",
+		"musicVideoType": "MUSIC_VIDEO_TYPE_OMV"
+	},
+	"adPlacements": [
+		{
+			"adPlacementRenderer": {
+				"config": {
+					"adPlacementConfig": {
+						"kind": "AD_PLACEMENT_KIND_START",
+						"adTimeOffset": {
+							"offsetStartMilliseconds": "0",
+							"offsetEndMilliseconds": "-1"
+						},
+						"hideCueRangeMarker": false
+					}
+				},
+				"renderer": {
+					"clientForecastingAdRenderer": {}
+				},
+				"adSlotLoggingData": {
+					"serializedSlotAdServingDataEntry": "REDACTED"
+				}
+			}
+		},
+		{
+			"adPlacementRenderer": {
+				"config": {
+					"adPlacementConfig": {
+						"kind": "AD_PLACEMENT_KIND_END",
+						"adTimeOffset": {
+							"offsetStartMilliseconds": "-1",
+							"offsetEndMilliseconds": "-1"
+						},
+						"hideCueRangeMarker": false
+					}
+				},
+				"renderer": {
+					"adBreakServiceRenderer": {
+						"prefetchMilliseconds": "4000",
+						"getAdBreakUrl": "https://www.youtube.com/get_midroll_info?token=REDACTED"
+					}
+				},
+				"adSlotLoggingData": {
+					"serializedSlotAdServingDataEntry": "REDACTED"
+				}
+			}
+		}
+	],
+	"adBreakHeartbeatParams": "Q0FBJTNE",
+	"adSlots": []
+}

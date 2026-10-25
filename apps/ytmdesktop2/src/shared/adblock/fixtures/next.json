@@ -1,0 +1,74 @@
+{
+	"contents": {
+		"singleColumnMusicWatchNextResultsRenderer": {
+			"tabbedRenderer": {
+				"watchNextTabbedResultsRenderer": {
+					"tabs": [
+						{
+							"tabRenderer": {
+								"title": "Up next",
+								"content": {
+									"musicQueueRenderer": {
+										"content": {
+											"playlistPanelRenderer": {
+												"contents": [
+													{
+														"playlistPanelVideoRenderer": {
+															"title": {
+																"runs": [
+																	{
+																		"text": "Never Gonna Give You Up"
+																	}
+																]
+															},
+															"lengthText": {
+																"runs": [
+																	{
+																		"text": "3:34"
+																	}
+																]
+															},
+															"videoId": "dQw4w9WgXcQ",
+															"selected": true
+														}
+													}
+												]
+											}
+										}
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		}
+	},
+	"playerResponse": {
+		"videoDetails": {
+			"videoId": "dQw4w9WgXcQ"
+		},
+		"adPlacements": [
+			{
+				"adPlacementRenderer": {
+					"config": {
+						"adPlacementConfig": {
+							"kind": "AD_PLACEMENT_KIND_START",
+							"adTimeOffset": {
+								"offsetStartMilliseconds": "0",
+								"offsetEndMilliseconds": "-1"
+							},
+							"hideCueRangeMarker": false
+						}
+					},
+					"renderer": {
+						"clientForecastingAdRenderer": {}
+					},
+					"adSlotLoggingData": {
+						"serializedSlotAdServingDataEntry": "REDACTED"
+					}
+				}
+			}
+		]
+	}
+}

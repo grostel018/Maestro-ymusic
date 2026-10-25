@@ -3,6 +3,7 @@ import { defaultUrl, isProduction } from "@main/infra/devUtils";
 import { toChromeUserAgent } from "@main/infra/userAgent";
 import { serverMain } from "@main/ipc/serverEvents";
 import { getLifecycleContext } from "@main/lifecycle";
+import { adblockArgvFor } from "@shared/adblock/flag";
 import { CHROMECAST_SETTING_KEY, chromecastArgvFor } from "@shared/chromecast/flag";
 import { logger } from "@shared/utils/console";
 import translations from "@translations/index";
@@ -25,6 +26,18 @@ function isChromecastSettingEnabled(): boolean {
 		return !!settings?.get?.(CHROMECAST_SETTING_KEY, false);
 	} catch {
 		return false;
+	}
+}
+
+/** The `--ytmd-adblock` preload flag from `adblock.{enabled,prune,fallback}`; off if settings cannot be read. */
+function adblockArgv(): string {
+	try {
+		const settings = getLifecycleContext().getProvider("settings") as { get?: (key: string, fallback?: boolean) => boolean };
+		const get = (key: string) => settings?.get?.(key, true) !== false;
+		const enabled = get("adblock.enabled");
+		return adblockArgvFor({ prune: enabled && get("adblock.prune"), fallback: enabled && get("adblock.fallback") });
+	} catch {
+		return adblockArgvFor({ prune: false, fallback: false });
 	}
 }
 
@@ -172,7 +185,7 @@ export class WindowManager {
 				contextIsolation: true,
 				nodeIntegration: false,
 				backgroundThrottling: false,
-				additionalArguments: [chromecastArgvFor(isChromecastSettingEnabled())],
+				additionalArguments: [chromecastArgvFor(isChromecastSettingEnabled()), adblockArgv()],
 			},
 			{ lockSize: false },
 		);

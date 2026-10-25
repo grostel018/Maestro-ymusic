@@ -1,7 +1,9 @@
+import { adblockFromArgv } from "@shared/adblock/flag";
 import { isChromecastEnabledFromArgv } from "@shared/chromecast/flag";
 import { logger } from "@shared/utils/console";
 import { contextBridge, webFrame } from "electron";
 import pkg from "../../package.json";
+import { ADBLOCK_PRUNE_SOURCE } from "./adblock-prune";
 import exposeData, { assignPreload, exposeToPage, settingsProvider } from "./base";
 import { preloadLocal } from "./preload-local";
 import { createContextExposer, createDomUtils, createInitializationUtils, createPreloadLogger, isYoutubeMusicHost } from "./utils";
@@ -64,6 +66,24 @@ async function injectYtmdAgent(): Promise<void> {
 	}
 }
 
+/** Main-world response pruning; must land before YouTube's scripts, so it is injected first. */
+async function injectAdblockPrune(): Promise<void> {
+	try {
+		if (!adblockFromArgv(process.argv).prune) return;
+		const frame = webFrame as typeof webFrame & {
+			executeJavaScriptInIsolatedWorld?: (worldId: number, scripts: { code: string }[]) => Promise<unknown>;
+		};
+		if (typeof frame.executeJavaScriptInIsolatedWorld === "function") {
+			await frame.executeJavaScriptInIsolatedWorld(0, [{ code: ADBLOCK_PRUNE_SOURCE }]);
+		} else {
+			await webFrame.executeJavaScript(ADBLOCK_PRUNE_SOURCE);
+		}
+		log.info("adblock prune inject ok");
+	} catch (err) {
+		log.warn("adblock prune inject failed", err);
+	}
+}
+
 const pluginManager = initUtils.createPluginManager();
 const initFn = initUtils.createInitFunction(pluginManager);
 
@@ -103,6 +123,7 @@ function scheduleBoot(from: string): void {
 		logger.error("Failed to initialize YTMD", err);
 	});
 }
+void injectAdblockPrune();
 void injectYtmdAgent();
 process.once("loaded", () => scheduleBoot("process.loaded"));
 exposeData.domUtils.ensureDomLoaded(() => scheduleBoot("dom"));

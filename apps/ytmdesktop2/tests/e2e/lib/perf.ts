@@ -90,15 +90,27 @@ export const SKIP_AD = `(() => {
 	return true;
 })()`;
 
-/** Opens `TRACK_URL` in the YouTube view, gets past any ads, and plays until the track itself passes 1 s. */
-export async function play(t: TestApp): Promise<void> {
+export const AD_SHOWING = "!!document.querySelector('#movie_player')?.classList.contains('ad-showing')";
+
+/**
+ * Opens `TRACK_URL` in the YouTube view, gets past any ads, and plays until the track itself passes 1 s.
+ * `skipAds: false` leaves ads alone (for scenarios that prove no ad appears) and returns how many polls saw one.
+ */
+export async function play(t: TestApp, opts: { skipAds?: boolean } = {}): Promise<number> {
+	const skipAds = opts.skipAds ?? true;
+	let adPolls = 0;
 	const yt = await t.view("youtube");
 	await yt.eval(`location.href = ${JSON.stringify(TRACK_URL)}`);
 	await sleep(2000);
 	await waitFor(async () => (await yt.eval<boolean>("!!document.querySelector('#movie_player')?.playVideo")) || false, 60000, "the YouTube Music player");
 	await waitFor(
 		async () => {
-			if (await yt.eval<boolean>(SKIP_AD, { userGesture: true })) return false;
+			if (skipAds) {
+				if (await yt.eval<boolean>(SKIP_AD, { userGesture: true })) return false;
+			} else if (await yt.eval<boolean>(AD_SHOWING)) {
+				adPolls++;
+				return false;
+			}
 			await yt.eval("document.querySelector('#movie_player').playVideo()", { userGesture: true });
 			return (
 				(await yt.eval<boolean>(
@@ -109,4 +121,5 @@ export async function play(t: TestApp): Promise<void> {
 		90000,
 		"the track (past any ads) to play past 1 s",
 	);
+	return adPolls;
 }
