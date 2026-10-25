@@ -158,7 +158,9 @@ export const scenarios: Scenario[] = [
 			console.log(`  s12: switches ${JSON.stringify(seen)}, stats "${stats}", ${badges} restart badges, screenshot ${file}`);
 			if (wrong.length) throw new Error(`switches differ from the seeded values: ${wrong.join(", ")}`);
 			if (!stats) throw new Error(`no "Blocked this session: N" stats line in: ${text.slice(0, 300)}`);
-			if (badges !== 2) throw new Error(`expected 2 "Restart required" badges, saw ${badges}`);
+			// only the prune layer needs a restart; the master switch says so for its pruning part
+			if (badges !== 1) throw new Error(`expected 1 "Restart required" badge (Remove ads from YouTube responses), saw ${badges}`);
+			if (!/removing ads from YouTube responses stops after a restart/i.test(text)) throw new Error(`no restart note under "Block ads" in: ${text.slice(0, 400)}`);
 		},
 	},
 ];

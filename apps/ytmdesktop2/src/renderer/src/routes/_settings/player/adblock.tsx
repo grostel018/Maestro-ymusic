@@ -25,7 +25,11 @@ function AdblockSettingsPage() {
 				</CardHeader>
 				<CardContent>
 					<FieldGroup>
-						<SettingsCheckbox configKey="adblock.enabled" defaultValue={true}>
+						<SettingsCheckbox
+							configKey="adblock.enabled"
+							defaultValue={true}
+							description="Turning this off stops blocking at once; removing ads from YouTube responses stops after a restart."
+						>
 							Block ads
 						</SettingsCheckbox>
 						<p className="text-muted-foreground text-sm" data-testid="adblock-stats">
@@ -52,11 +56,7 @@ function AdblockSettingsPage() {
 						>
 							Remove ads from YouTube responses
 						</SettingsCheckbox>
-						<SettingsCheckbox
-							configKey="adblock.fallback"
-							defaultValue={true}
-							description={<RestartBadge />}
-						>
+						<SettingsCheckbox configKey="adblock.fallback" defaultValue={true}>
 							Skip ads that slip through
 						</SettingsCheckbox>
 						<SettingsCheckbox configKey="adblock.hideUpsells" defaultValue={true}>

@@ -29,15 +29,15 @@ function isChromecastSettingEnabled(): boolean {
 	}
 }
 
-/** The `--ytmd-adblock` preload flag from `adblock.{enabled,prune,fallback}`; off if settings cannot be read. */
+/** The `--ytmd-adblock` preload flag from `adblock.{enabled,prune}`; off if settings cannot be read. */
 function adblockArgv(): string {
 	try {
 		const settings = getLifecycleContext().getProvider("settings") as { get?: (key: string, fallback?: boolean) => boolean };
 		const get = (key: string) => settings?.get?.(key, true) !== false;
 		const enabled = get("adblock.enabled");
-		return adblockArgvFor({ prune: enabled && get("adblock.prune"), fallback: enabled && get("adblock.fallback") });
+		return adblockArgvFor({ prune: enabled && get("adblock.prune") });
 	} catch {
-		return adblockArgvFor({ prune: false, fallback: false });
+		return adblockArgvFor({ prune: false });
 	}
 }
 
