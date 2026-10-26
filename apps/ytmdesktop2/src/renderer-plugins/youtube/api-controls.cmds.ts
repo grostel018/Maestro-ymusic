@@ -1,4 +1,5 @@
 import type { PlayerApi } from "ytm-client-api";
+import { classicPlayerBar, likeButton, nextRepeatMode, playerBarHost } from "./player-bar";
 import { readActiveVideoId, readLikeStatus, type YtmLikeStatus } from "./ytm-like-status";
 import {
 	dispatchQueueAddItems,
@@ -104,8 +105,9 @@ type YtmPlayerBar = HTMLElement & {
 	repeatMode?: string;
 };
 
+/** The classic bar; the newer ytmusic-miniplayer has no Polymer API, so shuffle and repeat use the store there. */
 function queryPlayerBar(): YtmPlayerBar | null {
-	return document.querySelector("ytmusic-player-bar");
+	return classicPlayerBar<YtmPlayerBar>();
 }
 
 function isShuffleOn(bar: YtmPlayerBar | null, store: YtmStoreLike | null): boolean {
@@ -114,7 +116,7 @@ function isShuffleOn(bar: YtmPlayerBar | null, store: YtmStoreLike | null): bool
 }
 
 function isRepeatOn(bar: YtmPlayerBar | null, playerApi: PlayerApi): boolean {
-	const mode = String(bar?.getAttribute("repeat-mode") ?? bar?.repeatMode ?? "").toUpperCase();
+	const mode = String(bar?.getAttribute("repeat-mode") ?? bar?.repeatMode ?? resolveYtmStore()?.getState()?.queue?.repeatMode ?? "").toUpperCase();
 	if (mode && mode !== "NONE") return true;
 	return !!playerApi.getLoopVideo?.();
 }
@@ -122,6 +124,11 @@ function isRepeatOn(bar: YtmPlayerBar | null, playerApi: PlayerApi): boolean {
 function applyRepeatEnabled(bar: YtmPlayerBar | null, playerApi: PlayerApi, on: boolean) {
 	if (typeof bar?.onRepeatButtonClick === "function") {
 		for (let i = 0; i < 3 && isRepeatOn(bar, playerApi) !== on; i++) bar.onRepeatButtonClick();
+		return;
+	}
+	const store = resolveYtmStore();
+	if (store) {
+		store.dispatch({ type: "SET_REPEAT", payload: on ? "REPEAT_ALL" : "NONE" });
 		return;
 	}
 	playerApi.setLoop?.(on);
@@ -177,6 +184,9 @@ export const trackControls = {
 			applyRepeatEnabled(bar, playerApi, loop);
 		} else if (typeof bar?.onRepeatButtonClick === "function") {
 			bar.onRepeatButtonClick();
+		} else if (resolveYtmStore()) {
+			const store = resolveYtmStore();
+			store?.dispatch({ type: "SET_REPEAT", payload: nextRepeatMode(store.getState()?.queue?.repeatMode) });
 		} else {
 			applyRepeatEnabled(bar, playerApi, !isRepeatOn(bar, playerApi));
 		}
@@ -209,7 +219,7 @@ export const trackControls = {
 	backward: (playerApi: PlayerApi, data?: SeekPayload) => trackControls.seek(playerApi, { time: -Math.abs(Number(data?.time ?? 10000)) }),
 	like: async (liked: boolean) => {
 		const videoId = readActiveVideoId();
-		const btn = document.querySelector<HTMLElement>("ytmusic-player-bar #button-shape-like.like button");
+		const btn = likeButton("like");
 		const current = readLikeStatus(videoId);
 		if (!btn) return current.liked;
 		if (current.liked === liked) return liked;
@@ -218,7 +228,7 @@ export const trackControls = {
 	},
 	dislike: async (disliked: boolean) => {
 		const videoId = readActiveVideoId();
-		const btn = document.querySelector<HTMLElement>("ytmusic-player-bar #button-shape-dislike.dislike button");
+		const btn = likeButton("dislike");
 		const current = readLikeStatus(videoId);
 		if (!btn) return current.disliked;
 		if (current.disliked === disliked) return disliked;
@@ -354,7 +364,8 @@ async function queueAddVideo(videoId: string, index: number, store: YtmStoreLike
 
 /** Playlist-only via yt-service-request (XOR playlistId, never with videoId). */
 async function queueAddPlaylist(playlistId: string, index: number, store: YtmStoreLike | null): Promise<void> {
-	const bar = document.querySelector("ytmusic-app-layout>ytmusic-player-bar") as HTMLElement | null;
+	// Any element in the app can raise the service request; the player bar (either layout) as before, else the app.
+	const bar = playerBarHost() ?? document.querySelector<HTMLElement>("ytmusic-app");
 	if (!bar) throw new Error("player bar not found");
 
 	await new Promise<void>((resolve, reject) => {

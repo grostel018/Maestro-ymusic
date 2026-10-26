@@ -1,5 +1,6 @@
 import { definePageCmds } from "@plugins/define-bridge";
 import type { TrackSearchInfo, YouTubeCaptionTrack, YouTubeCaptionTracks } from "./lyrics/types";
+import { currentAlbum } from "./player-bar";
 import { getPagePlayerApi } from "./world0/context";
 import { resolveYtmStore } from "./ytm-store";
 
@@ -8,6 +9,9 @@ function readAlbumTitle(): string | undefined {
 		const bar = document.querySelector("ytmusic-app-layout>ytmusic-player-bar");
 		const albumRun = bar?.querySelector?.(".subtitle a")?.textContent;
 		if (albumRun) return String(albumRun);
+		// The ytmusic-miniplayer layout has no album link: read it from the current queue item.
+		const videoId = getPagePlayerApi()?.getVideoData?.()?.video_id;
+		return videoId ? currentAlbum(videoId)?.title || undefined : undefined;
 	} catch {
 		/* ignore */
 	}

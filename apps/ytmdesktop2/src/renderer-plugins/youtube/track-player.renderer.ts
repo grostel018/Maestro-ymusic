@@ -1,4 +1,5 @@
 import type { PlayerApi } from "ytm-client-api";
+import { currentAlbum, currentQueueItem } from "./player-bar";
 import { getPagePlayerApi } from "./world0/context";
 import type { RendererPluginRegistration } from "./world0/types";
 
@@ -61,10 +62,7 @@ function counterpartFromWrapper(wrapper: unknown, activeVideoId: string): string
 
 function readCounterpartVideoId(activeVideoId: string): string | null {
 	try {
-		const bar = document.querySelector("ytmusic-app-layout>ytmusic-player-bar") as {
-			currentItem?: Record<string, unknown>;
-		} | null;
-		const currentItem = bar?.currentItem;
+		const currentItem = currentQueueItem(activeVideoId) as Record<string, unknown> | null;
 		if (currentItem) {
 			const fromWrapper = counterpartFromWrapper(currentItem, activeVideoId);
 			if (fromWrapper) return fromWrapper;
@@ -96,42 +94,12 @@ function readCounterpartVideoId(activeVideoId: string): string | null {
 	return null;
 }
 
-function readAlbum(): { id: string; title: string } | undefined {
+function readAlbum(videoId: string): { id: string; title: string } | undefined {
 	try {
-		const bar = document.querySelector("ytmusic-app-layout>ytmusic-player-bar") as {
-			currentItem?: {
-				longBylineText?: {
-					runs?: Array<{
-						text?: string;
-						navigationEndpoint?: {
-							browseEndpoint?: {
-								browseId?: string;
-								browseEndpointContextSupportedConfigs?: {
-									browseEndpointContextMusicConfig?: { pageType?: string };
-								};
-							};
-						};
-					}>;
-				};
-			};
-		} | null;
-		const runs = bar?.currentItem?.longBylineText?.runs;
-		if (!runs) return undefined;
-		for (const v of runs) {
-			const pageType =
-				v?.navigationEndpoint?.browseEndpoint?.browseEndpointContextSupportedConfigs?.browseEndpointContextMusicConfig
-					?.pageType;
-			if (pageType === "MUSIC_PAGE_TYPE_ALBUM") {
-				return {
-					id: String(v.navigationEndpoint?.browseEndpoint?.browseId || ""),
-					title: String(v.text || ""),
-				};
-			}
-		}
+		return currentAlbum(videoId);
 	} catch {
-		/* ignore */
+		return undefined;
 	}
-	return undefined;
 }
 
 function buildPayload(videoData: {
@@ -283,7 +251,7 @@ const trackPlayerRenderer: RendererPluginRegistration = {
 				return false;
 			}
 			if (!videoData?.videoDetails?.videoId) return false;
-			const payload = buildPayload(videoData, readAlbum());
+			const payload = buildPayload(videoData, readAlbum(videoData.videoDetails.videoId));
 			const key = contentKey(payload);
 			const restartListen = !!opts?.restartListen;
 			if (!restartListen && key === lastKey) return true;
@@ -311,7 +279,7 @@ const trackPlayerRenderer: RendererPluginRegistration = {
 					currentId = "";
 				}
 				if (currentId !== videoId) return;
-				if (readAlbum()) {
+				if (readAlbum(videoId)) {
 					pushTrackInfo();
 					return;
 				}
