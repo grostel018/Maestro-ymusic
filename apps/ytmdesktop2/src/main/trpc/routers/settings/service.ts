@@ -75,6 +75,12 @@ const defaultSettings = {
 		replaceShareLinks: true,
 		/** Song (audio) or music video; flipped by the Song/Video switch, the player-bar button or `V`. */
 		videoMode: "video" as "video" | "audio",
+		/** YouTube-style control bar and shortcuts over the video (speed, captions, quality, loop, PiP, theater, fullscreen). */
+		videoControls: true,
+		/** Keep the pitch when the playback speed changes (`preservesPitch`). */
+		keepPitch: true,
+		/** Output device id for the player's audio; "default" follows the system. */
+		outputDevice: "default",
 		/** Native YTM Cast via in-app chrome.cast shim. Off until restart. */
 		chromecastEnabled: false,
 		res: {

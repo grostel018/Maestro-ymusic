@@ -38,4 +38,7 @@ export const CHECKS: Check[] = [
 	{ area: "Playback", check: "The Song/Video switch and player-bar button are always visible; V toggles 5× without pausing or restarting; song mode plays the song or shows the cover and the choice is saved", evidence: ["s20"] },
 	{ area: "Playback", check: "Song mode on a music video finds and plays its song near the same position, with its square cover, and Up next keeps its length", evidence: ["s21"] },
 	{ area: "Playback", check: "Video mode on a song switches to its music video, or disables the Video button", evidence: ["s22"] },
+	{ area: "Playback", check: "Video controls show on hover; speed, quality (saved), captions, mute, picture-in-picture, theater and fullscreen work by YouTube's keys only while the player has focus, without pausing", evidence: ["s23"] },
+	{ area: "Playback", check: "The audio output menu lists devices with the system default first, switching keeps playing, and no page can open the microphone", evidence: ["s24"] },
+	{ area: "Playback", check: "The player-bar speed menu sets 1.25x in Song mode and keeps playing; keep pitch flips preservesPitch and is saved", evidence: ["s25"] },
 ];

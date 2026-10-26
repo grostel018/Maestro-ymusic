@@ -22,6 +22,7 @@ import { app, BrowserWindow, protocol, session } from "electron";
 
 // Side-effect: register track router lifecycle handlers
 import "@main/trpc/routers/track";
+import { applyMediaPermissions } from "./lib/mediaPermissions";
 
 initializeCustomElectronEnvironment();
 const log = logger.child("main");
@@ -114,6 +115,7 @@ const runApp = async function () {
 	app.on("activate", reactivate); // runs when the app is activated (e.g. when the app is brought back from the background)
 	app.on("ready", async () => {
 		thumbnailCache.registerProtocol();
+		applyMediaPermissions(session.defaultSession);
 		await waitMs(); // next tick
 		// The YouTube page starts loading inside createRootWindow, so block before it (capped: never holds startup longer).
 		const adblockStart = Date.now();

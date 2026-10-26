@@ -48,6 +48,29 @@ const AV_STATE = `(() => {
 
 const avState = (yt: CdpSession) => yt.eval<AvState>(AV_STATE);
 const pressV = (yt: CdpSession) => yt.eval(`(document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "v", bubbles: true })), true)`);
+const key = (yt: CdpSession, k: string, gesture = false) =>
+	yt.eval(`(window.dispatchEvent(new KeyboardEvent("keydown", { key: ${JSON.stringify(k)}, bubbles: true, cancelable: true })), true)`, { userGesture: gesture });
+/** Pointer events the controls listen for: hover shows the bar, a press gives the player keyboard focus. */
+const pointer = (yt: CdpSession, type: "pointermove" | "pointerdown", selector: string) =>
+	yt.eval(`(document.querySelector(${JSON.stringify(selector)}).dispatchEvent(new PointerEvent(${JSON.stringify(type)}, { bubbles: true })), true)`);
+type Media = { t: number; paused: boolean; rate: number; pitch: boolean; muted: boolean; quality: string; levels: string[]; caption: string; pip: boolean; fs: boolean; theater: boolean; full: boolean };
+const media = (yt: CdpSession) =>
+	yt.eval<Media>(`(() => {
+		const v = document.querySelector("video"); const mp = document.querySelector("#movie_player");
+		const track = mp.getOption?.("captions", "track") ?? {};
+		return { t: v.currentTime, paused: v.paused, rate: v.playbackRate, pitch: v.preservesPitch, muted: mp.isMuted(), quality: mp.getPlaybackQuality(), levels: mp.getAvailableQualityLevels(),
+			caption: track.languageCode ?? "", pip: !!document.pictureInPictureElement, fs: document.fullscreenElement === mp, theater: document.documentElement.classList.contains("ytmd-theater"),
+			full: mp.getBoundingClientRect().width >= window.innerWidth - 1 };
+	})()`);
+/** Clicks the entry labelled `label` in the open popup menu. */
+const pick = (yt: CdpSession, label: string) =>
+	yt.eval<boolean>(`(() => { const b = [...document.querySelectorAll("#ytmd-vc-menu button")].find((e) => e.textContent === ${JSON.stringify(label)}); b?.click(); return !!b; })()`);
+const click = (yt: CdpSession, selector: string) => yt.eval<boolean>(`(() => { const e = document.querySelector(${JSON.stringify(selector)}); e?.click(); return !!e; })()`);
+const until = (yt: CdpSession, test: (m: Media) => boolean, ms: number, what: string) =>
+	waitFor(async () => {
+		const m = await media(yt);
+		return test(m) ? m : false;
+	}, ms, what);
 const videoMode = (t: TestApp) => t.mainEval<string>(`__YTMD_TEST__.services.getProvider("settings").get("player.videoMode")`);
 
 export const scenarios: Scenario[] = [
@@ -132,6 +155,129 @@ export const scenarios: Scenario[] = [
 			}, 30000, "the song to switch to its video or the Video button to be disabled").catch((err: Error) => {
 				throw new Error(`${err.message}; last state ${JSON.stringify(seen)}`);
 			});
+		},
+	},
+	{
+		id: "s23",
+		title: "Video controls: bar on hover; speed, quality, captions, mute, picture-in-picture, theater, fullscreen and YouTube's keys work while the player has focus",
+		launch: { settings: { player: { videoMode: "video", videoControls: true } } },
+		run: async (t) => {
+			await play(t);
+			const yt = await t.view("youtube");
+			await pointer(yt, "pointermove", "#movie_player video");
+			await waitFor(async () => (await yt.eval<boolean>(`!!document.querySelector("#movie_player.ytmd-vc-show #ytmd-vc")`)) || false, 10000, "the control bar on hover");
+
+			// Keys do nothing until the player is clicked.
+			await pointer(yt, "pointerdown", "ytmusic-nav-bar");
+			await key(yt, "k");
+			await sleep(400);
+			if ((await media(yt)).paused) throw new Error("k paused playback although the player did not have focus");
+			await pointer(yt, "pointerdown", "#movie_player video");
+
+			const start = await media(yt);
+			await key(yt, "l");
+			const fwd = await until(yt, (m) => m.t >= start.t + 9, 5000, "l to seek 10 s forward");
+			await key(yt, "j");
+			await until(yt, (m) => m.t < fwd.t - 8, 5000, "j to seek 10 s back");
+
+			await key(yt, "<");
+			await key(yt, "<");
+			await until(yt, (m) => m.rate === 0.5, 3000, "< twice to set 0.5x");
+			await key(yt, ">");
+			await key(yt, ">");
+			await until(yt, (m) => m.rate === 1, 3000, "> twice to return to 1x");
+
+			const { levels } = await media(yt);
+			if (levels.includes("hd1080")) {
+				const before = (await media(yt)).t;
+				await click(yt, '#ytmd-vc button[data-name="quality"]');
+				if (!(await pick(yt, "1080p"))) throw new Error(`no 1080p entry in the quality menu (levels ${levels.join(",")})`);
+				await until(yt, (m) => m.quality === "hd1080", 15000, "the quality to become 1080p");
+				await sleep(1800);
+				const after = await media(yt);
+				if (after.t + 2 < before) throw new Error(`changing the quality jumped back: ${before.toFixed(1)} -> ${after.t.toFixed(1)}`);
+				const res = await t.mainEval<{ prefer?: string }>(`__YTMD_TEST__.services.getProvider("settings").get("player.res")`);
+				if (res?.prefer !== "hd1080") throw new Error(`player.res was not saved: ${JSON.stringify(res)}`);
+			}
+
+			await key(yt, "c");
+			await until(yt, (m) => !!m.caption, 8000, "c to turn captions on");
+			await key(yt, "c");
+			await until(yt, (m) => !m.caption, 5000, "c to turn captions off");
+
+			await key(yt, "m");
+			await until(yt, (m) => m.muted, 3000, "m to mute");
+			await key(yt, "m");
+			await until(yt, (m) => !m.muted, 3000, "m to unmute");
+
+			await key(yt, "i", true);
+			await until(yt, (m) => m.pip, 5000, "i to open picture-in-picture");
+			await key(yt, "i", true);
+			await until(yt, (m) => !m.pip, 5000, "i to close picture-in-picture");
+
+			await key(yt, "t");
+			await until(yt, (m) => m.theater && m.full, 3000, "t to fill the window with the video");
+			await key(yt, "Escape");
+			await until(yt, (m) => !m.theater, 3000, "Escape to leave theater mode");
+
+			await key(yt, "f", true);
+			await until(yt, (m) => m.fs, 5000, "f to enter full screen");
+			await key(yt, "f", true);
+			await until(yt, (m) => !m.fs, 5000, "f to leave full screen");
+
+			if ((await media(yt)).paused) throw new Error("playback paused during the controls test");
+		},
+	},
+	{
+		id: "s24",
+		title: "Output device: the menu lists outputs, choosing the system default keeps playing, and pages cannot open the microphone",
+		launch: { settings: { player: { videoMode: "video", outputDevice: "default" } } },
+		run: async (t) => {
+			await play(t);
+			const yt = await t.view("youtube");
+			await waitFor(async () => (await click(yt, "#ytmd-output-button")) || false, 15000, "the audio output button in the player bar");
+			const items = await waitFor(async () => {
+				const n = await yt.eval<string[]>(`[...document.querySelectorAll("#ytmd-vc-menu button")].map((b) => b.textContent)`);
+				return n.length ? n : false;
+			}, 5000, "the output device menu");
+			if (items[0] !== "System default") throw new Error(`the menu should start with the system default: ${items.join(" | ")}`);
+			const before = await media(yt);
+			await pick(yt, "System default");
+			await sleep(2000);
+			const after = await media(yt);
+			if (after.paused || after.t <= before.t + 1) throw new Error(`playback stalled after choosing the default device: ${before.t} -> ${after.t}`);
+			const sink = await yt.eval<string>(`document.querySelector("video").sinkId`);
+			if (sink !== "") throw new Error(`the default device should use the empty sink id, got ${sink}`);
+			const mic = await yt.eval<string>(
+				`navigator.mediaDevices.getUserMedia({ audio: true }).then((s) => { s.getTracks().forEach((x) => x.stop()); return "granted"; }, (e) => e.name)`,
+			);
+			if (mic === "granted") throw new Error("the page could open the microphone");
+		},
+	},
+	{
+		id: "s25",
+		title: "Speed: the player-bar menu sets 1.25x (also in Song mode) and keeps playing; keep pitch flips preservesPitch and is saved",
+		launch: { settings: { player: { videoMode: "audio", keepPitch: true } } },
+		run: async (t) => {
+			await play(t);
+			const yt = await t.view("youtube");
+			await waitFor(async () => (await click(yt, "#ytmd-speed-button")) || false, 15000, "the speed button in the player bar");
+			if (!(await pick(yt, "1.25×"))) throw new Error("no 1.25x entry in the speed menu");
+			const set = await until(yt, (m) => m.rate === 1.25, 5000, "the rate to become 1.25x");
+			await sleep(2000);
+			const later = await media(yt);
+			if (later.paused || later.t < set.t + 2) throw new Error(`playback did not keep going at 1.25x: ${set.t.toFixed(2)} -> ${later.t.toFixed(2)}`);
+			if (!later.pitch) throw new Error("preservesPitch should start on");
+			await click(yt, "#ytmd-speed-button");
+			await yt.eval(`(document.querySelector('#ytmd-vc-menu input[type="checkbox"]').click(), true)`);
+			await until(yt, (m) => !m.pitch, 3000, "keep pitch off to clear preservesPitch");
+			await waitFor(
+				async () => ((await t.mainEval<boolean>(`__YTMD_TEST__.services.getProvider("settings").get("player.keepPitch")`)) === false ? true : false),
+				3000,
+				"player.keepPitch to be saved",
+			);
+			const rate = await yt.eval<number>(`document.querySelector("video").playbackRate`);
+			if (rate !== 1.25) throw new Error(`the rate changed to ${rate} after the pitch switch`);
 		},
 	},
 ];

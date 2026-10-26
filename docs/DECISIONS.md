@@ -4,6 +4,21 @@ Short records of decisions that shape the code, so collaborators know **why**. N
 Format: what we decided, why, what it costs if wrong. The full per-task record for phases 0–1 is
 in `docs/superpowers/plans/2026-10-25-phase0-1-ledger.md`.
 
+## 2026-10-26: Our own video control bar; capture permissions refused
+- **Probe (C2's first choice):** YTM builds `#movie_player` without YouTube's control bar.
+  `.ytp-chrome-bottom`, the settings menu and every `.ytp-*-button` are absent, not hidden, so
+  there is nothing to re-enable.
+- **Decision:** one bar of our own on the player API (quality, captions, speed, loop, PiP, theater,
+  full screen) and YouTube's keys, live only after a click on the video.
+- **Permissions:** Electron granted every permission to every page, which let any page open the
+  microphone or camera without a prompt. The output-device menu needs the "media" permission
+  for device names, so main now:
+  - allows device listing and speaker selection only for YouTube Music and the app's own pages,
+  - refuses capture everywhere,
+  - leaves other permissions at Electron's default.
+- **Cost if wrong:** a future feature that needs the microphone (voice search) must add a
+  narrow exception in `src/main/lib/mediaPermissions.ts`.
+
 ## 2026-10-26: Song mode pairs the found song with the playing queue row
 - **Owner report:** Song mode showed the music video's thumbnail instead of the song's cover.
 - **Cause:** without Premium, YouTube sends no song/video pairs ("counterparts"), so there was

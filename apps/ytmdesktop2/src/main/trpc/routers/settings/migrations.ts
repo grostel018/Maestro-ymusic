@@ -230,6 +230,15 @@ const migrations: Omit<Migration<SettingsStore>, "version">[] = [
 			if (mode !== "video" && mode !== "audio") store.set("player.videoMode", "video");
 		},
 	},
+	{
+		hook(store) {
+			// Phase C2–C4: video controls, keep-pitch and the output device.
+			const player = (store.store as { player?: Record<string, unknown> })?.player ?? {};
+			if (typeof player.videoControls !== "boolean") store.set("player.videoControls", true);
+			if (typeof player.keepPitch !== "boolean") store.set("player.keepPitch", true);
+			if (typeof player.outputDevice !== "string" || !player.outputDevice) store.set("player.outputDevice", "default");
+		},
+	},
 ];
 
 export default migrations;

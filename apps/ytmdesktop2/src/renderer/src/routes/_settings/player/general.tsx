@@ -107,6 +107,20 @@ function PlayerGeneralSettingsPage() {
 				</CardHeader>
 				<CardContent>
 					<FieldGroup>
+						<SettingsCheckbox
+							configKey="player.videoControls"
+							defaultValue={true}
+							description="A YouTube-style bar over the video: speed, subtitles, quality, loop, picture-in-picture, theater and full screen. YouTube's keys (k, j, l, f, c, i, t…) work after you click the video."
+						>
+							Video controls
+						</SettingsCheckbox>
+						<SettingsCheckbox
+							configKey="player.keepPitch"
+							defaultValue={true}
+							description="Faster or slower playback keeps the original pitch."
+						>
+							Keep pitch when changing speed
+						</SettingsCheckbox>
 						<SettingsCheckbox configKey="player.res.enabled">Customize player video settings</SettingsCheckbox>
 						{resEnabled && !resPending && (
 							<SettingsSelect
