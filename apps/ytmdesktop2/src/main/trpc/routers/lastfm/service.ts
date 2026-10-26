@@ -3,12 +3,12 @@ import { emitAppToast } from "@main/lib/appToast";
 import { stringifyJson } from "@main/lib/json";
 import { LASTFM_KEYTAR_SESSION, LASTFM_KEYTAR_TOKEN } from "@main/lib/keytar";
 import { LastFMClient } from "@main/lib/lastfm";
+import { LASTFM_WEB } from "@main/lib/lastfm/client";
 import secureStore from "@main/lib/secureStore";
 import IPC_EVENT_NAMES from "@shared/constants/eventNames";
-import { YtmdLink } from "@shared/protocol/ytmdProtocol";
 import { lastFmListenKey } from "@shared/track/lastfmTrackSession";
 import { TrackData } from "@shared/track/trackData";
-import { App, shell } from "electron";
+import { App, BrowserWindow, shell } from "electron";
 import { LastFMSettings } from "ytmd";
 
 const AUTH_POLL_MS = 1500;
@@ -31,6 +31,7 @@ export default class LastFMProvider extends BaseProvider implements AfterInit, O
 	private authProgress = false;
 	private authPollTimer: ReturnType<typeof setInterval> | null = null;
 	private authDeadline: ReturnType<typeof setTimeout> | null = null;
+	private authWindow: BrowserWindow | null = null;
 	private authGen = 0;
 	/** `reauth` cancel keeps enabled=true; first-time connect cancel flips off. */
 	private authMode: "connect" | "reauth" | null = null;
@@ -114,7 +115,40 @@ export default class LastFMProvider extends BaseProvider implements AfterInit, O
 		return this.authGen;
 	}
 
+	/**
+	 * Last.fm's "allow access" page in an app window (as Pear Desktop does), instead of the default browser.
+	 * Closing it before approving cancels, after one last session check.
+	 */
+	private openAuthWindow(url: string, gen: number) {
+		this.closeAuthWindow();
+		const win = new BrowserWindow({
+			width: 900,
+			height: 720,
+			title: "Connect Last.fm",
+			autoHideMenuBar: true,
+			webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+		});
+		this.authWindow = win;
+		win.on("closed", () => {
+			if (this.authWindow === win) this.authWindow = null;
+			if (gen !== this.authGen || !this.authProgress || !this.client) return;
+			void this.client.tryGetSession().then((sessionToken) => {
+				if (gen !== this.authGen || !this.authProgress) return;
+				if (sessionToken) void this.finishAuth(sessionToken, gen);
+				else this.cancelAuth("abort");
+			});
+		});
+		void win.loadURL(url).catch((err) => this.logger.warn("Last.fm auth page failed to load", err));
+	}
+
+	private closeAuthWindow() {
+		const win = this.authWindow;
+		this.authWindow = null;
+		if (win && !win.isDestroyed()) win.close();
+	}
+
 	private stopAuthPoll() {
+		this.closeAuthWindow();
 		if (this.authPollTimer) {
 			clearInterval(this.authPollTimer);
 			this.authPollTimer = null;
@@ -232,14 +266,16 @@ export default class LastFMProvider extends BaseProvider implements AfterInit, O
 		const gen = this.bumpAuthGen();
 		this.authMode = mode;
 		await this.client.authorize();
-		const authUrl = this.client.getUserAuthorizeUrl(YtmdLink.integrationCallback("lastfm"));
-		if (!authUrl.startsWith("https://www.last.fm/")) {
+		// No callback link: approval is detected by polling auth.getSession, so a `ytmd://` callback that lands
+		// in another installed app (the old "sign in 10 times" loop) can't happen.
+		const authUrl = this.client.getUserAuthorizeUrl();
+		if (!authUrl.startsWith(`${LASTFM_WEB}/api/auth`)) {
 			throw new Error("Last.fm auth URL rejected");
 		}
-		await shell.openExternal(authUrl);
 
 		this.authProgress = true;
 		this.sendState();
+		this.openAuthWindow(authUrl, gen);
 
 		this.authPollTimer = setInterval(() => {
 			if (gen !== this.authGen || !this.client || !this.authProgress) return;

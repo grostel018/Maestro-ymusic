@@ -3,7 +3,7 @@
 // "Import sign-in from Firefox" path against a fake Firefox profile with fake cookies.
 import fs from "node:fs";
 import path from "node:path";
-import { getWorkDir, type Scenario } from "../lib/app.ts";
+import { getWorkDir, launchApp, type Scenario } from "../lib/app.ts";
 import { sleep, waitFor } from "../lib/wait.ts";
 import { startMockServer } from "../mocks/server.ts";
 
@@ -84,6 +84,75 @@ export const scenarios: Scenario[] = [
 		},
 	},
 ];
+
+scenarios.push({
+	id: "s19",
+	smoke: true,
+	title: "Last.fm connects through an in-app window in one go and stays connected after a restart",
+	run: async (t) => {
+		const mock = await startMockServer();
+		let sessionChecks = 0;
+		mock.on("GET", "/2.0/", (r) => {
+			switch (r.query.get("method")) {
+				case "auth.getToken":
+					return { json: { token: "e2e-token" } };
+				case "auth.getSession":
+					// the user "approves" on the second poll
+					return ++sessionChecks < 2 ? { status: 403, json: { error: 14, message: "Unauthorized Token" } } : { json: { session: { name: "e2e-user", key: "e2e-sk", subscriber: 0 } } };
+				case "user.getInfo":
+					return { json: { user: { name: "e2e-user" } } };
+				default:
+					return { json: {} };
+			}
+		});
+		mock.on("GET", "/api/auth", () => ({ text: "<html><body>Allow access?</body></html>", headers: { "content-type": "text/html" } }));
+		const env = { YTMD_E2E_API_LASTFM: `${mock.url}/2.0`, YTMD_E2E_API_LASTFMWEB: mock.url };
+		// this scenario launches its own app (it needs the mock's address in the environment)
+		await t.close();
+		let app = await launchApp({ env, settings: { lastfm: { enabled: false } } });
+		try {
+			await app.mainEval("void __YTMD_TEST__.services.getProvider('lastfm').handleLastFMAuth() && undefined");
+			const authPage = await waitFor(
+				async () =>
+					(await app.mainEval<string | null>(
+						`process.mainModule.require("electron").webContents.getAllWebContents().map((w) => w.getURL()).find((u) => u.includes("/api/auth")) ?? null`,
+					)) || false,
+				15000,
+				"the Last.fm approval page in an app window",
+			);
+			if (!authPage.startsWith(`${mock.url}/api/auth?`) || !authPage.includes("token=e2e-token") || authPage.includes("cb=")) {
+				throw new Error(`unexpected approval page ${authPage} (must be in-app, with the token and no callback link)`);
+			}
+			await waitFor(
+				async () => (await app.mainEval<{ connected: boolean; name: string | null }>("__YTMD_TEST__.services.getProvider('lastfm').getState()")).connected || false,
+				20000,
+				"Last.fm to be connected",
+			);
+			await waitFor(
+				async () =>
+					!(await app.mainEval<boolean>(`process.mainModule.require("electron").webContents.getAllWebContents().some((w) => w.getURL().includes("/api/auth"))`)),
+				5000,
+				"the approval window to close",
+			);
+			const tokens = mock.requests.filter((r) => r.query.get("method") === "auth.getToken").length;
+			if (tokens !== 1) throw new Error(`auth.getToken called ${tokens} times (a sign-in loop)`);
+
+			// restart on the same profile: still connected, no new sign-in
+			await app.quit();
+			app = await launchApp({ env, profileDir: app.profileDir });
+			await waitFor(
+				async () => (await app.mainEval<{ connected: boolean }>("__YTMD_TEST__.services.getProvider('lastfm').getState()")).connected || false,
+				20000,
+				"Last.fm to stay connected after a restart",
+			);
+			const tokensAfter = mock.requests.filter((r) => r.query.get("method") === "auth.getToken").length;
+			if (tokensAfter !== 1) throw new Error(`restart asked Last.fm for a new sign-in (auth.getToken x${tokensAfter})`);
+		} finally {
+			await app.close();
+			await mock.close();
+		}
+	},
+});
 
 /**
  * A fake Firefox folder: profiles.ini whose [Install…] entry names "default-release" (plus an unused

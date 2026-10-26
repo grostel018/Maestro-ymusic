@@ -1,7 +1,10 @@
 import { createFetch } from "@better-fetch/fetch";
+import { apiBase } from "@shared/e2e/apiBase";
 import { createHash } from "crypto";
 
-const API_ROOT = "https://ws.audioscrobbler.com/2.0";
+/** Overridable only under the e2e bench (YTMD_E2E_API_LASTFM / _LASTFMWEB), see shared/e2e/apiBase. */
+const API_ROOT = apiBase("lastfm", "https://ws.audioscrobbler.com/2.0");
+export const LASTFM_WEB = apiBase("lastfmweb", "https://www.last.fm");
 const USER_AGENT = "ytmd (github.com/Venipa/ytmdesktop2)";
 
 const lastfmFetch = createFetch({
@@ -187,7 +190,7 @@ export class LastFMClient {
 
 	getUserAuthorizeUrl(cb?: string) {
 		if (!this.token) throw new Error("Invalid token");
-		const url = new URL("https://www.last.fm/api/auth");
+		const url = new URL(`${LASTFM_WEB}/api/auth`);
 		url.searchParams.set("api_key", this.key.api);
 		url.searchParams.set("token", this.token);
 		if (cb) url.searchParams.set("cb", cb);

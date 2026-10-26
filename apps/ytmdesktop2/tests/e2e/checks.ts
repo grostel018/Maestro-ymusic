@@ -34,4 +34,5 @@ export const CHECKS: Check[] = [
 	{ area: "Ad block", check: "The ad block settings page shows the five switches with their saved values, a blocked-count line, and restart notes only where a restart is needed", evidence: ["s12"] },
 	{ area: "Sign-in", check: "The Google sign-in window is a normal window (not modal, not always on top, resizable), detects Google's browser rejection, and retries with the other browser identity", evidence: ["s17"] },
 	{ area: "Sign-in", check: "Import sign-in from Firefox reads the profile Firefox really uses and copies only its youtube.com / google.com cookies into the app", evidence: ["s18"] },
+	{ area: "Sign-in", check: "Last.fm connects through an in-app approval window with one token (no sign-in loop) and stays connected after a restart", evidence: ["s19"] },
 ];
