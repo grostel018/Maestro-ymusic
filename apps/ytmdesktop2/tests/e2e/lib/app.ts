@@ -102,8 +102,13 @@ async function rejectConsent(): Promise<boolean> {
 	try {
 		return await s.eval<boolean>(
 			`(() => {
+				// Google's "reject" form carries set_eom=true whatever the page language; the text match is a fallback.
+				const viaForm = [...document.querySelectorAll("form")]
+					.find((f) => f.querySelector('input[name="set_eom"][value="true"]'))
+					?.querySelector("button, input[type=submit]");
 				const buttons = [...document.querySelectorAll("button, [role=button], input[type=submit]")];
-				const reject = buttons.find((b) => /reject all/i.test(b.getAttribute("aria-label") || b.textContent || b.value || ""));
+				const viaText = buttons.find((b) => /reject all|tout refuser|alle ablehnen|rechazar todo|rifiuta tutto|rejeitar tudo|alles afwijzen|odrzuć wszystko|hepsini reddet/i.test(b.getAttribute("aria-label") || b.textContent || b.value || ""));
+				const reject = viaForm || viaText;
 				if (!reject) return false;
 				reject.click();
 				return true;
@@ -115,7 +120,29 @@ async function rejectConsent(): Promise<boolean> {
 	}
 }
 
+/** True when something already answers on a bench port (e.g. an app left over from a killed run). */
+async function portAnswers(port: number): Promise<boolean> {
+	try {
+		await fetch(`http://127.0.0.1:${port}/json/version`, { signal: AbortSignal.timeout(1000) });
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 export async function launchApp(opts: LaunchOptions = {}): Promise<TestApp> {
+	for (const port of [PORTS.cdp, PORTS.inspect]) {
+		// a previous launch may still be releasing its ports; only a port busy for 5 s is an error
+		const busy = await waitFor(async () => !(await portAnswers(port)), 5000, "").then(
+			() => false,
+			() => true,
+		);
+		if (busy) {
+			throw new Error(
+				`port ${port} is already in use (a stale bench app?). Close it first; the bench never kills processes it did not start.`,
+			);
+		}
+	}
 	const work = getWorkDir();
 	const n = ++launches;
 	const profileDir = opts.profileDir ?? path.join(work, `profile-${n}`);
@@ -131,7 +158,16 @@ export async function launchApp(opts: LaunchOptions = {}): Promise<TestApp> {
 	);
 	fs.closeSync(logFd);
 	let exited = false;
-	const exitPromise = new Promise<void>((r) => proc.once("exit", () => r()));
+	let spawnError: Error | null = null;
+	// e.g. a missing electron binary: report it instead of crashing the runner with an unhandled 'error'
+	proc.once("error", (e) => {
+		spawnError = e;
+		exited = true;
+	});
+	const exitPromise = new Promise<void>((r) => {
+		proc.once("exit", () => r());
+		proc.once("error", () => r());
+	});
 	proc.once("exit", () => {
 		exited = true;
 	});
@@ -190,7 +226,7 @@ export async function launchApp(opts: LaunchOptions = {}): Promise<TestApp> {
 	};
 
 	try {
-		if (exited) throw new Error("electron exited at once");
+		if (exited) throw new Error(spawnError ? `electron failed to start: ${(spawnError as Error).message}` : `electron exited at once (log: ${logFile})`);
 		await getMain();
 		// Wait for YouTube Music, answering a consent redirect on the way.
 		const state = await waitFor(
@@ -204,7 +240,14 @@ export async function launchApp(opts: LaunchOptions = {}): Promise<TestApp> {
 			90000,
 			"music.youtube.com to load",
 		);
-		if (state === "exited") throw new Error("electron exited during start");
+		if (state === "exited") throw new Error(`electron exited during start (log: ${logFile})`);
+		// The test hooks are exposed after the providers' OnInit, which can trail the YouTube page;
+		// scenarios use them right away, so a launch is only ready once they exist.
+		await waitFor(
+			async () => (await app.mainEval<boolean>("!!globalThis.__YTMD_TEST__?.getMainWindow()?.views?.youtubeView")) || false,
+			30000,
+			"the test hooks (__YTMD_TEST__)",
+		);
 	} catch (e) {
 		await app.close();
 		throw e;

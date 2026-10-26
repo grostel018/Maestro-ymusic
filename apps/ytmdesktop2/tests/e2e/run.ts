@@ -49,6 +49,13 @@ function log(...parts: unknown[]) {
 	fs.appendFileSync(LOG, `${line}\n`);
 }
 const secs = (ms: number) => `${(ms / 1000).toFixed(1)}s`;
+// runner bugs and unhandled errors land in the log too, not only on the console
+for (const event of ["uncaughtException", "unhandledRejection"] as const) {
+	process.on(event, (e: unknown) => {
+		log(`ERROR ${event}: ${e instanceof Error ? (e.stack ?? e.message) : String(e)}`);
+		process.exit(1);
+	});
+}
 
 if (flag("login")) {
 	// The owner signs in by hand; the bench never types credentials.

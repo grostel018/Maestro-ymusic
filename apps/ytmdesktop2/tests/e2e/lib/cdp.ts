@@ -20,19 +20,29 @@ function describeException(details: any): string {
 	return details?.exception?.description ?? details?.text ?? JSON.stringify(details).slice(0, 300);
 }
 
+const CONNECT_TIMEOUT_MS = 10_000;
+/** A single CDP call that never answers (crashed or frozen target) fails instead of hanging the run. */
+const CALL_TIMEOUT_MS = 60_000;
+
 /** Opens a CDP websocket (JSON-RPC) to one target. */
 export function connect(wsUrl: string): Promise<CdpSession> {
 	return new Promise((resolve, reject) => {
 		const ws = new WebSocket(wsUrl);
+		let opened = false;
 		let nextId = 0;
-		const waiting = new Map<number, { resolve: (v: any) => void; reject: (e: Error) => void; method: string }>();
+		const waiting = new Map<number, { resolve: (v: any) => void; reject: (e: Error) => void; method: string; timer: NodeJS.Timeout }>();
 		const listeners = new Map<string, Array<(params: any) => void>>();
+		const connectTimer = setTimeout(() => {
+			ws.close();
+			reject(new Error(`websocket did not open within ${CONNECT_TIMEOUT_MS / 1000} s: ${wsUrl}`));
+		}, CONNECT_TIMEOUT_MS);
 		ws.onmessage = (e) => {
 			const m = JSON.parse(String(e.data));
 			if (m.id !== undefined) {
 				const w = waiting.get(m.id);
 				if (!w) return;
 				waiting.delete(m.id);
+				clearTimeout(w.timer);
 				if (m.error) w.reject(new Error(`${w.method}: ${JSON.stringify(m.error)}`));
 				else w.resolve(m.result);
 			} else if (m.method) {
@@ -40,16 +50,27 @@ export function connect(wsUrl: string): Promise<CdpSession> {
 			}
 		};
 		ws.onclose = () => {
-			for (const w of waiting.values()) w.reject(new Error(`${w.method}: websocket closed`));
+			clearTimeout(connectTimer);
+			if (!opened) reject(new Error(`websocket closed before opening: ${wsUrl}`));
+			for (const w of waiting.values()) {
+				clearTimeout(w.timer);
+				w.reject(new Error(`${w.method}: websocket closed`));
+			}
 			waiting.clear();
 		};
 		ws.onerror = () => reject(new Error(`websocket failed: ${wsUrl}`));
 		ws.onopen = () => {
+			opened = true;
+			clearTimeout(connectTimer);
 			const session: CdpSession = {
 				call: (method, params = {}) =>
 					new Promise((res, rej) => {
 						const id = ++nextId;
-						waiting.set(id, { resolve: res, reject: rej, method });
+						const timer = setTimeout(() => {
+							waiting.delete(id);
+							rej(new Error(`${method}: no answer within ${CALL_TIMEOUT_MS / 1000} s`));
+						}, CALL_TIMEOUT_MS);
+						waiting.set(id, { resolve: res, reject: rej, method, timer });
 						ws.send(JSON.stringify({ id, method, params }));
 					}),
 				async eval<T>(expr: string, opts: { userGesture?: boolean } = {}) {
