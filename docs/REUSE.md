@@ -50,4 +50,5 @@ license duties stay clear.
 
 | Our file | From | License | What changed |
 |---|---|---|---|
-| *(none yet; phase B starts with Pear's Last.fm auth)* | | | |
+| `src/main/trpc/routers/lastfm/service.ts` (`openAuthWindow`) | Approach of pear-desktop@7c55260:`src/plugins/scrobbler/services/lastfm.ts` (`authenticate`) | MIT | Pattern only, not code: in-app approval window instead of browser + callback; we kept our existing client and its polling |
+| `src/main/auth/firefoxCookies.ts` | Approach of yt-dlp `--cookies-from-browser` (Firefox: copy `cookies.sqlite`, read `moz_cookies`) | Unlicense | Written for Node's built-in SQLite, YouTube/Google cookies only, Electron cookie mapping |

@@ -24,6 +24,21 @@ in `docs/superpowers/plans/2026-10-25-phase0-1-ledger.md`.
 - **Cost if wrong:** state leaking between shared scenarios. That's why `reuse` is opt-in and a
   failure gets a fresh launch.
 
+## 2026-10-26: Sign-in that works the first time (phase B)
+- **Google:**
+  - **Causes:** the login window presented Firefox 92 (2021) on Windows, was modal and always
+    on top, and sent Google's own pop-ups to the default browser.
+  - **Decision:** a normal window with a current Firefox identity and Chrome as the alternative.
+    Rejection is detected with a one-click retry, the working identity is remembered, pop-ups
+    stay in-app, and there's an opt-in import from Firefox (D2).
+- **Last.fm:**
+  - **Causes:** the fork had no API key, and the approval came back through a `ytmd://` link
+    another app could catch.
+  - **Decision:** the owner's own key in `.env.local`, and an in-app approval window plus
+    polling, with no callback.
+- **Testing:** the real Google and Last.fm can't be automated. Mock servers and a fake Firefox
+  profile cover the logic (`s17`–`s19`), and a real sign-in remains a manual owner check.
+
 ## 2026-10-26: Artwork background covers the whole window
 - **Owner report:** the themed area was a rectangle that didn't match the side panel, top bar or
   player bar.
