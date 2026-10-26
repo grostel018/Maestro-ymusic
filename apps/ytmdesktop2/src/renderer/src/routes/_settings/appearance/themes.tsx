@@ -32,17 +32,24 @@ function ThemesSettingsPage() {
 		<Card>
 			<CardHeader>
 				<CardTitle>Themes</CardTitle>
-				<CardDescription>Pick a bundled theme or inject your own SCSS/CSS into YouTube Music.</CardDescription>
+				<CardDescription>How the window looks. The background covers everything: title bar, side panel, page and player bar.</CardDescription>
 			</CardHeader>
 			<CardContent>
 				<FieldGroup>
-					<SettingsCheckbox configKey="themes.enabled">Enable Themes</SettingsCheckbox>
-					<SettingsCheckbox configKey="themes.thumbnailBackground">Enable Thumbnail Background</SettingsCheckbox>
-					<SettingsCheckbox configKey="themes.blur" description="Blur on the player bar, dialogs, and menus.">
-						Enable Blur
-					</SettingsCheckbox>
-					<SettingsCheckbox configKey="themes.glass" description="Blurs the whole player page behind the artwork. Looks richer, costs GPU every frame.">
-						Glass effect (uses more GPU)
+					<SettingsSelect
+						configKey="themes.background"
+						label="Background"
+						defaultValue="artwork"
+						options={[
+							{ value: "artwork", label: "Song artwork", description: "A soft blur of the playing song's cover, changing with each song." },
+							{ value: "plain", label: "Plain dark", description: "One flat dark color everywhere." },
+						]}
+					/>
+					<SettingsCheckbox
+						configKey="themes.enabled"
+						description="Rounded covers, a cleaner player bar and queue. Off shows YouTube Music's own layout. The background above applies either way."
+					>
+						Theme styling
 					</SettingsCheckbox>
 					{enabled && !enabledPending && (
 						<>

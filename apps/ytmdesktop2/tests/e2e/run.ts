@@ -15,7 +15,7 @@ import { scenarios as adblock } from "./scenarios/adblock.ts";
 import { scenarios as auth } from "./scenarios/auth.ts";
 import { scenarios as background } from "./scenarios/background.ts";
 import { scenarios as boot } from "./scenarios/boot.ts";
-import { scenarios as glass } from "./scenarios/glass.ts";
+import { scenarios as surface } from "./scenarios/surface.ts";
 import { scenarios as layout } from "./scenarios/layout.ts";
 import { scenarios as perf } from "./scenarios/perf.ts";
 import { scenarios as profile } from "./scenarios/profile.ts";
@@ -33,7 +33,7 @@ const FUNCTIONAL: Scenario[] = [
 	...withArea("boot", boot),
 	...withArea("profile", profile),
 	...withArea("layout", layout),
-	...withArea("glass", glass),
+	...withArea("surface", surface),
 	...withArea("background", background),
 	...withArea("settings", settings),
 	...withArea("adblock", adblock),

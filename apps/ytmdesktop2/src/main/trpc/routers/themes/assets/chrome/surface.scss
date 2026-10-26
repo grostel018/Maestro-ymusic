@@ -1,0 +1,124 @@
+// The window's one surface (themes.background). Replaces the old thumbnail / blur / glass layers, whose
+// order changed with the toggle you flipped last, so the same settings could look different.
+// Rules:
+// - One fixed layer paints the whole window: the pre-blurred artwork under a dark veil ("artwork"), or the
+//   plain base color ("plain"). Every YouTube surface on top is transparent.
+// - Bars that content scrolls under get the same light tint + a backdrop blur, so they read as the same surface.
+// - The layer is laid out in WINDOW coordinates (it starts above this view, under the app's title bar) with a
+//   width-only geometry, so the title bar can paint the identical image and the seam disappears
+//   (renderer/src/lib/surface.ts mirrors these numbers).
+// - Injected last (after the theme), and `!important` + specific selectors, so a theme can't punch holes in it.
+// `$artwork` and `$toolbar` are prepended by the theme service.
+
+$base: #030303;
+$veil: rgba(3, 3, 3, 0.62);
+$bar-tint: rgba(3, 3, 3, 0.28);
+$bar-blur: blur(24px);
+$hairline: rgba(255, 255, 255, 0.06);
+
+html {
+  background-color: $base !important;
+}
+
+body {
+  background: transparent !important;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: -$toolbar;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: $base;
+  @if $artwork {
+    background-color: var(--ytmd-thumbnail-accent, #{$base});
+    background-image: linear-gradient($veil, $veil), var(--ytmd-thumbnail-blur-url, none);
+    // square artwork, as wide as the window, its middle band in view (same numbers in the title bar)
+    background-size: 100vw 100%, 100vw 100vw;
+    background-position: 0 0, 0 -25vw;
+    background-repeat: no-repeat;
+  }
+  // No transform/own layer on purpose: a composited, upscaled tiny image drew a seam at a GPU tile boundary.
+}
+
+// Side panel: no tint of its own (stacked tints made it darker than the page).
+#guide-wrapper,
+#mini-guide-background,
+tp-yt-app-drawer#guide #contentContainer,
+tp-yt-app-drawer#guide #scrim {
+  background: transparent !important;
+}
+
+// Top and bottom bars. No saturate(): it shifted the color away from the title bar's.
+ytmusic-app ytmusic-app-layout > #nav-bar-background,
+ytmusic-app ytmusic-app-layout > #player-bar-background.ytmusic-app-layout {
+  background: $bar-tint !important;
+  -webkit-backdrop-filter: $bar-blur !important;
+  backdrop-filter: $bar-blur !important;
+}
+ytmusic-app ytmusic-player-bar.ytmusic-app {
+  background: transparent !important;
+}
+
+// Dividers: YouTube draws two stacked 15% lines under the top bar and two at the side panel's edge, which
+// cut the surface into boxes. Keep one faint hairline each.
+ytmusic-app ytmusic-app-layout > #nav-bar-background {
+  border-bottom-color: transparent !important;
+}
+ytmusic-app ytmusic-app-layout > #nav-bar-divider {
+  border-top-color: $hairline !important;
+}
+ytmusic-app #guide-wrapper {
+  border-right-color: $hairline !important;
+}
+ytmusic-app ytmusic-app-layout > #mini-guide-background {
+  border-right-color: transparent !important;
+}
+
+// The player page slides over the browse page. It is transparent, so the browse page must disappear while it
+// is open. `opacity`, not `visibility`: the Default theme forces `visibility: visible !important` on
+// browse responses, which beat a hidden parent and let the page show through.
+ytmusic-app ytmusic-player-page,
+ytmusic-app ytmusic-player-page.ytmusic-app {
+  background: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+ytmusic-player-page .content.ytmusic-player-page::before {
+  display: none !important;
+}
+ytmusic-app-layout[player-page-open] > #content {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+// Letterbox / pillarbox around videos that don't fill the player.
+ytmusic-player#player,
+ytmusic-player#player #song-video,
+#movie_player,
+#movie_player .html5-video-container {
+  background: transparent !important;
+}
+
+@if $artwork {
+  // Home's own hero image (signed in) and the gradient that fades it: a second, hard-edged background.
+  ytmusic-browse-response ytmusic-fullbleed-thumbnail-renderer {
+    display: none !important;
+  }
+  .background-gradient.style-scope {
+    background: none !important;
+  }
+}
+
+// Menus and dialogs: small frosted panels.
+tp-yt-paper-dialog,
+tp-yt-paper-listbox.ytmusic-menu-popup-renderer,
+ytmusic-menu-popup-renderer {
+  background-color: rgba(20, 20, 22, 0.78) !important;
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}

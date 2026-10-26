@@ -9,6 +9,7 @@ import { useMainWindowState } from "@/hooks/use-settings";
 import { useTrack } from "@/hooks/use-track";
 import { useUpdater } from "@/hooks/use-updater";
 import { useWindowControls } from "@/hooks/use-window-controls";
+import { useSurfaceBackground } from "@/lib/surface";
 
 export const Route = createFileRoute("/youtube/toolbar")({
 	component: YoutubeToolbarPage,
@@ -22,6 +23,7 @@ function YoutubeToolbarPage() {
 	const { updateInfo, downloaded, progress, isPending: updatePending, status, runUpdate } = useUpdater();
 	const { minimize, maximize, quit } = useWindowControls();
 	const { goback } = useNavigation();
+	const surface = useSurfaceBackground();
 
 	const title = useMemo(() => track?.video?.title ?? null, [track]);
 	const canGoBack = useMemo(() => {
@@ -31,7 +33,7 @@ function YoutubeToolbarPage() {
 
 	return (
 		<div className="h-full overflow-hidden">
-			<div className={`flex h-10 items-stretch justify-between gap-2 border-b border-neutral-800 bg-black px-2 select-none ${isDarwin ? "pl-20" : ""}`}>
+			<div style={surface} className={`flex h-10 items-stretch justify-between gap-2 px-2 select-none ${isDarwin ? "pl-20" : ""}`}>
 				<button
 					type="button"
 					className={cn("control-button self-center cursor-pointer", !canGoBack && "disabled")}
@@ -48,7 +50,7 @@ function YoutubeToolbarPage() {
 						</div>
 					)}
 					{title && (
-						<div className="flex h-7 items-center truncate rounded bg-blue-500/50 px-3 text-xs">
+						<div className="flex h-7 items-center truncate rounded bg-white/10 px-3 text-xs">
 							<span className="truncate text-ellipsis">{title}</span>
 						</div>
 					)}

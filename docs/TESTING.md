@@ -9,7 +9,7 @@ perf suites run once, at the end of a phase.
 | Smoke | `pnpm t:smoke` (or `pnpm t:smoke layout` for one area) | Real-app scenarios tagged `smoke` (one or two per area), sharing launches | about 1 min |
 | Full | `pnpm t:full` | Every functional scenario (`sNN`), keeps going after failures | a few min |
 | Perf | `pnpm t:perf` | `pNN` performance scenarios; results in `tests/e2e/results/perf-*.json` | about 10 min |
-| Account | `pnpm t:account` | Scenarios needing a signed-in profile (`E2E_PROFILE=signed-in`) | — |
+| Account | `pnpm t:account` | Scenarios needing a signed-in profile (`E2E_PROFILE=signed-in`). Create or refresh the profile with `node tests/e2e/setup-signed-in.ts`: it copies the owner's Firefox sign-in into `%LOCALAPPDATA%ytmd-e2esigned-in` (decision D6). Google may expire it after a while; just rerun it. | — |
 
 The `t:smoke`, `t:full`, `t:perf` and `t:account` commands build first **only if something
 changed**. `scripts/build-if-changed.mjs` hashes `src/` (generated files excluded), the build

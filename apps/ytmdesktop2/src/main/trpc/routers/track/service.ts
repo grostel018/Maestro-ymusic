@@ -17,6 +17,7 @@ import {
 	shouldRefreshLastFmNowPlaying,
 	trackNeedsLastFmPush,
 } from "@shared/track/lastfmTrackSession";
+import { resolveArtworkUrl } from "@shared/track/thumbnail";
 import type { TrackData } from "@shared/track/trackData";
 import { createLogger } from "@shared/utils/console";
 import { observable } from "@trpc/server/observable";
@@ -1189,7 +1190,7 @@ export class TrackService {
 			this.logger.debug("track:accent", trackAccent, track.video.thumbnail.thumbnails?.[0]?.url);
 		});
 		this.onTrackChange(async (track) => {
-			const hqThumbnail = track.context?.thumbnail?.thumbnails?.sort(firstBy((d) => d.width, "desc"))[0]?.url ?? track.meta.thumbnail;
+			const hqThumbnail = resolveArtworkUrl(track);
 			const thumbnailUrl = hqThumbnail ? `url(${hqThumbnail})` : "transparent";
 			YtmClient.push("css.thumbnail", thumbnailUrl);
 			this.logger.debug("track:thumbnail", thumbnailUrl);

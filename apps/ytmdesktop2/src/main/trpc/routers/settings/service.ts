@@ -89,9 +89,7 @@ const defaultSettings = {
 		selected: "default",
 		customFile: null,
 		watching: false,
-		thumbnailBackground: true,
-		blur: true,
-		glass: false,
+		background: "artwork",
 	} as ThemesConfig,
 	state: {
 		currentUrl: null,

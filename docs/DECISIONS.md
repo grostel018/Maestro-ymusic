@@ -4,6 +4,25 @@ Short records of decisions that shape the code, so collaborators know **why**. N
 Format: what we decided, why, what it costs if wrong. The full per-task record for phases 0–1 is
 in `docs/superpowers/plans/2026-10-25-phase0-1-ledger.md`.
 
+## 2026-10-26: One window surface, one "Background" setting
+- **Owner report:** a black title bar, some areas darker than others, some blurred and some not, the
+  browse page showing through the player, a hard-edged band on Home, and four toggles (Thumbnail
+  Background, Blur, Glass, Themes) that seemed to do the same thing.
+- **Causes:**
+  - The three background stylesheets stacked, and their order depended on the toggle flipped last.
+  - The title bar is our own view, outside the YouTube page, so the page styling never reached it.
+  - The Default theme forces the browse page `visibility: visible !important`, which beat our hide.
+  - Signed in, Home has its own hero image; we had removed the gradient that fades it.
+- **Decision:**
+  - One stylesheet, `chrome/surface.scss`, always injected after the theme. One setting,
+    `themes.background`: "Song artwork" or "Plain dark". Full-page glass is dropped, because the
+    artwork is already pre-blurred.
+  - The artwork layer uses window coordinates (a 100vw square, shifted up 25vw). The title bar paints
+    the same pre-blurred image (`shared/artwork/blur.ts`) with the same numbers, so there's no seam.
+  - The browse page is hidden with `opacity`, which children can't override.
+  - The Home hero is hidden in artwork mode, and YouTube's doubled dividers become one faint hairline.
+- **Cost if wrong:** a theme can't restyle the window background; that's on purpose.
+
 ## 2026-10-26: Owner decisions D1–D6 (roadmap §11)
 - **D1, GPL code may be ported.** The fork's license moves to GPL-3.0 with the first GPL port;
   those parts can't go upstream.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { artworkCrop } from "./track-theme.crop";
+import { artworkCrop } from "./crop";
 
 describe("artworkCrop", () => {
 	it("crops a 4:3 YouTube thumbnail (hqdefault 480x360) to its 16:9 middle", () => {

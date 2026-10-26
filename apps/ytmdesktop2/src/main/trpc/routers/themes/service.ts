@@ -1,10 +1,9 @@
 import { AfterInit, BaseProvider } from "@main/core/baseProvider";
+import { TOOLBAR_HEIGHT } from "@main/domain/uiZoom";
 import { onMusicReload } from "@main/lifecycle";
 import SettingsProvider from "@main/trpc/routers/settings/service";
-import chromeBlurScss from "@main/trpc/routers/themes/assets/chrome/blur.scss?raw";
-import chromeGlassScss from "@main/trpc/routers/themes/assets/chrome/glass.scss?raw";
 import chromeScrollbarScss from "@main/trpc/routers/themes/assets/chrome/scrollbar.scss?raw";
-import chromeThumbnailScss from "@main/trpc/routers/themes/assets/chrome/thumbnail-bg.scss?raw";
+import chromeSurfaceScss from "@main/trpc/routers/themes/assets/chrome/surface.scss?raw";
 import type { App } from "electron";
 import fs from "fs";
 import { debounce } from "lodash-es";
@@ -12,7 +11,7 @@ import path from "path";
 import { ThemeCompiler } from "./compiler";
 import { CssInjector } from "./injector";
 import { BUNDLED_THEMES, defaultThemeScss, listThemes, resolveActiveSource } from "./registry";
-import type { ThemesConfig } from "./types";
+import { backgroundMode, type ThemeBackground, type ThemesConfig } from "./types";
 
 export type { ThemesConfig } from "./types";
 export { listThemes };
@@ -22,9 +21,8 @@ export default class ThemesProvider extends BaseProvider implements AfterInit {
 	private readonly compiler = new ThemeCompiler();
 	private injector: CssInjector | null = null;
 	private chromeCss: string | null = null;
-	private thumbnailCss: string | null = null;
-	private blurCss: string | null = null;
-	private glassCss: string | null = null;
+	/** The window surface, compiled once per background mode. */
+	private surfaceCss: Record<ThemeBackground, string | null> = { artwork: null, plain: null };
 	private readonly DEBOUNCE_DELAY = 1000;
 	private reapplyChain: Promise<void> = Promise.resolve();
 
@@ -47,9 +45,7 @@ export default class ThemesProvider extends BaseProvider implements AfterInit {
 				selected: "default",
 				customFile: null,
 				watching: false,
-				thumbnailBackground: true,
-				blur: true,
-				glass: false,
+				background: "artwork",
 			}
 		);
 	}
@@ -70,14 +66,13 @@ private boundWebContentsId: number | null = null;
 		if (!this.chromeCss) {
 			this.chromeCss = await this.compiler.compileString(chromeScrollbarScss, "chrome:scrollbar");
 		}
-		if (!this.thumbnailCss) {
-			this.thumbnailCss = await this.compiler.compileString(chromeThumbnailScss, "chrome:thumbnail");
-		}
-		if (!this.blurCss) {
-			this.blurCss = await this.compiler.compileString(chromeBlurScss, "chrome:blur");
-		}
-		if (!this.glassCss) {
-			this.glassCss = await this.compiler.compileString(chromeGlassScss, "chrome:glass");
+		for (const mode of ["artwork", "plain"] as const) {
+			if (!this.surfaceCss[mode]) {
+				const vars = `$artwork: ${mode === "artwork"};
+$toolbar: ${TOOLBAR_HEIGHT}px;
+`;
+				this.surfaceCss[mode] = await this.compiler.compileString(vars + chromeSurfaceScss, `chrome:surface:${mode}`);
+			}
 		}
 	}
 
@@ -148,7 +143,10 @@ private boundWebContentsId: number | null = null;
 		if (!css) return false;
 
 		this.logger.debug(`Injecting theme [${source.id}]${bypassCache ? " (cache bypassed)" : ""}`);
-		return injector.inject("theme", css);
+		const injected = await injector.inject("theme", css);
+		// The theme was just (re)inserted after the surface; put the surface back on top.
+		await this.applySurface();
+		return injected;
 	}
 
 	/** Force recompile + inject (Reload / tRPC). */
@@ -169,68 +167,27 @@ private boundWebContentsId: number | null = null;
 				await this.ensureChromeCompiled();
 				if (this.chromeCss) await injector.inject("chrome", this.chromeCss);
 
-				const config = this.getConfig();
-				const thumbnailOn = config.thumbnailBackground ?? true;
-				if (thumbnailOn && this.thumbnailCss) {
-					await injector.inject("thumbnail", this.thumbnailCss);
-				}
-
-				const blurOn = config.blur ?? true;
-				if (blurOn && this.blurCss) {
-					await injector.inject("blur", this.blurCss);
-				}
-
-				if (config.glass && this.glassCss) {
-					await injector.inject("glass", this.glassCss);
-				}
-
-				if (config.enabled) await this.updateTheme();
+				if (this.getConfig().enabled) await this.updateTheme();
+				await this.applySurface();
 			});
 		return this.reapplyChain;
 	}
 
-	private async applyThumbnail(enabled: boolean): Promise<void> {
+	/** (Re)injects the surface last, so it always sits above the theme in the cascade. */
+	private async applySurface(): Promise<void> {
 		const injector = this.getInjector();
 		if (!injector) return;
 		await this.ensureChromeCompiled();
-		if (enabled && this.thumbnailCss) await injector.inject("thumbnail", this.thumbnailCss);
-		else await injector.clear("thumbnail");
-		// Glass filters the thumbnail ::before — re-inject after so its filter wins the cascade.
-		if (this.getConfig().glass) await this.applyGlass(true);
-	}
-
-	private async applyGlass(enabled: boolean): Promise<void> {
-		const injector = this.getInjector();
-		if (!injector) return;
-		await this.ensureChromeCompiled();
-		if (enabled && this.glassCss) await injector.inject("glass", this.glassCss);
-		else await injector.clear("glass");
-	}
-
-	private async applyBlur(enabled: boolean): Promise<void> {
-		const injector = this.getInjector();
-		if (!injector) return;
-		await this.ensureChromeCompiled();
-		if (enabled && this.blurCss) await injector.inject("blur", this.blurCss);
-		else await injector.clear("blur");
+		const css = this.surfaceCss[backgroundMode(this.getConfig())];
+		if (css) await injector.inject("surface", css);
 	}
 
 	private async onThemesSettingChange(_value: unknown, _prev: unknown, key: string): Promise<void> {
 		const config = this.getConfig();
 		this.logger.debug(`Themes setting changed: ${key}`);
 
-		if (key === "themes.thumbnailBackground") {
-			await this.applyThumbnail(!!config.thumbnailBackground);
-			return;
-		}
-
-		if (key === "themes.blur") {
-			await this.applyBlur(!!config.blur);
-			return;
-		}
-
-		if (key === "themes.glass") {
-			await this.applyGlass(!!config.glass);
+		if (key === "themes.background") {
+			await this.applySurface();
 			return;
 		}
 
@@ -278,7 +235,7 @@ private boundWebContentsId: number | null = null;
 		await this.ensureChromeCompiled();
 
 		this.settingsInstance.onSettingChange(
-			["themes.enabled", "themes.selected", "themes.customFile", "themes.watching", "themes.thumbnailBackground", "themes.blur", "themes.glass"],
+			["themes.enabled", "themes.selected", "themes.customFile", "themes.watching", "themes.background"],
 			(value, prev, key) => void this.onThemesSettingChange(value, prev, key),
 			{ debounce: 1000 },
 		);

@@ -1,7 +1,7 @@
 import { createLogger } from "@shared/utils/console";
 import type { WebContents } from "electron";
 
-export type CssSlot = "chrome" | "thumbnail" | "blur" | "glass" | "theme";
+export type CssSlot = "chrome" | "theme" | "surface";
 
 const logger = createLogger("CssInjector");
 
@@ -47,7 +47,7 @@ export class CssInjector {
 	}
 
 	async clearAll(): Promise<void> {
-		await Promise.all((["chrome", "thumbnail", "blur", "glass", "theme"] as CssSlot[]).map((slot) => this.clear(slot)));
+		await Promise.all((["chrome", "theme", "surface"] as CssSlot[]).map((slot) => this.clear(slot)));
 	}
 
 	has(slot: CssSlot): boolean {

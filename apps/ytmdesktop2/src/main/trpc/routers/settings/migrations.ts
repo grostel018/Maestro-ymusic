@@ -6,6 +6,7 @@ import { readFileSync, rmSync, statSync } from "fs";
 import path from "path";
 import { migrateAdblockDefaults } from "./adblockMigration";
 import type { SettingsStore } from "./service";
+import { migrateThemesBackground } from "./themesMigration";
 
 const migrations: Omit<Migration<SettingsStore>, "version">[] = [
 	{
@@ -198,7 +199,7 @@ const migrations: Omit<Migration<SettingsStore>, "version">[] = [
 	{
 		hook(store) {
 			// Full-page glass became opt-in (it costs GPU every frame).
-			if (typeof (store.store as SettingsStore)?.themes?.glass !== "boolean") store.set("themes.glass", false);
+			// Superseded by themes.background (below); kept so migration indexes stay stable.
 		},
 	},
 	{
@@ -216,6 +217,11 @@ const migrations: Omit<Migration<SettingsStore>, "version">[] = [
 		hook(store) {
 			const identity = (store.store as SettingsStore)?.googleLogin?.identity;
 			if (identity !== "firefox" && identity !== "chrome") store.set("googleLogin.identity", "firefox");
+		},
+	},
+	{
+		hook(store) {
+			migrateThemesBackground(store as never);
 		},
 	},
 ];
