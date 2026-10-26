@@ -4,8 +4,9 @@
 the real song or album cover when one exists. Video mode should show the video and its own
 artwork.
 
-**Status:** planned. It's the next task, before C2. Read `docs/features/video-mode.md` and
-`src/renderer-plugins/youtube/video-mode.*` first.
+**Status:** done 2026-10-26. Step 3 swaps by pairing the queue row instead of `yt-navigate`, which
+rebuilt Up next (DECISIONS.md). Step 4's cover-only path remains as the fallback when no queue row
+can be paired.
 
 ## Why it happens
 Without Premium, YouTube never sends the song/video "twin" of a track. That was checked signed in,

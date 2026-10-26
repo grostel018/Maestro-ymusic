@@ -1,28 +1,48 @@
 import type { PlayerApi } from "ytm-client-api";
-import { dispatchYtNavigate } from "./api-controls.cmds";
-import { decideVideoMode, findTwin, isToggleKey, normalizeVideoMode, playbackContentMode, type VideoMode } from "./video-mode.logic";
+import {
+	ATV,
+	decideVideoMode,
+	findTwin,
+	isToggleKey,
+	normalizeVideoMode,
+	playbackContentMode,
+	playingIndex,
+	rowTrack,
+	type VideoMode,
+	wrapWithCounterpart,
+} from "./video-mode.logic";
+import type { MatchKind, VersionMatch } from "./video-mode.match";
+import { createMatchCache, createVersionFinder } from "./video-mode.search";
 import { getPagePlayerApi } from "./world0/context";
 import type { RendererPluginRegistration } from "./world0/types";
-import { resolveYtmStore } from "./ytm-store";
+import { resolveYtmApp, resolveYtmStore } from "./ytm-store";
 
 // Audio ⇄ video (roadmap C1). One setting, `player.videoMode`, flipped by our Song/Video switch on the player page,
 // a player-bar button, or `V`. YTM's own switch is Premium-only (disabled otherwise), so it is hidden and ours
 // takes its place. Decisions live in video-mode.logic.ts.
+// C1b: without Premium YouTube sends no song/video pairs, so the other version is found by search
+// (video-mode.search.ts) and paired with the playing queue row; YTM then switches between them itself.
 
 const SETTING = "player.videoMode";
 const STYLE_ID = "ytmd-video-mode-style";
 const SWITCH_ID = "ytmd-av-switch";
+const HINT_ID = "ytmd-av-hint";
 const BAR_BUTTON_ID = "ytmd-av-bar-button";
 const AUDIO_VIEW = "ytmd-audio-view";
+const NO_MATCH = "ytmd-av-nomatch";
 const SEEK_WINDOW_MS = 15_000;
 
 const CSS = `
 ytmusic-av-toggle { display: none !important; }
 /* YTM's own slot for its switch, hidden when the switch is unavailable; ours lives there. */
 ytmusic-player-page #main-panel { position: relative; }
-ytmusic-player-page #av-id { display: flex !important; justify-content: center; position: absolute; top: 12px; left: 0; right: 0; z-index: 2; pointer-events: none; }
+ytmusic-player-page #av-id { display: flex !important; flex-direction: column; align-items: center; gap: 6px; position: absolute; top: 12px; left: 0; right: 0; z-index: 2; pointer-events: none; }
 html.${AUDIO_VIEW} ytmusic-player #song-video { display: none !important; }
 html.${AUDIO_VIEW} ytmusic-player #song-image { display: block !important; }
+/* No song version: the video's thumbnail as a square, centre-cropped (no 16:9 frame with bands). */
+html.${AUDIO_VIEW}.${NO_MATCH} ytmusic-player #song-image img { object-fit: cover !important; aspect-ratio: 1 / 1; height: auto !important; }
+#${HINT_ID} { font: 400 12px/1.2 "YouTube Sans", Roboto, sans-serif; color: rgba(255, 255, 255, 0.6); pointer-events: none; }
+#${HINT_ID}[hidden] { display: none; }
 #${SWITCH_ID} { display: flex; justify-content: center; margin: 0 auto; width: max-content; pointer-events: auto; padding: 3px; gap: 2px;
 	border-radius: 999px; background: rgba(255, 255, 255, 0.08); position: relative; z-index: 2; }
 #${SWITCH_ID} button { all: unset; cursor: pointer; padding: 6px 18px; border-radius: 999px; font: 500 13px/1 "YouTube Sans", Roboto, sans-serif;
@@ -59,8 +79,27 @@ function setIcon(button: HTMLElement, d: string): void {
 type Player = PlayerApi & {
 	addEventListener?: (event: string, handler: () => void) => void;
 	removeEventListener?: (event: string, handler: () => void) => void;
-	getPlayerResponse?: () => { videoDetails?: { videoId?: string; musicVideoType?: string; thumbnail?: { thumbnails?: { url: string }[] } } };
+	getPlayerResponse?: () => {
+		videoDetails?: {
+			videoId?: string;
+			title?: string;
+			author?: string;
+			lengthSeconds?: string;
+			musicVideoType?: string;
+			thumbnail?: { thumbnails?: { url: string }[] };
+		};
+	};
 };
+
+type Track = { id: string; type: string | undefined; thumb: string | undefined; title: string; artist: string; durationSec: number };
+
+function pageStorage(): Storage | null {
+	try {
+		return window.localStorage;
+	} catch {
+		return null;
+	}
+}
 
 function ensureStyle(): void {
 	if (document.getElementById(STYLE_ID)) return;
@@ -70,12 +109,23 @@ function ensureStyle(): void {
 	(document.head ?? document.documentElement).appendChild(el);
 }
 
-function currentTrack(api: Player): { id: string; type: string | undefined; thumb: string | undefined } | null {
+function currentTrack(api: Player): Track | null {
 	const details = api.getPlayerResponse?.()?.videoDetails;
 	const id = details?.videoId;
 	if (!id) return null;
 	const thumbs = details.thumbnail?.thumbnails ?? [];
-	return { id, type: details.musicVideoType, thumb: thumbs.at(-1)?.url?.split("?")[0] };
+	return {
+		id,
+		type: details.musicVideoType,
+		thumb: thumbs.at(-1)?.url?.split("?")[0],
+		title: details.title ?? "",
+		artist: details.author ?? "",
+		durationSec: Number(details.lengthSeconds) || 0,
+	};
+}
+
+function describeMatch(m: VersionMatch): string {
+	return `${m.title} · ${m.artist}${m.album ? ` (${m.album})` : ""}`;
 }
 
 /** Set by `start`; `onPlayerApiReady` hands the player over through it. */
@@ -87,17 +137,32 @@ const videoModeRenderer: RendererPluginRegistration = {
 	start(ctx) {
 		let mode: VideoMode = "video";
 		let api: Player | null = null;
-		let pendingSeek: { id: string; time: number; until: number } | null = null;
 		let videoAvailable = true;
+		/** The pair we made for the playing row, for the switch's tooltip. */
+		let paired: { ids: string[]; match: VersionMatch } | null = null;
+		/** Song mode found no song version for the playing track. */
+		let noSong = false;
+		/** The first switch to a found version starts where the row was; later switches use YTM's own mapping. */
+		let oneShot: { fromId: string; toId: string; endpoint: Record<string, unknown> } | null = null;
+		/** Where a switch started, until the other version plays (see setMode). */
+		let pendingSeek: { ids: string[]; time: number; until: number } | null = null;
 
 		ensureStyle();
 
-		const setAudioView = (on: boolean, track: ReturnType<typeof currentTrack>) => {
-			document.documentElement.classList.toggle(AUDIO_VIEW, on);
+		const finder = createVersionFinder(() => {
+			const network = resolveYtmApp()?.networkManager;
+			return network?.fetch ? (path, body) => network.fetch(path, body) : null;
+		}, createMatchCache(pageStorage()));
+
+		const setAudioView = (on: boolean, track: Track | null, cover: { art?: string; square?: boolean } = {}) => {
+			const root = document.documentElement.classList;
+			root.toggle(AUDIO_VIEW, on);
+			root.toggle(NO_MATCH, on && !!cover.square);
 			if (on) {
 				// The cover YTM shows for songs is a placeholder on music videos.
 				const img = document.querySelector<HTMLImageElement>("ytmusic-player #song-image img");
-				if (img && track?.thumb && (!img.src || img.src.startsWith("data:"))) img.src = track.thumb;
+				if (img && cover.art && img.src !== cover.art) img.src = cover.art;
+				else if (img && track?.thumb && (!img.src || img.src.startsWith("data:"))) img.src = track.thumb;
 			}
 			// No quality change here: setPlaybackQualityRange can reload the stream from near 0 (measured), and a jump
 			// back in the song is worse than decoding a hidden video. Audio-only streams are Premium-only on YouTube's side.
@@ -105,6 +170,8 @@ const videoModeRenderer: RendererPluginRegistration = {
 
 		const render = () => {
 			const label = mode === "audio" ? "Song" : "Video";
+			const playingId = api ? currentTrack(api)?.id : undefined;
+			const pairInfo = paired && playingId && paired.ids.includes(playingId) ? describeMatch(paired.match) : "";
 			const sw = document.getElementById(SWITCH_ID);
 			if (sw) {
 				for (const btn of sw.querySelectorAll<HTMLButtonElement>("button")) {
@@ -112,8 +179,11 @@ const videoModeRenderer: RendererPluginRegistration = {
 					btn.setAttribute("aria-pressed", String(btn.dataset.mode === mode));
 					btn.disabled = isVideo && !videoAvailable;
 					btn.title = isVideo && !videoAvailable ? "This song has no video" : `Switch to ${btn.dataset.mode === "audio" ? "song" : "video"} (V)`;
+					if (pairInfo) btn.title += `\nFound version: ${pairInfo}`;
 				}
 			}
+			const hint = document.getElementById(HINT_ID);
+			if (hint) hint.hidden = !(mode === "audio" && noSong);
 			const bar = document.getElementById(BAR_BUTTON_ID);
 			if (bar) {
 				setIcon(bar, mode === "audio" ? ICON_SONG : ICON_VIDEO);
@@ -122,8 +192,48 @@ const videoModeRenderer: RendererPluginRegistration = {
 			}
 		};
 
-		/** Brings the page in line with `mode`. `toggled`: the user just switched, so a twin may be played. */
-		const apply = (toggled: boolean) => {
+		/** Which other version the playing track needs: its song in Song mode, its video in Video mode. */
+		const otherVersion = (track: Track): MatchKind | null => {
+			if (mode === "audio" && track.type !== ATV) return "song";
+			if (mode === "video" && track.type === ATV) return "video";
+			return null;
+		};
+
+		const lookup = (track: Track, want: MatchKind) => {
+			const { id: videoId, title, artist, durationSec } = track;
+			void finder.find({ videoId, title, artist, durationSec, want }).then(() => {
+				const now = api ? currentTrack(api) : null;
+				if (now?.id === videoId && otherVersion(now) === want) apply();
+			});
+		};
+
+		/** Pairs the playing row with `match`; YTM then plays it, at the same position, and keeps the queue. */
+		const pair = (track: Track, match: VersionMatch): boolean => {
+			const store = resolveYtmStore();
+			const items = store?.getState()?.queue?.items;
+			const index = playingIndex(items, track.id);
+			if (!store || !items || index < 0) return false;
+			const wrapped = wrapWithCounterpart(items[index], match, { primaryDurationSec: track.durationSec, startTimeSeconds: api?.getCurrentTime() });
+			if (!wrapped) return false;
+			oneShot = { fromId: track.id, toId: match.videoId, endpoint: wrapped.watchEndpoint };
+			paired = { ids: [track.id, match.videoId], match };
+			const next = items.slice();
+			next[index] = wrapped.item;
+			// The playback mode already prefers the match, so the new row makes YTM switch to it.
+			store.dispatch({ type: "RESET_ITEMS", payload: next });
+			return true;
+		};
+
+		/** Song mode: look up the next row's song ahead of time, so the switch is instant when it starts. */
+		const prefetchNext = (index: number) => {
+			const queue = resolveYtmStore()?.getState()?.queue;
+			const next = rowTrack(queue?.items?.[index + 1] ?? queue?.automixItems?.[0]);
+			if (!next || next.type === ATV || !next.durationSec || finder.peek(next.videoId, "song") !== undefined) return;
+			void finder.find({ ...next, want: "song" });
+		};
+
+		/** Brings the page in line with `mode`. */
+		const apply = () => {
 			const store = resolveYtmStore();
 			const wanted = playbackContentMode(mode);
 			if (store && store.getState()?.queue?.playbackContentMode !== wanted) {
@@ -137,29 +247,44 @@ const videoModeRenderer: RendererPluginRegistration = {
 			const track = api ? currentTrack(api) : null;
 			if (!track) return render();
 
-			if (pendingSeek?.id === track.id && Date.now() < pendingSeek.until) {
+			if (pendingSeek && (Date.now() > pendingSeek.until || !pendingSeek.ids.includes(track.id))) pendingSeek = null;
+			else if (pendingSeek && pendingSeek.time >= 1 && (api?.getCurrentTime() ?? 0) + 2 < pendingSeek.time && (mode === "audio") === (track.type === ATV)) {
 				api?.seekTo(pendingSeek.time);
 				pendingSeek = null;
+			}
+
+			if (oneShot && track.id !== oneShot.fromId) {
+				// The switch happened (or the user moved on): later switches map the position through YTM's segment map.
+				delete oneShot.endpoint.startTimeSeconds;
+				oneShot = null;
 			}
 
 			// The playing item and "Up next" (autoplay) live in two lists.
 			const queue = store?.getState()?.queue;
 			const items = [...(queue?.items ?? []), ...(queue?.automixItems ?? [])];
-			const twin = findTwin(items, track.id, mode);
-			videoAvailable = track.type !== "MUSIC_VIDEO_TYPE_ATV" || !!findTwin(items, track.id, "video");
+			let twin = findTwin(items, track.id, mode);
+			const want = twin ? null : otherVersion(track);
+			const found = want ? finder.peek(track.id, want) : undefined;
+			if (want && found === undefined) lookup(track, want);
+			let cover: { art?: string; square?: boolean } = {};
+			if (want && found) {
+				if (pair(track, found)) twin = { videoId: found.videoId, endpoint: {} };
+				// No queue row to pair with: show the found cover at least.
+				else cover = { art: found.art };
+			}
+			noSong = want === "song" && found === null;
+			if (noSong) cover = { square: true };
+			if (want === "song" && found !== undefined) prefetchNext(playingIndex(queue?.items, track.id));
+			videoAvailable = track.type !== ATV || !!findTwin(items, track.id, "video") || finder.peek(track.id, "video") !== null;
+
+			// A twin is played by YTM itself when its playback mode (set above) prefers it, at the mapped position.
 			const action = decideVideoMode(mode, { type: track.type, twin });
 			switch (action.kind) {
 				case "swap":
-					if (toggled) {
-						pendingSeek = { id: action.twin.videoId, time: api?.getCurrentTime() ?? 0, until: Date.now() + SEEK_WINDOW_MS };
-						setAudioView(false, track);
-						dispatchYtNavigate(action.twin.endpoint);
-					} else {
-						setAudioView(mode === "audio" && track.type !== "MUSIC_VIDEO_TYPE_ATV", track);
-					}
+					setAudioView(mode === "audio" && track.type !== ATV, track);
 					break;
 				case "hide-video":
-					setAudioView(true, track);
+					setAudioView(true, track, cover);
 					break;
 				default:
 					setAudioView(false, track);
@@ -171,7 +296,14 @@ const videoModeRenderer: RendererPluginRegistration = {
 			if (next === mode) return;
 			mode = next;
 			if (persist) ctx.ytmd?.settings.set(SETTING, next);
-			apply(true);
+			// YTM maps the position from the player's current time, which reads 0 while the other version is still
+			// loading (a quick switch back); remember where the track was and correct a start near 0.
+			const track = api ? currentTrack(api) : null;
+			const pending = typeof oneShot?.endpoint.startTimeSeconds === "number" ? oneShot.endpoint.startTimeSeconds : 0;
+			const now = api?.getCurrentTime() ?? 0;
+			const ids = paired?.ids ?? (track ? [track.id] : []);
+			pendingSeek = ids.length ? { ids, time: now >= 1 ? now : pending, until: Date.now() + SEEK_WINDOW_MS } : null;
+			apply();
 		};
 		const toggle = () => setMode(mode === "audio" ? "video" : "audio", true);
 
@@ -198,6 +330,14 @@ const videoModeRenderer: RendererPluginRegistration = {
 					if (anchor) anchor.insertAdjacentElement("afterend", sw);
 					else host.prepend(sw);
 				}
+			}
+			const sw = document.getElementById(SWITCH_ID);
+			if (sw && !document.getElementById(HINT_ID)) {
+				const hint = document.createElement("div");
+				hint.id = HINT_ID;
+				hint.hidden = true;
+				hint.textContent = "No song version found";
+				sw.insertAdjacentElement("afterend", hint);
 			}
 			if (!document.getElementById(BAR_BUTTON_ID)) {
 				// YTM serves more than one player-bar layout (an A/B test): the classic one has .right-controls-buttons; the
@@ -231,7 +371,7 @@ const videoModeRenderer: RendererPluginRegistration = {
 
 		const onTrack = () => {
 			mount();
-			apply(false);
+			apply();
 		};
 
 		const offSettings =
@@ -279,6 +419,7 @@ const videoModeRenderer: RendererPluginRegistration = {
 			api?.removeEventListener?.("onVideoDataChange", onTrack);
 			setAudioView(false, null);
 			document.getElementById(SWITCH_ID)?.remove();
+			document.getElementById(HINT_ID)?.remove();
 			document.getElementById(BAR_BUTTON_ID)?.remove();
 			document.getElementById(STYLE_ID)?.remove();
 		};

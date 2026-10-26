@@ -53,6 +53,93 @@ export function findTwin(items: unknown[] | null | undefined, currentId: string,
 	return null;
 }
 
+function runsText(value: unknown): string {
+	const runs = (value as { runs?: { text?: unknown }[] } | null)?.runs ?? [];
+	return runs.map((r) => (typeof r?.text === "string" ? r.text : "")).join("");
+}
+
+/** Search details of a plain queue row ("Up next" prefetch); null for pairs, which already have both versions. */
+export function rowTrack(item: unknown): { videoId: string; title: string; artist: string; durationSec: number; type?: string } | null {
+	const r = (item as Record<string, any> | null)?.playlistPanelVideoRenderer as Renderer;
+	const videoId = rendererId(r);
+	if (!r || !videoId) return null;
+	const length = runsText(r.lengthText);
+	const durationSec = /^\d+(:\d{1,2}){1,2}$/.test(length) ? length.split(":").reduce((sum, part) => sum * 60 + Number(part), 0) : 0;
+	return { videoId, title: runsText(r.title), artist: runsText(r.shortBylineText), durationSec, type: musicVideoType(r) };
+}
+
+/** The row's renderers and whether one of them is the selected (playing) row. */
+function rowIds(item: unknown): { selected: boolean; ids: string[] } {
+	const row = item as Record<string, any> | null;
+	const wrapper = row?.playlistPanelVideoWrapperRenderer;
+	const renderers: Renderer[] = wrapper
+		? [wrapper.primaryRenderer?.playlistPanelVideoRenderer, wrapper.counterpart?.[0]?.counterpartRenderer?.playlistPanelVideoRenderer]
+		: [row?.playlistPanelVideoRenderer];
+	const ids = renderers.map(rendererId).filter((id): id is string => !!id);
+	return { selected: renderers.some((r) => r?.selected === true), ids };
+}
+
+/** Index of the playing row in YTM's queue, or -1. */
+export function playingIndex(items: unknown[] | null | undefined, videoId: string): number {
+	return (items ?? []).findIndex((item) => {
+		const row = rowIds(item);
+		return row.selected && row.ids.includes(videoId);
+	});
+}
+
+export type Counterpart = { videoId: string; title: string; artist: string; album?: string; durationSec?: number; type?: string; art?: string };
+
+/**
+ * Turns a plain queue row into a song/video pair the way YouTube sends them to Premium accounts, with `match` as the
+ * counterpart. YTM then plays whichever side its playback mode prefers and maps the position between the two by the
+ * segment map, so the queue stays as it is. `startTimeSeconds` makes the first switch continue where the row is now;
+ * the caller removes it from the returned endpoint afterwards so later switches use YTM's own mapping.
+ */
+export function wrapWithCounterpart(
+	item: unknown,
+	match: Counterpart,
+	opts: { primaryDurationSec: number; startTimeSeconds?: number },
+): { item: Record<string, unknown>; watchEndpoint: Record<string, unknown> } | null {
+	const primary = (item as Record<string, any> | null)?.playlistPanelVideoRenderer as Record<string, any> | undefined;
+	const primaryEndpoint = primary?.navigationEndpoint?.watchEndpoint;
+	if (!primary || !primaryEndpoint || !match.type) return null;
+	const { params: _params, startTimeSeconds: _start, ...rest } = primaryEndpoint as Record<string, unknown>;
+	const watchEndpoint: Record<string, unknown> = {
+		...rest,
+		videoId: match.videoId,
+		watchEndpointMusicSupportedConfigs: { watchEndpointMusicConfig: { hasPersistentPlaylistPanel: true, musicVideoType: match.type } },
+	};
+	if (opts.startTimeSeconds && opts.startTimeSeconds > 0) watchEndpoint.startTimeSeconds = Math.floor(opts.startTimeSeconds);
+	const byline = [match.artist, match.album].filter(Boolean).join(" • ");
+	const durationMs = Math.round(Math.min(opts.primaryDurationSec, match.durationSec ?? opts.primaryDurationSec) * 1000);
+	const length = match.durationSec ? `${Math.floor(match.durationSec / 60)}:${String(match.durationSec % 60).padStart(2, "0")}` : undefined;
+	const counterpart = {
+		...primary,
+		videoId: match.videoId,
+		title: { runs: [{ text: match.title }] },
+		shortBylineText: { runs: [{ text: match.artist }] },
+		longBylineText: { runs: [{ text: byline }] },
+		thumbnail: match.art
+			? { thumbnails: [match.type === ATV ? { url: match.art, width: 544, height: 544 } : { url: match.art, width: 480, height: 360 }] }
+			: primary.thumbnail,
+		lengthText: length ? { runs: [{ text: length }] } : primary.lengthText,
+		navigationEndpoint: { watchEndpoint },
+		// The row's menu (like, add to playlist, start mix) acts on the primary's id.
+		menu: undefined,
+		queueNavigationEndpoint: undefined,
+	};
+	const segment = { primaryVideoStartTimeMilliseconds: "0", counterpartVideoStartTimeMilliseconds: "0", durationMilliseconds: String(durationMs) };
+	return {
+		item: {
+			playlistPanelVideoWrapperRenderer: {
+				primaryRenderer: { playlistPanelVideoRenderer: primary },
+				counterpart: [{ counterpartRenderer: { playlistPanelVideoRenderer: counterpart }, segmentMap: { segment: [segment] } }],
+			},
+		},
+		watchEndpoint,
+	};
+}
+
 export type VideoModeAction =
 	/** Play the twin at the same position. */
 	| { kind: "swap"; twin: Twin }

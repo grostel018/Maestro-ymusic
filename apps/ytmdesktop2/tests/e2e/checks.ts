@@ -35,5 +35,7 @@ export const CHECKS: Check[] = [
 	{ area: "Sign-in", check: "The Google sign-in window is a normal window (not modal, not always on top, resizable), detects Google's browser rejection, and retries with the other browser identity", evidence: ["s17"] },
 	{ area: "Sign-in", check: "Import sign-in from Firefox reads the profile Firefox really uses and copies only its youtube.com / google.com cookies into the app", evidence: ["s18"] },
 	{ area: "Sign-in", check: "Last.fm connects through an in-app approval window with one token (no sign-in loop) and stays connected after a restart", evidence: ["s19"] },
-	{ area: "Playback", check: "The Song/Video switch and player-bar button are always visible; V toggles 5× without pausing or restarting; song mode shows the cover and the choice is saved", evidence: ["s20"] },
+	{ area: "Playback", check: "The Song/Video switch and player-bar button are always visible; V toggles 5× without pausing or restarting; song mode plays the song or shows the cover and the choice is saved", evidence: ["s20"] },
+	{ area: "Playback", check: "Song mode on a music video finds and plays its song near the same position, with its square cover, and Up next keeps its length", evidence: ["s21"] },
+	{ area: "Playback", check: "Video mode on a song switches to its music video, or disables the Video button", evidence: ["s22"] },
 ];

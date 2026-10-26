@@ -4,6 +4,23 @@ Short records of decisions that shape the code, so collaborators know **why**. N
 Format: what we decided, why, what it costs if wrong. The full per-task record for phases 0–1 is
 in `docs/superpowers/plans/2026-10-25-phase0-1-ledger.md`.
 
+## 2026-10-26: Song mode pairs the found song with the playing queue row
+- **Owner report:** Song mode showed the music video's thumbnail instead of the song's cover.
+- **Cause:** without Premium, YouTube sends no song/video pairs ("counterparts"), so there was
+  nothing to switch to.
+- **Decision:**
+  - Search YTM (`/search` with the Songs or Videos filter, through the page's own client) and match
+    by title, artist, length (10 s or less apart) and version words (remix, live, cover…).
+  - Turn the playing queue row into a song/video pair, the shape Premium accounts get, with a
+    one-segment map, and let YTM switch between them itself.
+  - The first switch carries `startTimeSeconds`; after that YTM maps the position.
+- **Rejected:** `yt-navigate` to the found song (the plan's first idea). It plays the song at the
+  right time, but YTM rebuilds "Up next" as a new radio for it, even with `hasPersistentPlaylistPanel`
+  and the queue index. Measured on the bench.
+- **Cost if wrong:** a wrong match plays a different recording. The strict threshold, the length
+  check and the found version shown in the switch's tooltip limit that. If YouTube changes how
+  pairs work, Song mode falls back to the cover over the video.
+
 ## 2026-10-26: One window surface, one "Background" setting
 - **Owner report:** a black title bar, some areas darker than others, some blurred and some not, the
   browse page showing through the player, a hard-edged band on Home, and four toggles (Thumbnail

@@ -24,7 +24,7 @@ The ordered list of improvements still to make. Work top to bottom unless someth
 | Tier 5 - Low value for now | 0 |
 | **Total open** | **56** |
 
-Done: 8. Next free ID: 65.
+Done: 9. Next free ID: 66.
 
 ## Tier 0 - Make the core experience work
 
@@ -124,8 +124,10 @@ Done: 8. Next free ID: 65.
 | 62 | Phase 1: layer 2 ad blocker, pruning ad payloads from YouTube responses | 2026-10-25 | s6 |
 | 63 | Phase 1: layer 3 ad blocker, fallback skipper (16x mute) and Premium upsell hiding | 2026-10-25 | s7, s8 |
 | 64 | Phase 1: ad block settings page with stats line and seeded-settings bench support | 2026-10-25 | s12, s13 |
+| 65 | Phase C1b: Song mode finds the real song (and Video mode the music video) by search and switches to it in place | 2026-10-26 | s21, s22; queue and position kept, square album cover; no-match hint and square thumbnail |
 
 ## Change log
 
 - 2026-10-25: Backlog created with 55 items, seeded from the roadmap (phases 2-6).
 - 2026-10-25: Phases 0-1 finished and measured; recorded as done rows 57-64. Added item 56 after p1 missed its budget.
+- 2026-10-26: C1b (real song version in Song mode) done as row 65.
