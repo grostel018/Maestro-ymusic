@@ -4,6 +4,7 @@
 import { adblockRouter } from "@main/trpc/routers/adblock";
 import { apiRouter } from "@main/trpc/routers/api";
 import { appServiceRouter } from "@main/trpc/routers/app";
+import { audioRouter } from "@main/trpc/routers/audio";
 import { authRouter } from "@main/trpc/routers/auth";
 import { chromecastRouter } from "@main/trpc/routers/chromecast";
 import { discordRouter } from "@main/trpc/routers/discord";
@@ -43,6 +44,7 @@ export const appRouter = router({
 	shortcut: shortcutRouter,
 	adblock: adblockRouter,
 	googleLogin: googleLoginRouter,
+	audio: audioRouter,
 });
 
 export type AppRouter = typeof appRouter;

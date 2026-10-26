@@ -3,6 +3,7 @@
 import type adblockProvider from "@routers/adblock/service";
 import type apiProvider from "@routers/api/service";
 import type appProvider from "@routers/app/service";
+import type audioProvider from "@routers/audio/service";
 import type authProvider from "@routers/auth/service";
 import type chromecastProvider from "@routers/chromecast/service";
 import type deeplinkProvider from "@routers/deeplink/service";
@@ -30,6 +31,7 @@ export interface ServiceTypeMap {
   "adblock": adblockProvider;
   "api": apiProvider;
   "app": appProvider;
+  "audio": audioProvider;
   "auth": authProvider;
   "chromecast": chromecastProvider;
   "deeplink": deeplinkProvider;

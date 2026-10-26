@@ -6,6 +6,7 @@ import { stringifyJson } from "@main/lib/json";
 import { createYmlStore } from "@main/lib/store/createYmlStore";
 import type { ThemesConfig } from "@main/trpc/routers/themes/types";
 import { trackService } from "@main/trpc/routers/track";
+import { normalizeAudio } from "@shared/audio/settings";
 import eventNames from "@shared/constants/eventNames";
 import { FORK } from "@shared/fork";
 import { VideoResSetting } from "@shared/utils/ISettings";
@@ -113,6 +114,8 @@ const defaultSettings = {
 	googleLogin: {
 		identity: "firefox" as "firefox" | "chrome",
 	},
+	/** Audio lab (phase D): equalizer, spatial, dynamics, transitions, karaoke, pitch, visualizer. */
+	audio: normalizeAudio(undefined),
 	adblock: {
 		enabled: true,
 		network: true,

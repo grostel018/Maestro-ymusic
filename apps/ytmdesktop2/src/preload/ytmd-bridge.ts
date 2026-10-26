@@ -11,6 +11,8 @@ const EMIT_ALLOWLIST = new Set<string>([
 	"app.loadEnd",
 	"nav:queue-change",
 	"adblock:skipped",
+	"audio:graph",
+	"audio:gesture-needed",
 ]);
 
 /** Channels page-world `ytmd.on` may subscribe to. */

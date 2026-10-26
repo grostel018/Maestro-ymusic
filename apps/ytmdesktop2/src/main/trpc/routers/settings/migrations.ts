@@ -1,5 +1,6 @@
 import { platform } from "@electron-toolkit/utils";
 import type { LegacyCustomCssConfig } from "@main/trpc/routers/themes/types";
+import { normalizeAudio } from "@shared/audio/settings";
 import { app } from "electron";
 import { Migration } from "electron-conf";
 import { readFileSync, rmSync, statSync } from "fs";
@@ -237,6 +238,12 @@ const migrations: Omit<Migration<SettingsStore>, "version">[] = [
 			if (typeof player.videoControls !== "boolean") store.set("player.videoControls", true);
 			if (typeof player.keepPitch !== "boolean") store.set("player.keepPitch", true);
 			if (typeof player.outputDevice !== "string" || !player.outputDevice) store.set("player.outputDevice", "default");
+		},
+	},
+	{
+		hook(store) {
+			// Phase D: the audio lab settings, completed and range-checked.
+			store.set("audio", normalizeAudio((store.store as { audio?: unknown })?.audio));
 		},
 	},
 ];

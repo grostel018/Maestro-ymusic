@@ -1,16 +1,17 @@
+import { getAudioEngine } from "./audio-engine/instance";
 import { DEFAULT_DEVICE, outputMenu, resolveSink } from "./audio-output.logic";
+import { pageToast, removePageToast } from "./page-toast";
 import { openMenu, setIcon } from "./video-controls.menu";
 import type { RendererPluginRegistration } from "./world0/types";
 
 // Audio output device (roadmap C3): a player-bar menu of the system's outputs, applied with `setSinkId` on the
-// player's media element (the audio engine takes this over in D1). Main allows device listing for this page only
+// player's media element and on the audio engine's context (D1), which carries the sound once a stage is on. Main allows device listing for this page only
 // and never grants capture (main/lib/mediaPermissions.ts). A device that disappears falls back to the default,
 // with a toast; it is used again when it comes back.
 
 const SETTING = "player.outputDevice";
 const BUTTON_ID = "ytmd-output-button";
 const STYLE_ID = "ytmd-output-style";
-const TOAST_ID = "ytmd-output-toast";
 // Material "speaker" (a device), so it does not read as a second volume button.
 const ICON =
 	"M17 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm-5 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm0 16a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z";
@@ -22,19 +23,7 @@ const CSS = `
 #${BUTTON_ID}[data-custom] { color: #fff; }
 #${BUTTON_ID}:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 #${BUTTON_ID} svg { width: 22px; height: 22px; fill: currentColor; }
-#${TOAST_ID} { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 2147483000; padding: 10px 16px; border-radius: 8px;
-	background: rgba(28, 28, 28, 0.96); color: #fff; font: 400 13px/1.3 "YouTube Sans", Roboto, sans-serif; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4); }
 `;
-
-function toast(text: string): void {
-	document.getElementById(TOAST_ID)?.remove();
-	const el = document.createElement("div");
-	el.id = TOAST_ID;
-	el.setAttribute("role", "status");
-	el.textContent = text;
-	document.body.appendChild(el);
-	window.setTimeout(() => el.remove(), 4000);
-}
 
 const audioOutputRenderer: RendererPluginRegistration = {
 	id: "audio-output",
@@ -66,9 +55,10 @@ const audioOutputRenderer: RendererPluginRegistration = {
 				const { sinkId, missing } = resolveSink(wanted, await devices());
 				if (missing && toldMissing !== wanted) {
 					toldMissing = wanted;
-					toast("The chosen audio output is not connected. Playing on the default device.");
+					pageToast("The chosen audio output is not connected. Playing on the default device.");
 				}
 				if (!missing) toldMissing = "";
+				getAudioEngine().setSink(sinkId);
 				for (const video of document.querySelectorAll("video")) {
 					if (video.sinkId === sinkId) continue;
 					try {
@@ -154,7 +144,7 @@ const audioOutputRenderer: RendererPluginRegistration = {
 			navigator.mediaDevices?.removeEventListener("devicechange", onDeviceChange);
 			document.removeEventListener("loadeddata", onSource, true);
 			document.getElementById(BUTTON_ID)?.remove();
-			document.getElementById(TOAST_ID)?.remove();
+			removePageToast();
 			document.getElementById(STYLE_ID)?.remove();
 		};
 	},
