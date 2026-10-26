@@ -24,6 +24,21 @@ in `docs/superpowers/plans/2026-10-25-phase0-1-ledger.md`.
 - **Cost if wrong:** state leaking between shared scenarios. That's why `reuse` is opt-in and a
   failure gets a fresh launch.
 
+## 2026-10-26: Artwork background covers the whole window
+- **Owner report:** the themed area was a rectangle that didn't match the side panel, top bar or
+  player bar.
+- **Decision:** one fixed `body::before` layer holds a pre-blurred 96 px copy of the artwork with
+  a dark veil, and YouTube's chrome is made translucent. That means the side panel, top bar,
+  player bar and player page, plus Home's `.background-gradient`.
+  - The browse page is hidden while the player is open.
+- **Fixes along the way:**
+  - YouTube thumbnails' 4:3 letterbox bands are cropped (`track-theme.crop.ts`).
+  - No `transform` on the layer: a composited, upscaled tiny image drew a seam at a GPU tile
+    boundary.
+  - The Default theme's `!important` on the player bar is overridden by a more specific rule.
+- **Known limit:** some music videos have black bars burned into the video file (e.g. the 4:3
+  test track is encoded at 640×360). No styling can remove those.
+
 ## 2026-10-26: Test what the app did, not what the page happens to show
 - **What happened:** the glass test checked the page's computed style. YouTube opens music videos
   in Video mode, where its own styles override the glass layer, so the test was flaky. Also,

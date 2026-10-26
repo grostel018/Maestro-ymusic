@@ -1,4 +1,4 @@
-// Themes: the player page background is a cheap pre-blurred artwork; full-page glass is opt-in (themes.glass).
+// Themes: the whole-window background is a cheap pre-blurred artwork; full-page glass is opt-in (themes.glass).
 import type { Scenario, TestApp } from "../lib/app.ts";
 import type { CdpSession } from "../lib/cdp.ts";
 import { play } from "../lib/perf.ts";
@@ -19,9 +19,9 @@ const PROBE = `(() => {
 			if (bf !== 'none') bigBackdrop.push(el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (pseudo || '') + ' ' + bf);
 		}
 	}
-	const content = document.querySelector('.content.ytmusic-player-page');
-	let before = null;
-	if (content) { const cs = getComputedStyle(content, '::before'); before = { image: cs.backgroundImage, filter: cs.filter }; }
+	// the artwork layer is body::before (fixed, whole window)
+	const cs = getComputedStyle(document.body, '::before');
+	const before = cs.content === 'none' ? null : { image: cs.backgroundImage, filter: cs.filter };
 	return { bigBackdrop, before };
 })()`;
 
@@ -50,10 +50,10 @@ export const scenarios: Scenario[] = [
 			const p = await waitFor(
 				async () => {
 					const r = await probe(yt);
-					return r.before?.image.startsWith('url("data:image/') ? r : false;
+					return r.before?.image.includes('url("data:image/') ? r : false;
 				},
 				30000,
-				"the player page ::before to use the pre-blurred data: image",
+				"the window background (body::before) to use the pre-blurred data: image",
 			);
 			if (p.before?.filter.includes("blur")) throw new Error(`::before filter still blurs: ${p.before.filter}`);
 			if (p.bigBackdrop.length) throw new Error(`full-page backdrop-filter without glass: ${p.bigBackdrop.join(", ")}`);

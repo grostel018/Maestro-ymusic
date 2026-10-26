@@ -1,9 +1,10 @@
+import { artworkCrop } from "./track-theme.crop";
 import type { RendererPluginRegistration } from "./world0/types";
 
 const THUMB_STYLE_ID = "ytmd-track-theme-thumbnail";
 const ACCENT_STYLE_ID = "ytmd-track-theme-accent";
 const BLUR_STYLE_ID = "ytmd-track-theme-thumbnail-blur";
-const BLUR_SIZE = 48;
+const BLUR_SIZE = 96;
 const BLUR_CACHE_MAX = 20;
 
 /** Pre-blurred artwork data URLs by thumbnail URL, least recently used first. */
@@ -33,8 +34,11 @@ async function makeBlurredThumbnail(url: string): Promise<string> {
 		const canvas = new OffscreenCanvas(BLUR_SIZE, BLUR_SIZE);
 		const ctx = canvas.getContext("2d");
 		if (!ctx) throw new Error("no 2d context");
-		ctx.filter = "blur(3px) saturate(120%) brightness(1.15)";
-		ctx.drawImage(bitmap, 0, 0, BLUR_SIZE, BLUR_SIZE);
+		// Strong blur relative to the 48 px canvas: the image is scaled to the whole window, so any hard edge
+		// left in the artwork would show as a seam across the page.
+		ctx.filter = "blur(12px) saturate(130%) brightness(1.1)";
+		const { sx, sy, sw, sh } = artworkCrop(bitmap.width, bitmap.height);
+		ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, BLUR_SIZE, BLUR_SIZE);
 		const dataUrl = await blobToDataUrl(await canvas.convertToBlob({ type: "image/jpeg", quality: 0.7 }));
 		blurCache.set(url, dataUrl);
 		if (blurCache.size > BLUR_CACHE_MAX) blurCache.delete(blurCache.keys().next().value as string);

@@ -1,7 +1,7 @@
 // Full-page glass (backdrop-filter + blur) — opt-in via themes.glass; costs GPU every frame.
 
 ytmusic-player-page.ytmusic-app {
-  background: rgba(0, 0, 0, 0.78);
+  background: rgba(0, 0, 0, 0.78) !important; // beats the transparent player page of chrome/thumbnail-bg.scss
   backdrop-filter: blur(20px);
 }
 

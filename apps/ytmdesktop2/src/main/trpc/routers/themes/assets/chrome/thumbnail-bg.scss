@@ -1,24 +1,76 @@
-// Thumbnail background (full-page glass over it lives in chrome/glass.scss via themes.glass)
+// Artwork background for the WHOLE window (themes.thumbnailBackground).
+// One fixed layer behind everything: a tiny pre-blurred copy of the current artwork (made by the
+// track-theme renderer), scaled up and darkened. It is a static image — no live blur — so it costs the
+// same at any window size. YouTube's own chrome (side panel, top bar, player bar, player page, video
+// letterbox) is made translucent so the layer shows through and the page reads as one surface.
+// Full-page glass (backdrop-filter) stays opt-in in chrome/glass.scss.
 
-ytmusic-player-page:not([is-mweb-modernization-enabled]) .content.ytmusic-player-page:before {
+html {
+  background-color: #030303;
+}
+
+body {
+  background: transparent !important;
+}
+
+body::before {
   content: "";
-  // Tiny pre-blurred copy made in the page (track-theme renderer); falls back to the full artwork.
-  background-image: var(--ytmd-thumbnail-blur-url, var(--ytmd-thumbnail-url));
-  image-rendering: auto;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--ytmd-thumbnail-accent, #030303);
+  // dark veil first (top), artwork below; the fallback is the full artwork when no blurred copy exists yet
+  background-image: linear-gradient(rgba(3, 3, 3, 0.62), rgba(3, 3, 3, 0.62)),
+    var(--ytmd-thumbnail-blur-url, var(--ytmd-thumbnail-url, none));
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  background-color: var(--ytmd-thumbnail-accent);
-  opacity: 0.33;
-  mix-blend-mode: exclusion;
-  border-radius: 8px;
-  overflow: hidden;
-  transform: translateZ(0) scale(1.1);
-  position: absolute;
-  top: -12px;
-  left: calc(var(--ytmusic-guide-width) * -1);
-  right: calc(var(--ytmusic-guide-width) * -1);
-  bottom: -20px;
-  z-index: -1;
+  image-rendering: auto;
+  // No transform/own layer on purpose: a composited layer stretching a tiny image across the window
+  // showed a hard horizontal seam at a GPU tile boundary. A plain fixed background paints once.
 }
 
+// Chrome surfaces: translucent instead of solid black.
+// One translucent layer per area; the side panel stacks three elements, so only the outer one is tinted
+// (stacking three made it darker than the rest).
+#guide-wrapper,
+#nav-bar-background {
+  background: rgba(3, 3, 3, 0.35) !important;
+}
+
+#mini-guide-background,
+tp-yt-app-drawer#guide #contentContainer {
+  background: transparent !important;
+}
+
+// More specific than the Default theme's `#player-bar-background.ytmusic-app-layout { … !important }`,
+// which is injected after this layer.
+ytmusic-app ytmusic-app-layout > #player-bar-background.ytmusic-app-layout {
+  background: rgba(3, 3, 3, 0.55) !important;
+  background-color: rgba(3, 3, 3, 0.55) !important;
+}
+
+// YouTube's page gradient (60% black fading to solid black over the whole page) hides the artwork and
+// draws a visible band on Home.
+.background-gradient.style-scope {
+  background: none !important;
+}
+
+// The player page slides over the browse page (#content) and is normally ~opaque black. Let the artwork
+// show through it, and hide the page underneath while the player is open so it doesn't bleed through.
+ytmusic-player-page {
+  background: transparent !important;
+}
+
+ytmusic-app-layout[player-page-open] > #content {
+  visibility: hidden;
+}
+
+// Letterbox / pillarbox around videos that don't fill the player (e.g. 4:3 music videos).
+ytmusic-player#player,
+ytmusic-player#player #song-video,
+#movie_player,
+#movie_player .html5-video-container {
+  background: transparent !important;
+}
