@@ -99,6 +99,8 @@ async function quitFromFullscreenAndRelaunch(t: TestApp, expectMaximized: boolea
 export const scenarios: Scenario[] = [
 	{
 		id: "s2",
+		smoke: true,
+		reuse: true,
 		title: "Views follow setSize, maximize and unmaximize",
 		run: async (t) => {
 			await ready(t);
@@ -114,6 +116,8 @@ export const scenarios: Scenario[] = [
 	},
 	{
 		id: "s3",
+		smoke: true,
+		reuse: true,
 		title: "HTML fullscreen fills the screen without the toolbar and restores on exit",
 		run: async (t) => {
 			await ready(t);
@@ -126,6 +130,7 @@ export const scenarios: Scenario[] = [
 	},
 	{
 		id: "s3b",
+		reuse: true,
 		title: "HTML fullscreen from maximized returns to maximized",
 		run: async (t) => {
 			await ready(t);

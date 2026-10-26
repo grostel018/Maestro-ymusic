@@ -24,6 +24,8 @@ async function ready(t: TestApp) {
 export const scenarios: Scenario[] = [
 	{
 		id: "s9",
+		smoke: true,
+		reuse: true,
 		title: "Minimized: the toolbar view is hidden and YouTube keeps playing",
 		run: async (t) => {
 			await ready(t);
@@ -42,6 +44,7 @@ export const scenarios: Scenario[] = [
 	},
 	{
 		id: "s10",
+		reuse: true,
 		title: "The power hold is taken while playing and released after pause",
 		run: async (t) => {
 			await ready(t);
@@ -55,6 +58,7 @@ export const scenarios: Scenario[] = [
 	},
 	{
 		id: "s11",
+		reuse: true,
 		title: "The GPU blocklist is respected and the backgrounding switches match the Step 3b decision",
 		run: async (t) => {
 			await ready(t);

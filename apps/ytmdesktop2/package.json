@@ -37,8 +37,14 @@
 		"biome:check:apply": "biome check ./src --write",
 		"test": "pnpm -w exec vitest run apps/ytmdesktop2",
 		"test:watch": "pnpm -w exec vitest apps/ytmdesktop2",
-		"test:e2e": "electron-vite build && node tests/e2e/run.ts",
-		"test:perf": "electron-vite build && node tests/e2e/run.ts --perf",
+		"test:e2e": "pnpm t:full",
+		"test:perf": "pnpm t:perf",
+		"t:unit": "pnpm -w exec vitest run",
+		"t:smoke": "node scripts/build-if-changed.mjs && node tests/e2e/run.ts --smoke",
+		"t:full": "node scripts/build-if-changed.mjs && node tests/e2e/run.ts --keep-going",
+		"t:perf": "node scripts/build-if-changed.mjs && node tests/e2e/run.ts --perf --keep-going",
+		"t:account": "node scripts/build-if-changed.mjs && node tests/e2e/run.ts --account --keep-going",
+		"build:cached": "node scripts/build-if-changed.mjs",
 		"verify": "node tests/e2e/verify.ts"
 	},
 	"dependencies": {

@@ -19,6 +19,7 @@ const STATS = "__YTMD_TEST__.services.getProvider('adblock').stats()";
 export const scenarios: Scenario[] = [
 	{
 		id: "s5",
+		smoke: true,
 		title: "Network blocking: ad and tracker requests fail with ERR_BLOCKED_BY_CLIENT, history pings pass and playback advances",
 		launch: { settings: { adblock: { enabled: true, network: true, prune: true, fallback: true, hideUpsells: true, stats: { total: 0 } } } },
 		run: async (t) => {
@@ -83,6 +84,8 @@ export const scenarios: Scenario[] = [
 	},
 	{
 		id: "s7",
+		smoke: true,
+		reuse: true,
 		title: "Fallback skipper: ad-showing mutes the video at 16x within 1 s and removing it restores both",
 		launch: { settings: { adblock: { enabled: true, network: true, prune: true, fallback: true, hideUpsells: true, stats: { total: 0 } } } },
 		run: async (t) => {

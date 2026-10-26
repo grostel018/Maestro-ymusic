@@ -23,6 +23,8 @@ export type TestApp = {
 	view(match: "youtube" | "toolbar" | RegExp): Promise<CdpSession>;
 	profileDir: string;
 	workDir: string;
+	/** The Electron process's stdout/stderr log for this launch. */
+	logFile: string;
 	/** Quits through `app.quit()` (window close handlers run, state is saved) and waits for the process to exit. */
 	quit(): Promise<void>;
 	close(): Promise<void>;
@@ -34,6 +36,16 @@ export type Scenario = {
 	title: string;
 	/** Needs the signed-in bench profile (`E2E_PROFILE=signed-in`); skipped otherwise. */
 	account?: boolean;
+	/** Feature area (set by run.ts from the scenario file), used by `--area`. */
+	area?: string;
+	/** Part of the fast `--smoke` set (one or two per area). */
+	smoke?: boolean;
+	/**
+	 * Safe to run in an app already used by earlier scenarios with the same static `launch` (the runner
+	 * resets window and playback between them). Leave off for scenarios that test startup, relaunch,
+	 * or change settings at runtime.
+	 */
+	reuse?: boolean;
 	/** Options for the app launched for this scenario; a function is called when the scenario starts. */
 	launch?: LaunchOptions | (() => LaunchOptions);
 	run: (t: TestApp) => Promise<void>;
@@ -109,7 +121,8 @@ export async function launchApp(opts: LaunchOptions = {}): Promise<TestApp> {
 	const profileDir = opts.profileDir ?? path.join(work, `profile-${n}`);
 	if (opts.profileDir && fs.existsSync(profileDir)) writeSettings(profileDir, opts.settings);
 	else seedProfile(profileDir, opts.settings);
-	const logFd = fs.openSync(path.join(work, `electron-${n}.log`), "w");
+	const logFile = path.join(work, `electron-${n}.log`);
+	const logFd = fs.openSync(logFile, "w");
 	const userDataArgs = opts.userDataFlag === false ? [] : [`--user-data-dir=${profileDir}`];
 	const proc: ChildProcess = spawn(
 		ELECTRON,
@@ -136,6 +149,7 @@ export async function launchApp(opts: LaunchOptions = {}): Promise<TestApp> {
 	const app: TestApp = {
 		profileDir,
 		workDir: work,
+		logFile,
 		async mainEval<T>(expr: string) {
 			if (exited) throw new Error("the app has exited");
 			const s = await getMain();

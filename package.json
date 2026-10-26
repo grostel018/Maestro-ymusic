@@ -42,6 +42,11 @@
 		"test:watch": "vitest",
 		"test:e2e": "pnpm --filter ytmdesktop2 test:e2e",
 		"test:perf": "pnpm --filter ytmdesktop2 test:perf",
+		"t:unit": "vitest run",
+		"t:smoke": "pnpm --filter ytmdesktop2 t:smoke",
+		"t:full": "pnpm --filter ytmdesktop2 t:full",
+		"t:perf": "pnpm --filter ytmdesktop2 t:perf",
+		"t:account": "pnpm --filter ytmdesktop2 t:account",
 		"verify": "pnpm --filter ytmdesktop2 verify"
 	},
 	"license": "MIT",
