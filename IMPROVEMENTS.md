@@ -132,3 +132,4 @@ Done: 18. Next free ID: 66.
 - 2026-10-25: Phases 0-1 finished and measured; recorded as done rows 57-64. Added item 56 after p1 missed its budget.
 - 2026-10-26: C1b (real song version in Song mode) done as row 65.
 - 2026-10-26: Phase C2–C4 video controls, speed and output device done (rows 1, 2, 3, 5, 7, 8, 9, 10, 12); item 4 narrowed to auto-translate.
+- 2026-10-26: Phase C closed (C5): perf p9 shows Song mode CPU 4.72% vs Video 5.01%.

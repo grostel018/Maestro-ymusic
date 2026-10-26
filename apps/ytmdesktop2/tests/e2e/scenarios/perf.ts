@@ -187,4 +187,25 @@ export const scenarios: Scenario[] = [
 			if (advanced < 100) throw new Error(`playback advanced only ${advanced} s in ${wallS} s while minimized (need >= 100)`);
 		},
 	},
+	{
+		id: "p9",
+		title: "Playing, CPU 15 s in Video mode, then 15 s in Song mode",
+		launch: { settings: { player: { videoMode: "video" } } },
+		run: async (t) => {
+			await prepare(t);
+			await play(t);
+			const yt = await t.view("youtube");
+			await sleep(2000);
+			const video = await sampleCpu(t, 15000);
+			await yt.eval(`(document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "v", bubbles: true })), true)`);
+			await waitFor(async () => (await t.mainEval<string>(`__YTMD_TEST__.services.getProvider("settings").get("player.videoMode")`)) === "audio", 10000, "Song mode");
+			// Song mode may swap to the song's own stream; let it load before sampling.
+			await sleep(5000);
+			const audio = await sampleCpu(t, 15000);
+			const playing = await yt.eval<boolean>("!document.querySelector('video')?.paused");
+			recordPerf("p9", { videoAvgPct: video.avgPct, audioAvgPct: audio.avgPct, video: video.byType, audio: audio.byType, playing });
+			console.log(`  p9: video ${video.avgPct}% audio ${audio.avgPct}% playing=${playing}`);
+			if (!playing) throw new Error("playback stopped after switching to Song mode");
+		},
+	},
 ];
