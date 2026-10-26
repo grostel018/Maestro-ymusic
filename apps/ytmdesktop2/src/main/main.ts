@@ -12,6 +12,8 @@ import { findStoreFilesOutsideUserData } from "@main/lib/store/createYmlStore";
 import { runLifecycle, setLifecycleContext } from "@main/lifecycle";
 import { thumbnailCache } from "@main/services/thumbnailCache";
 import { attachTrpcWindow, initElectronTrpc } from "@main/trpc/handler";
+import { getGoogleLoginState, retryGoogleLogin } from "@main/windows/googleLogin";
+import { googleLoginPopup } from "@main/windows/view";
 import { WindowManager } from "@main/windows/windowManager";
 import { onWindowLoad } from "@main/windows/windowUtils";
 import { logger } from "@shared/utils/console";
@@ -135,7 +137,11 @@ const runApp = async function () {
 
 		await waitMs(); // next tick
 		await serviceCollection.exec("OnInit");
-		exposeTestHooks({ serviceCollection, getMainWindow: () => mainWindow });
+		exposeTestHooks({
+			serviceCollection,
+			getMainWindow: () => mainWindow,
+			googleLogin: { open: (url) => googleLoginPopup(url, mainWindow.main), state: getGoogleLoginState, retry: retryGoogleLogin },
+		});
 		await runLifecycle("init");
 
 		const startupService = serviceCollection.getTypedProvider("startup");

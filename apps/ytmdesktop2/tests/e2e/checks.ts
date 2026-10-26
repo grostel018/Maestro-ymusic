@@ -32,4 +32,5 @@ export const CHECKS: Check[] = [
 	{ area: "Ad block", check: "An ad-showing player is muted at 16x within 1 s and both are restored when the ad ends, counted as skipped", evidence: ["s7"] },
 	{ area: "Ad block", check: "Premium upsell elements are hidden while hideUpsells is on and shown when it is off", evidence: ["s8"] },
 	{ area: "Ad block", check: "The ad block settings page shows the five switches with their saved values, a blocked-count line, and restart notes only where a restart is needed", evidence: ["s12"] },
+	{ area: "Sign-in", check: "The Google sign-in window is a normal window (not modal, not always on top, resizable), detects Google's browser rejection, and retries with the other browser identity", evidence: ["s17"] },
 ];

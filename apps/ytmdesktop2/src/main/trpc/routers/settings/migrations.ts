@@ -212,6 +212,12 @@ const migrations: Omit<Migration<SettingsStore>, "version">[] = [
 			migrateAdblockDefaults(store);
 		},
 	},
+	{
+		hook(store) {
+			const identity = (store.store as SettingsStore)?.googleLogin?.identity;
+			if (identity !== "firefox" && identity !== "chrome") store.set("googleLogin.identity", "firefox");
+		},
+	},
 ];
 
 export default migrations;

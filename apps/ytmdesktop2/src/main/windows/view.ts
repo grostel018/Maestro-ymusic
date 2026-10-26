@@ -1,11 +1,13 @@
 import { lockAppChromeZoom } from "@main/domain/uiZoom";
 import { defaultUrl, isDevelopment, isProduction } from "@main/infra/devUtils";
-import { getGoogleLoginUserAgent } from "@main/infra/userAgent";
+import { getLifecycleContext } from "@main/lifecycle";
+import { classifyGoogleLoginPage, type GoogleLoginIdentity, nextIdentity } from "@shared/auth/googleLogin";
 import { createLogger } from "@shared/utils/console";
 import translations from "@translations/index";
-import { BrowserWindow, BrowserWindowConstructorOptions, ipcMain, shell, WebContentsView, WebContentsViewConstructorOptions, WebPreferences } from "electron";
+import { BrowserWindow, BrowserWindowConstructorOptions, ipcMain, WebContentsView, WebContentsViewConstructorOptions, WebPreferences } from "electron";
 import { join } from "path";
 import appIconPath from "~/build/favicon.ico?asset";
+import { getGoogleLoginState, setActiveGoogleLogin, setGoogleLoginState, userAgentFor } from "./googleLogin";
 import { LockSizeOptions, loadUrlOfWebContents, lockSizeToParent } from "./webContentUtils";
 
 const log = createLogger("windows").child("view");
@@ -88,43 +90,59 @@ export const googleLoginPopup = async (authUrl: string, parent?: Electron.Browse
 		allowRunningInsecureContent: false,
 		preload: join(__dirname, "../preload/login.js"),
 	};
-	const { lockSize, popup } = await createPopup({
+	// A normal window: resizable, not modal, not always-on-top (it used to feel like a stuck separate window).
+	const { popup } = await createPopup({
 		icon: appIconPath,
 		title: translations.appName,
-		height: 580,
-		width: 800,
-		resizable: false,
-		maximizable: false,
+		height: 700,
+		width: 900,
+		minWidth: 480,
+		minHeight: 520,
+		resizable: true,
+		maximizable: true,
+		minimizable: true,
 		frame: false,
 		fullscreenable: false,
-		minimizable: false,
-		alwaysOnTop: true,
 		autoHideMenuBar: true,
+		center: true,
 		webPreferences,
-		...((parent && { parent, modal: true }) || {}),
+		...(parent ? { parent } : {}),
 	});
 	popup.setMenu(null);
-	const noticeView = await createApiView("youtube/login-notice");
+	const noticeView = await createApiView("youtube/login-notice", undefined, { lockSize: false });
 	popup.contentView.addChildView(noticeView);
-	const [width, height] = popup.getContentSize();
 	const noticeHeight = 120;
-	noticeView.setBounds({ height: noticeHeight, width, x: 0, y: 0 });
 	const loginView = new WebContentsView({
 		webPreferences,
 	});
-	loginView.webContents.setUserAgent(getGoogleLoginUserAgent());
 	popup.contentView.addChildView(loginView, 0);
-	loginView.setBounds({ height: height - noticeHeight, width, x: 0, y: noticeHeight });
+	const layout = () => {
+		if (popup.isDestroyed()) return;
+		const [width, height] = popup.getContentSize();
+		noticeView.setBounds({ height: noticeHeight, width, x: 0, y: 0 });
+		loginView.setBounds({ height: Math.max(0, height - noticeHeight), width, x: 0, y: noticeHeight });
+	};
+	layout();
+	popup.on("resize", layout);
+
+	// Start with the identity that worked last; on Google's rejection page the notice offers the other one.
+	const settings = getLifecycleContext().getProvider("settings") as
+		| { get?: (key: string) => unknown; set?: (key: string, value: unknown) => void }
+		| undefined;
+	let identity: GoogleLoginIdentity = settings?.get?.("googleLogin.identity") === "chrome" ? "chrome" : "firefox";
+	loginView.webContents.setUserAgent(userAgentFor(identity));
+	setGoogleLoginState({ phase: "signing-in", identity, rejections: 0 });
+
+	// Google's own pop-ups (account chooser, passkeys, 2FA) stay inside the app: sending them to the default
+	// browser (as before) dropped the user into Firefox, where the sign-in can't reach this app.
 	loginView.webContents.setWindowOpenHandler(({ url }) => {
-		if (!url.startsWith("http")) {
-			return { action: "deny" };
-		}
-		if (/^https?\:\/\/([a-zA-Z0-9]+)?\.google\.([a-z]+)/.test(url)) {
-			shell.openExternal(url);
-			return { action: "deny" };
-		}
-		return { action: "allow" };
+		if (!url.startsWith("http")) return { action: "deny" };
+		return {
+			action: "allow",
+			overrideBrowserWindowOptions: { parent: popup, autoHideMenuBar: true, webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true } },
+		};
 	});
+	loginView.webContents.on("did-create-window", (child) => child.webContents.setUserAgent(userAgentFor(identity)));
 	if (isDevelopment) {
 		loginView.webContents.openDevTools({ mode: "detach" });
 		noticeView.webContents.openDevTools({ mode: "detach" });
@@ -156,12 +174,38 @@ export const googleLoginPopup = async (authUrl: string, parent?: Electron.Browse
 		const markAuthenticated = () => {
 			if (isAuthenticated) return;
 			isAuthenticated = true;
+			setGoogleLoginState({ phase: "signed-in" });
+			settings?.set?.("googleLogin.identity", identity); // remember what Google accepted
 			popup.close();
 		};
 		popup.on("close", () => {
+			setActiveGoogleLogin(null);
+			if (!isAuthenticated) setGoogleLoginState({ phase: "closed" });
 			resolve(isAuthenticated);
 			clearGC();
 		});
+		setActiveGoogleLogin({
+			retryWithOtherIdentity() {
+				identity = nextIdentity(identity);
+				loginView.webContents.setUserAgent(userAgentFor(identity));
+				setGoogleLoginState({ phase: "signing-in", identity });
+				void loginView.webContents.loadURL(authUrl, { httpReferrer: defaultUrl }).catch(() => undefined);
+			},
+		});
+		// Recognise Google's "this browser or app may not be secure" page so the notice can offer a way out.
+		const checkPage = async () => {
+			if (loginView.webContents.isDestroyed()) return;
+			const url = loginView.webContents.getURL();
+			const text = await loginView.webContents.executeJavaScript("document.body ? document.body.innerText.slice(0, 3000) : ''").catch(() => "");
+			const page = classifyGoogleLoginPage({ url, text });
+			if (page === "signed-in") markAuthenticated();
+			else if (page === "rejected" && getGoogleLoginState().phase !== "rejected") {
+				log.warn("google rejected the sign-in browser identity", { identity });
+				setGoogleLoginState({ phase: "rejected", rejections: getGoogleLoginState().rejections + 1 });
+			}
+		};
+		loginView.webContents.on("did-finish-load", () => void checkPage());
+		loginView.webContents.on("did-navigate-in-page", () => void checkPage());
 		// Already logged in → Google lands on music.youtube during/after load.
 		// Attach before loadURL so we don't miss the redirect race.
 		const onMusicRedirect = (_ev: Electron.Event, url: string) => {

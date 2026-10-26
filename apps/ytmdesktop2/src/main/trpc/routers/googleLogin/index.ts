@@ -1,0 +1,1 @@
+export { googleLoginRouter } from "./router";

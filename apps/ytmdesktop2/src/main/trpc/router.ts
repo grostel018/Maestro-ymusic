@@ -7,6 +7,7 @@ import { appServiceRouter } from "@main/trpc/routers/app";
 import { authRouter } from "@main/trpc/routers/auth";
 import { chromecastRouter } from "@main/trpc/routers/chromecast";
 import { discordRouter } from "@main/trpc/routers/discord";
+import { googleLoginRouter } from "@main/trpc/routers/googleLogin";
 import { lastfmRouter } from "@main/trpc/routers/lastfm";
 import { navigationRouter } from "@main/trpc/routers/navigation";
 import { settingsRouter } from "@main/trpc/routers/settings";
@@ -41,6 +42,7 @@ export const appRouter = router({
 	discord: discordRouter,
 	shortcut: shortcutRouter,
 	adblock: adblockRouter,
+	googleLogin: googleLoginRouter,
 });
 
 export type AppRouter = typeof appRouter;

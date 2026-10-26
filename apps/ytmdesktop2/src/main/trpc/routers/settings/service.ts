@@ -103,6 +103,10 @@ const defaultSettings = {
 		enabled: true,
 		binds: {} as Record<string, string | null>,
 	},
+	/** Which browser identity the Google sign-in window presents ("firefox" first; "chrome" if Google rejected it). */
+	googleLogin: {
+		identity: "firefox" as "firefox" | "chrome",
+	},
 	adblock: {
 		enabled: true,
 		network: true,

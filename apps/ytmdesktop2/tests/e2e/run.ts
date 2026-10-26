@@ -12,6 +12,7 @@ import { launchOptionsOf, planGroups, selectScenarios } from "./lib/plan.ts";
 import { SIGNED_IN_PROFILE, useSignedInProfile, writeSettings } from "./lib/profile.ts";
 import { resetApp, settingsFingerprint } from "./lib/session.ts";
 import { scenarios as adblock } from "./scenarios/adblock.ts";
+import { scenarios as auth } from "./scenarios/auth.ts";
 import { scenarios as background } from "./scenarios/background.ts";
 import { scenarios as boot } from "./scenarios/boot.ts";
 import { scenarios as glass } from "./scenarios/glass.ts";
@@ -36,6 +37,7 @@ const FUNCTIONAL: Scenario[] = [
 	...withArea("background", background),
 	...withArea("settings", settings),
 	...withArea("adblock", adblock),
+	...withArea("auth", auth),
 ];
 const PERF = withArea("perf", perf);
 
