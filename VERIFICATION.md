@@ -1,10 +1,10 @@
 # YTMDesktop2 Plus - Verification Checklist
 
-Checked on 2026-10-26. **29/29 verified.**
+Checked on 2026-10-26. **35/35 verified.**
 
 Every row is tied to evidence: an end-to-end scenario (`sNN`) or a perf scenario (`pNN`), run by `tests/e2e/run.ts` against the real built app. A row is ticked only when all of its evidence passed in the last run. Perf rows other than p7 mean "measured and recorded"; their numbers are in `tests/e2e/results/perf-*.json`, and a tick means "measured", not "within budget": budgets are judged in section 8 of the design spec. Regenerate with `pnpm verify` after each batch.
 
-Suite: 30/30 passed
+Suite: 36/36 passed
 
 | # | Area | Check | Evidence | Result | Notes |
 |---|---|---|---|---|---|
@@ -14,8 +14,8 @@ Suite: 30/30 passed
 | 4 | Window layout | YouTube Music's HTML fullscreen fills the screen without the toolbar and restores on exit | s3 | [x] |  |
 | 5 | Window layout | HTML fullscreen started from a maximized window returns to maximized | s3b | [x] |  |
 | 6 | Window layout | Quitting during HTML fullscreen saves the pre-fullscreen state: a maximized window relaunches maximized, a 1200x700 one at 1200x700 | s14, s14b | [x] |  |
-| 7 | Themes / performance | The player page uses a pre-blurred artwork with no full-page backdrop-filter or blur() by default | s4 | [x] |  |
-| 8 | Themes / performance | themes.glass restores the full-page backdrop-filter | s4b | [x] |  |
+| 7 | Themes / performance | One surface: pre-blurred artwork behind page and title bar, no full-page backdrop-filter, browse page hidden under the player | s4 | [x] |  |
+| 8 | Themes | Background 'plain' paints no artwork; switching to 'artwork' applies live | s4b | [x] |  |
 | 9 | Performance | Home idle CPU over 10 s is measured and recorded | p1 | [x] |  |
 | 10 | Performance | Frame times while playing at 1500x800 are measured and recorded | p2 | [x] |  |
 | 11 | Performance | Frame times while playing maximized are measured and recorded | p3 | [x] |  |
@@ -37,3 +37,9 @@ Suite: 30/30 passed
 | 27 | Sign-in | The Google sign-in window is a normal window (not modal, not always on top, resizable), detects Google's browser rejection, and retries with the other browser identity | s17 | [x] |  |
 | 28 | Sign-in | Import sign-in from Firefox reads the profile Firefox really uses and copies only its youtube.com / google.com cookies into the app | s18 | [x] |  |
 | 29 | Sign-in | Last.fm connects through an in-app approval window with one token (no sign-in loop) and stays connected after a restart | s19 | [x] |  |
+| 30 | Playback | The Song/Video switch and player-bar button are always visible; V toggles 5× without pausing or restarting; song mode plays the song or shows the cover and the choice is saved | s20 | [x] |  |
+| 31 | Playback | Song mode on a music video finds and plays its song near the same position, with its square cover, and Up next keeps its length | s21 | [x] |  |
+| 32 | Playback | Video mode on a song switches to its music video, or disables the Video button | s22 | [x] |  |
+| 33 | Playback | Video controls show on hover; speed, quality (saved), captions, mute, picture-in-picture, theater and fullscreen work by YouTube's keys only while the player has focus, without pausing | s23 | [x] |  |
+| 34 | Playback | The audio output menu lists devices with the system default first, switching keeps playing, and no page can open the microphone | s24 | [x] |  |
+| 35 | Playback | The player-bar speed menu sets 1.25x in Song mode and keeps playing; keep pitch flips preservesPitch and is saved | s25 | [x] |  |
