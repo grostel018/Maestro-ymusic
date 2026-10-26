@@ -73,4 +73,19 @@ describe("createVersionFinder", () => {
 		expect(await failing.find(rick)).toBeNull();
 		expect(await createVersionFinder(() => null, createMatchCache(null)).find(rick)).toBeNull();
 	});
+	it("shares one request when the same track is asked again while busy", async () => {
+		let release!: () => void;
+		const call = vi.fn<SearchFetch>(() => new Promise((resolve) => (release = () => resolve(clear))));
+		const finder = createVersionFinder(() => call, createMatchCache(null));
+		const a = finder.find(rick);
+		const c1 = finder.find({ ...rick, videoId: "c" });
+		const c2 = finder.find({ ...rick, videoId: "c" });
+		expect(c1).toBe(c2);
+		expect(finder.find(rick)).toBe(a);
+		release();
+		await a;
+		await vi.waitFor(() => expect(call).toHaveBeenCalledTimes(2));
+		release();
+		expect((await c1)?.videoId).toBe("lYBUbBu4W08");
+	});
 });

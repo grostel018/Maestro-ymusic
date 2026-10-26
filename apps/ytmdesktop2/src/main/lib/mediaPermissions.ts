@@ -18,8 +18,9 @@ export function isTrustedOrigin(origin: string | undefined | null): boolean {
 	}
 }
 
-/** Permission requests (prompts): capture is always refused, the rest keeps Electron's default (allow). */
-export function allowPermissionRequest(permission: string): boolean {
+/** Permission requests (prompts): capture is always refused, speaker selection only for trusted pages, the rest keeps Electron's default (allow). */
+export function allowPermissionRequest(permission: string, origin?: string | null): boolean {
+	if (permission === "speaker-selection") return isTrustedOrigin(origin);
 	return permission !== "media" && permission !== "display-capture";
 }
 
@@ -30,6 +31,8 @@ export function allowPermissionCheck(permission: string, origin: string | undefi
 }
 
 export function applyMediaPermissions(session: Session): void {
-	session.setPermissionRequestHandler((_wc, permission, callback) => callback(allowPermissionRequest(permission)));
+	session.setPermissionRequestHandler((_wc, permission, callback, details) =>
+		callback(allowPermissionRequest(permission, (details as { requestingUrl?: string } | undefined)?.requestingUrl)),
+	);
 	session.setPermissionCheckHandler((_wc, permission, requestingOrigin) => allowPermissionCheck(permission, requestingOrigin));
 }

@@ -20,6 +20,8 @@ describe("media permissions", () => {
 		expect(allowPermissionRequest("display-capture")).toBe(false);
 		expect(allowPermissionRequest("fullscreen")).toBe(true);
 		expect(allowPermissionRequest("clipboard-sanitized-write")).toBe(true);
+		expect(allowPermissionRequest("speaker-selection", "https://music.youtube.com/watch")).toBe(true);
+		expect(allowPermissionRequest("speaker-selection", "https://evil.example")).toBe(false);
 	});
 	it("lists devices and selects speakers for trusted pages only", () => {
 		expect(allowPermissionCheck("media", "https://music.youtube.com")).toBe(true);

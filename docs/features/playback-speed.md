@@ -22,8 +22,8 @@ The speed itself isn't saved, so a restart is back at 1×.
 - `src/renderer-plugins/youtube/playback-speed.ts` holds the rate and puts it on the `<video>`
   element directly, so any rate works (the player API only takes its presets).
 - `playback-speed.renderer.ts` adds the player-bar button and puts the rate back when a new source
-  loads. A rate change right after a load is YouTube resetting it; later ones (if any) are
-  adopted.
+  loads. Right after a load or an ad, a drop to 1× is YouTube resetting the rate and is undone;
+  any other rate change (the ad skipper restoring the rate from before the ad, say) is adopted.
 - **Reuse:** the approach of pear-desktop's `playback-speed` plugin (MIT).
 
 ## Tests

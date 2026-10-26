@@ -202,6 +202,9 @@ const videoModeRenderer: RendererPluginRegistration = {
 		const lookup = (track: Track, want: MatchKind) => {
 			const { id: videoId, title, artist, durationSec } = track;
 			void finder.find({ videoId, title, artist, durationSec, want }).then(() => {
+				// Only a settled answer (cached hit or miss) re-runs apply: a superseded request, a timeout or an error
+				// would make apply look the track up again at once, in a loop.
+				if (finder.peek(videoId, want) === undefined) return;
 				const now = api ? currentTrack(api) : null;
 				if (now?.id === videoId && otherVersion(now) === want) apply();
 			});
@@ -274,7 +277,8 @@ const videoModeRenderer: RendererPluginRegistration = {
 			}
 			noSong = want === "song" && found === null;
 			if (noSong) cover = { square: true };
-			if (want === "song" && found !== undefined) prefetchNext(playingIndex(queue?.items, track.id));
+			const index = playingIndex(queue?.items, track.id);
+			if (want === "song" && found !== undefined && index >= 0) prefetchNext(index);
 			videoAvailable = track.type !== ATV || !!findTwin(items, track.id, "video") || finder.peek(track.id, "video") !== null;
 
 			// A twin is played by YTM itself when its playback mode (set above) prefers it, at the mapped position.

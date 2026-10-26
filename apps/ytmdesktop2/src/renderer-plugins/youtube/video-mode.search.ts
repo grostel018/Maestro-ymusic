@@ -76,7 +76,8 @@ export type VersionFinder = {
  */
 export function createVersionFinder(fetch: () => SearchFetch | null, cache: MatchCache, timeoutMs = SEARCH_TIMEOUT_MS): VersionFinder {
 	let busy = false;
-	let waiting: { req: FindRequest; resolve: (m: VersionMatch | null) => void } | null = null;
+	let running: { key: string; promise: Promise<VersionMatch | null> } | null = null;
+	let waiting: { req: FindRequest; promise: Promise<VersionMatch | null>; resolve: (m: VersionMatch | null) => void } | null = null;
 
 	const run = async (req: FindRequest): Promise<VersionMatch | null> => {
 		const key = cacheKey(req.videoId, req.want);
@@ -103,16 +104,17 @@ export function createVersionFinder(fetch: () => SearchFetch | null, cache: Matc
 		}
 	};
 
-	const drain = async (req: FindRequest): Promise<VersionMatch | null> => {
+	const drain = (req: FindRequest): Promise<VersionMatch | null> => {
 		busy = true;
-		try {
-			return await run(req);
-		} finally {
+		const promise = run(req).finally(() => {
 			busy = false;
+			running = null;
 			const next = waiting;
 			waiting = null;
 			if (next) void drain(next.req).then(next.resolve);
-		}
+		});
+		running = { key: cacheKey(req.videoId, req.want), promise };
+		return promise;
 	};
 
 	return {
@@ -121,10 +123,17 @@ export function createVersionFinder(fetch: () => SearchFetch | null, cache: Matc
 			const cached = cache.get(cacheKey(req.videoId, req.want));
 			if (cached !== undefined) return Promise.resolve(cached);
 			if (!busy) return drain(req);
+			// The same track asked again shares the request already running or waiting.
+			const key = cacheKey(req.videoId, req.want);
+			if (running?.key === key) return running.promise;
+			if (waiting && cacheKey(waiting.req.videoId, waiting.req.want) === key) return waiting.promise;
 			waiting?.resolve(null);
-			return new Promise((resolve) => {
-				waiting = { req, resolve };
+			let resolve!: (m: VersionMatch | null) => void;
+			const promise = new Promise<VersionMatch | null>((r) => {
+				resolve = r;
 			});
+			waiting = { req, promise, resolve };
+			return promise;
 		},
 	};
 }

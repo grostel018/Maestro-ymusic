@@ -309,12 +309,16 @@ const videoControlsRenderer: RendererPluginRegistration = {
 				video()?.addEventListener("timeupdate", render);
 				render();
 			}
+			armHide();
+		};
+		/** Hides the bar after a while of no pointer movement; a paused video keeps it until playback resumes. */
+		function armHide() {
 			window.clearTimeout(hideTimer);
 			hideTimer = window.setTimeout(() => {
 				if (video()?.paused) return;
 				hide();
 			}, HIDE_AFTER_MS);
-		};
+		}
 
 		const onMove = (e: PointerEvent) => {
 			if ((e.target as Element | null)?.closest?.("#movie_player")) show();
@@ -338,7 +342,13 @@ const videoControlsRenderer: RendererPluginRegistration = {
 			e.stopImmediatePropagation();
 			run(action);
 		};
-		const onPlayerState = () => render();
+		const onPlayerState = () => {
+			render();
+			if (moviePlayer()?.classList.contains(SHOW)) armHide();
+		};
+		const onVisibility = () => {
+			if (document.hidden) hide();
+		};
 		const onFullscreen = () => {
 			render();
 			window.dispatchEvent(new Event("resize"));
@@ -349,6 +359,7 @@ const videoControlsRenderer: RendererPluginRegistration = {
 		document.addEventListener("pointerdown", onDown, true);
 		window.addEventListener("keydown", onKey, true);
 		document.addEventListener("fullscreenchange", onFullscreen);
+		document.addEventListener("visibilitychange", onVisibility);
 		offs.push(onSpeedChange(render));
 
 		let attached: Player | null = null;
@@ -398,6 +409,7 @@ const videoControlsRenderer: RendererPluginRegistration = {
 			document.removeEventListener("pointerdown", onDown, true);
 			window.removeEventListener("keydown", onKey, true);
 			document.removeEventListener("fullscreenchange", onFullscreen);
+			document.removeEventListener("visibilitychange", onVisibility);
 			closeMenu();
 			document.documentElement.classList.remove(THEATER);
 			document.getElementById(BAR_ID)?.remove();

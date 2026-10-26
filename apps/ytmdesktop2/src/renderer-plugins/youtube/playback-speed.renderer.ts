@@ -8,7 +8,7 @@ import type { RendererPluginRegistration } from "./world0/types";
 const PITCH_SETTING = "player.keepPitch";
 const BUTTON_ID = "ytmd-speed-button";
 const STYLE_ID = "ytmd-speed-style";
-/** A rate change this soon after a new source is the player resetting it, not the user. */
+/** How long after a new source or an ad a drop to 1× counts as the player resetting the rate. */
 const LOAD_GRACE_MS = 2000;
 
 const CSS = `
@@ -65,9 +65,17 @@ const playbackSpeedRenderer: RendererPluginRegistration = {
 			loadedAt = Date.now();
 			applySpeed();
 		};
+		let adSeenAt = 0;
 		const onRate = (e: Event) => {
 			const v = e.target as HTMLVideoElement;
-			if (Date.now() - loadedAt < LOAD_GRACE_MS) applySpeed();
+			if (document.querySelector("#movie_player")?.classList.contains("ad-showing")) {
+				adSeenAt = Date.now();
+				return;
+			}
+			// Right after a new source or an ad, a drop to 1× is the player resetting the rate; any other rate (the ad
+			// skipper restoring the one from before the ad, say) is meant and becomes ours.
+			const settling = Date.now() - loadedAt < LOAD_GRACE_MS || Date.now() - adSeenAt < LOAD_GRACE_MS;
+			if (settling && v.playbackRate === 1) applySpeed();
 			else adoptSpeed(v.playbackRate);
 		};
 		document.addEventListener("loadeddata", onSource, true);

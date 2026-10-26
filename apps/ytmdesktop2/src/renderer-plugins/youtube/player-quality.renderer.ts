@@ -51,8 +51,11 @@ const playerQualityRenderer: RendererPluginRegistration = {
 			window.setTimeout(() => {
 				if (key === "player.res") {
 					const res = value as { enabled?: boolean; prefer?: string } | undefined;
+					const preferChanged = res?.prefer !== undefined && res.prefer !== currentQuality;
 					if (res?.prefer !== undefined) currentQuality = res.prefer;
 					applyChange(ENABLED_KEY, res?.enabled);
+					// A new preferred level while already enabled (a second pick in the video controls' quality menu).
+					if (preferChanged && isEnabled) setQuality(currentQuality);
 					return;
 				}
 				applyChange(String(key), value);

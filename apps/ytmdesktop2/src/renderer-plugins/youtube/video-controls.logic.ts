@@ -14,13 +14,24 @@ export type ControlAction =
 	| { kind: "theater" }
 	| { kind: "exit" };
 
-type KeyLike = Pick<KeyboardEvent, "key" | "ctrlKey" | "metaKey" | "altKey">;
+type KeyLike = Pick<KeyboardEvent, "key" | "ctrlKey" | "metaKey" | "altKey"> & { repeat?: boolean };
+
+/** Held keys repeat only seeking and frame steps; toggles (fullscreen, PiP and so on) would flap. */
+const REPEATABLE = new Set(["seek-by", "frame"]);
 
 /** YouTube's watch-page keyboard shortcuts. Null for keys we leave alone (modifiers, typing, unknown keys). */
 export function keyAction(e: KeyLike, target: EventTarget | null): ControlAction | null {
+	const action = mapKey(e, target);
+	return action && e.repeat && !REPEATABLE.has(action.kind) ? null : action;
+}
+
+function mapKey(e: KeyLike, target: EventTarget | null): ControlAction | null {
 	if (e.ctrlKey || e.metaKey || e.altKey) return null;
 	const el = target as HTMLElement | null;
-	if (el && typeof el.closest === "function" && el.closest("input, textarea, select, [contenteditable=''], [contenteditable='true']")) return null;
+	const closest = (s: string) => !!el && typeof el.closest === "function" && !!el.closest(s);
+	if (closest("input, textarea, select, [contenteditable=''], [contenteditable='true']")) return null;
+	// Space on a focused button or menu item presses it.
+	if (e.key === " " && closest("button, a, [role='menu'], [role='menuitemradio']")) return null;
 	switch (e.key) {
 		case "k":
 		case "K":

@@ -76,3 +76,11 @@ it("lists caption tracks with auto-generated ones last", () => {
 	expect(captionMenu(tracks).map((t) => t.languageCode)).toEqual(["de-DE", "en"]);
 	expect(captionMenu("x")).toEqual([]);
 });
+
+it("does not repeat toggles on a held key or take Space from buttons", () => {
+	expect(keyAction({ ...key("f"), repeat: true }, div)).toBeNull();
+	expect(keyAction({ ...key("l"), repeat: true }, div)).toEqual({ kind: "seek-by", seconds: 10 });
+	const button = { closest: (s: string) => (s.includes("button") ? {} : null) } as unknown as EventTarget;
+	expect(keyAction(key(" "), button)).toBeNull();
+	expect(keyAction(key("k"), button)).toEqual({ kind: "play-pause" });
+});
