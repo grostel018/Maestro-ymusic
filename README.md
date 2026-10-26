@@ -6,6 +6,14 @@
 > <b>Additionally v1.0 has been released</b>, completed rewritten services and updated UI.
 > stay tuned for new planned features ♥️
 
+> [!IMPORTANT]
+> **This is the YTMDesktop2 Plus fork** (branch `feature/desktop-overhaul`).
+> - It installs next to the original app with its own profile, and it has built-in ad blocking.
+> - Its roadmap adds an audio lab, themes, Apple-style lyrics, facts and comments.
+> - Start with [`AGENTS.md`](./AGENTS.md), [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md),
+>   [`docs/TESTING.md`](./docs/TESTING.md) and the
+>   [master roadmap](./docs/superpowers/plans/2026-10-25-master-roadmap.md).
+
 <h2 align="center">
     Youtube Music for Desktop (ytmdesktop2)
 </h2>
