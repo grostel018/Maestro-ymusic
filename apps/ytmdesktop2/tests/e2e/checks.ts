@@ -42,4 +42,10 @@ export const CHECKS: Check[] = [
 	{ area: "Playback", check: "Video controls show on hover; speed, quality (saved), captions, mute, picture-in-picture, theater and fullscreen work by YouTube's keys only while the player has focus, without pausing", evidence: ["s23"] },
 	{ area: "Playback", check: "The audio output menu lists devices with the system default first, switching keeps playing, and no page can open the microphone", evidence: ["s24"] },
 	{ area: "Playback", check: "The player-bar speed menu sets 1.25x in Song mode and keeps playing; keep pitch flips preservesPitch and is saved", evidence: ["s25"] },
+	{ area: "Audio", check: "The audio engine attaches stages in the fixed order, toggling three on and all off never stalls or leaves a silence over 200 ms, and with all off the source plays straight out", evidence: ["s26"] },
+	{ area: "Audio", check: "Bass Boost raises the low band against the mids at the analyser; switching the equalizer off takes it back out", evidence: ["s27"] },
+	{ area: "Audio", check: "AutoEq search and profile load run in main, parse ParametricEQ.txt and reuse the offline cache", evidence: ["s27b"] },
+	{ area: "Audio", check: "Crossfeed, width, surround, 8D, normalization, compressor, pitch and vocal reduction each join the chain without silence; vocal reduction lowers the mids; the wheel moves the volume by 1 %", evidence: ["s28"] },
+	{ area: "Audio", check: "A 4 s crossfade fades into the next track without a stall; the sleep timer fades and then pauses", evidence: ["s29"] },
+	{ area: "Audio", check: "The Audio settings page shows the live chain and saves a change; the visualizer draws over the open player and goes away when off", evidence: ["s30"] },
 ];

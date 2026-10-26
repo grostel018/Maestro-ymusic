@@ -7,6 +7,7 @@ import {
 	RiComputerLine,
 	RiDashboardLine,
 	RiDiscordLine,
+	RiEqualizerLine,
 	RiGithubFill,
 	RiGlobalLine,
 	RiInformationLine,
@@ -60,6 +61,7 @@ const tabs = {
 
 const playerSubs = [
 	{ to: "/player/general", label: "General", icon: RiMusic2Line },
+	{ to: "/player/audio", label: "Audio", icon: RiEqualizerLine },
 	{ to: "/player/lyrics", label: "Lyrics", icon: RiChatQuoteLine },
 	{ to: "/player/adblock", label: "Ad block", icon: RiShieldCheckLine },
 	{ to: "/player/shortcuts", label: "Shortcuts", icon: RiCommandLine },
