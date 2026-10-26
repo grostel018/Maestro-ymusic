@@ -3,15 +3,18 @@ import type { RendererPluginRegistration } from "./world0/types";
 const Q_KEY = "yt-player-quality";
 const ENABLED_KEY = "player.res.enabled";
 const PREFER_KEY = "player.res.prefer";
+/** YouTube now keeps the preference as a height (`{"quality":1080}`), no longer as a level name. */
+const HEIGHTS: Record<string, number> = { hd2160: 2160, hd1440: 1440, hd1080: 1080, hd720: 720, large: 480, medium: 360, small: 240, tiny: 144 };
 
 function setQuality(quality: string | null | undefined): void {
-	if (!quality || quality === "auto") {
+	const height = quality ? HEIGHTS[quality] : undefined;
+	if (!height) {
 		localStorage.removeItem(Q_KEY);
 		return;
 	}
 	const tc = Date.now();
 	const te = tc + 2592000000;
-	localStorage.setItem(Q_KEY, JSON.stringify({ data: quality, expiration: te, creation: tc }));
+	localStorage.setItem(Q_KEY, JSON.stringify({ data: JSON.stringify({ quality: height }), expiration: te, creation: tc }));
 }
 
 /** Persist preferred quality into YTM localStorage from settings. */

@@ -51,6 +51,13 @@ const pressV = (yt: CdpSession) => yt.eval(`(document.body.dispatchEvent(new Key
 const key = (yt: CdpSession, k: string, gesture = false) =>
 	yt.eval(`(window.dispatchEvent(new KeyboardEvent("keydown", { key: ${JSON.stringify(k)}, bubbles: true, cancelable: true })), true)`, { userGesture: gesture });
 /** Pointer events the controls listen for: hover shows the bar, a press gives the player keyboard focus. */
+/** A real mouse move or click at the centre of `selector` (hit-tested by Chromium, so covering layers count). */
+const mouse = async (yt: CdpSession, type: "mouseMoved" | "click", selector: string) => {
+	const r = await yt.eval<{ x: number; y: number }>(`(() => { const b = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; })()`);
+	if (type === "mouseMoved") return yt.call("Input.dispatchMouseEvent", { type, x: r.x, y: r.y });
+	await yt.call("Input.dispatchMouseEvent", { type: "mousePressed", x: r.x, y: r.y, button: "left", clickCount: 1 });
+	await yt.call("Input.dispatchMouseEvent", { type: "mouseReleased", x: r.x, y: r.y, button: "left", clickCount: 1 });
+};
 const pointer = (yt: CdpSession, type: "pointermove" | "pointerdown", selector: string) =>
 	yt.eval(`(document.querySelector(${JSON.stringify(selector)}).dispatchEvent(new PointerEvent(${JSON.stringify(type)}, { bubbles: true })), true)`);
 type Media = { t: number; paused: boolean; rate: number; pitch: boolean; muted: boolean; quality: string; levels: string[]; caption: string; pip: boolean; fs: boolean; theater: boolean; full: boolean };
@@ -164,8 +171,10 @@ export const scenarios: Scenario[] = [
 		run: async (t) => {
 			await play(t);
 			const yt = await t.view("youtube");
-			await pointer(yt, "pointermove", "#movie_player video");
-			await waitFor(async () => (await yt.eval<boolean>(`!!document.querySelector("#movie_player.ytmd-vc-show #ytmd-vc")`)) || false, 10000, "the control bar on hover");
+			await mouse(yt, "mouseMoved", "#movie_player");
+			await waitFor(async () => (await yt.eval<boolean>(`!!document.querySelector("#movie_player.ytmd-vc-show #ytmd-vc")`)) || false, 10000, "the control bar on a real hover");
+			const hit = await yt.eval<string>(`(() => { const b = document.querySelector('#ytmd-vc button[data-name="quality"]').getBoundingClientRect(); const e = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return e?.closest("#ytmd-vc button")?.dataset.name ?? (e?.tagName + "#" + e?.id); })()`);
+			if (hit !== "quality") throw new Error(`the quality button is covered by ${hit}`);
 
 			// Keys do nothing until the player is clicked.
 			await pointer(yt, "pointerdown", "ytmusic-nav-bar");
@@ -226,6 +235,11 @@ export const scenarios: Scenario[] = [
 			await until(yt, (m) => !m.fs, 5000, "f to leave full screen");
 
 			if ((await media(yt)).paused) throw new Error("playback paused during the controls test");
+			// A click on the picture pauses and plays, as on YouTube.
+			await mouse(yt, "click", "#movie_player");
+			await until(yt, (m) => m.paused, 3000, "a click on the video to pause");
+			await mouse(yt, "click", "#movie_player");
+			await until(yt, (m) => !m.paused, 3000, "a second click to play again");
 		},
 	},
 	{

@@ -26,6 +26,8 @@ const SETTING = "player.videoControls";
 const STYLE_ID = "ytmd-vc-style";
 const BAR_ID = "ytmd-vc";
 const SHOW = "ytmd-vc-show";
+/** On <html> while the controls are on. */
+const ON = "ytmd-vc-on";
 const THEATER = "ytmd-theater";
 const AUDIO_VIEW = "ytmd-audio-view";
 const HIDE_AFTER_MS = 2500;
@@ -49,6 +51,9 @@ ${MENU_CSS}
 	font: 500 13px/1 "YouTube Sans", Roboto, sans-serif; color: #fff; }
 #movie_player.${SHOW} #${BAR_ID} { opacity: 1; pointer-events: auto; }
 html.${AUDIO_VIEW} #${BAR_ID}, #movie_player.ad-showing #${BAR_ID} { display: none; }
+/* YTM lays a transparent #song-media-window and its pause icon (#bezel) over the video; in Video mode let the
+   mouse reach the player and our bar. */
+html.${ON}:not(.${AUDIO_VIEW}) ytmusic-player :is(#song-media-window, #bezel) { pointer-events: none; }
 #${BAR_ID} button { all: unset; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px;
 	border-radius: 18px; color: rgba(255, 255, 255, 0.9); }
 #${BAR_ID} button:hover { color: #fff; background: rgba(255, 255, 255, 0.12); }
@@ -331,6 +336,16 @@ const videoControlsRenderer: RendererPluginRegistration = {
 			const target = e.target as Element | null;
 			focused = !!target?.closest?.("#movie_player, #ytmd-vc-menu");
 		};
+		// A click on the picture plays or pauses, as on YouTube (YTM's layer that did it no longer takes the mouse).
+		const onClick = (e: MouseEvent) => {
+			const target = e.target as Element | null;
+			if (!enabled || !isVideoMode() || e.button !== 0 || !target?.closest?.("#movie_player")) return;
+			if (target.closest(`#${BAR_ID}, #ytmd-vc-menu, .ytp-ad-module, a, button`)) return;
+			const p = player();
+			if (!p) return;
+			if (video()?.paused) p.playVideo();
+			else p.pauseVideo();
+		};
 		const onKey = (e: KeyboardEvent) => {
 			if (!enabled || !isVideoMode()) return;
 			const live = focused || theaterOn() || !!document.fullscreenElement;
@@ -357,6 +372,7 @@ const videoControlsRenderer: RendererPluginRegistration = {
 		document.addEventListener("pointermove", onMove, { passive: true });
 		document.addEventListener("pointerleave", onLeave, true);
 		document.addEventListener("pointerdown", onDown, true);
+		document.addEventListener("click", onClick);
 		window.addEventListener("keydown", onKey, true);
 		document.addEventListener("fullscreenchange", onFullscreen);
 		document.addEventListener("visibilitychange", onVisibility);
@@ -379,6 +395,7 @@ const videoControlsRenderer: RendererPluginRegistration = {
 
 		const setEnabled = (value: unknown) => {
 			enabled = value !== false;
+			document.documentElement.classList.toggle(ON, enabled);
 			if (!enabled) {
 				closeMenu();
 				hide();
@@ -396,6 +413,7 @@ const videoControlsRenderer: RendererPluginRegistration = {
 			.catch(() => undefined);
 
 		ensureStyle();
+		document.documentElement.classList.add(ON);
 		attach();
 
 		return () => {
@@ -407,11 +425,12 @@ const videoControlsRenderer: RendererPluginRegistration = {
 			document.removeEventListener("pointermove", onMove);
 			document.removeEventListener("pointerleave", onLeave, true);
 			document.removeEventListener("pointerdown", onDown, true);
+			document.removeEventListener("click", onClick);
 			window.removeEventListener("keydown", onKey, true);
 			document.removeEventListener("fullscreenchange", onFullscreen);
 			document.removeEventListener("visibilitychange", onVisibility);
 			closeMenu();
-			document.documentElement.classList.remove(THEATER);
+			document.documentElement.classList.remove(THEATER, ON);
 			document.getElementById(BAR_ID)?.remove();
 			document.getElementById(STYLE_ID)?.remove();
 		};
