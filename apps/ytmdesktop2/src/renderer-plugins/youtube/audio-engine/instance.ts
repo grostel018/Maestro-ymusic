@@ -27,7 +27,8 @@ let engine: AudioEngine | null = null;
 export function getAudioEngine(): AudioEngine {
 	engine ??= new AudioEngine(
 		{
-			createContext: () => new AudioContext({ latencyHint: "playback" }),
+			// "balanced", not "playback": a larger output buffer would put the sound behind the picture in Video mode.
+			createContext: () => new AudioContext({ latencyHint: "balanced" }),
 			stages: STAGES,
 			onError: (id, err) => hooks.onError(id, err),
 			onGraph: (info: GraphInfo) => hooks.onGraph(info),

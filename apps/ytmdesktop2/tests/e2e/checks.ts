@@ -27,6 +27,7 @@ export const CHECKS: Check[] = [
 	{ area: "Performance", check: "CPU while paused and minimized for 60 s is measured and recorded", evidence: ["p6"] },
 	{ area: "Playback", check: "Playback keeps advancing while the window is minimized (at least 100 s in 120 s)", evidence: ["p7"] },
 	{ area: "Performance", check: "CPU while playing in Video mode and then in Song mode is measured and recorded", evidence: ["p9"] },
+	{ area: "Performance", check: "Frames and CPU while playing with the equalizer, compressor and visualizer on are measured and recorded", evidence: ["p10"] },
 	{ area: "Bench", check: "Settings seeded through launchApp survive startup migrations", evidence: ["s13"] },
 	{ area: "Ad block", check: "Ad and tracker requests fail with ERR_BLOCKED_BY_CLIENT, every blocked URL is logged, watch-history pings are not blocked, the count rises and playback advances", evidence: ["s5"] },
 	{ area: "Ad block", check: "Ad payloads are pruned from YouTube's responses: no ad keys in the player response and no ad shows for 60 s", evidence: ["s6"] },

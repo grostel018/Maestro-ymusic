@@ -36,7 +36,12 @@ export default class AudioProvider extends BaseProvider {
 
 	/** The page's AudioContext needs a user activation to start; a script run with `userGesture` gives it one. */
 	private async grantGesture(): Promise<void> {
-		const wc = this.views?.youtubeView?.webContents;
+		let wc: Electron.WebContents | undefined;
+		try {
+			wc = this.views?.youtubeView?.webContents;
+		} catch {
+			return; // no main window yet
+		}
 		if (!wc || wc.isDestroyed()) return;
 		await wc.executeJavaScript("window.__ytmdAudio?.resume()", true).catch((err) => this.logger.warn("audio gesture failed", err));
 	}

@@ -1,5 +1,6 @@
 // Baseline performance scenarios. Run with `pnpm test:perf`; budgets are checked in a later task,
 // so only p7 (background playback) has a hard rule.
+import { normalizeAudio } from "../../../src/shared/audio/settings.ts";
 import type { Scenario, TestApp } from "../lib/app.ts";
 import type { CdpSession } from "../lib/cdp.ts";
 import { play, recordGpu, recordPerf, round, sampleCpu, sampleFrames, summarizeFrames } from "../lib/perf.ts";
@@ -206,6 +207,36 @@ export const scenarios: Scenario[] = [
 			recordPerf("p9", { videoAvgPct: video.avgPct, audioAvgPct: audio.avgPct, video: video.byType, audio: audio.byType, playing });
 			console.log(`  p9: video ${video.avgPct}% audio ${audio.avgPct}% playing=${playing}`);
 			if (!playing) throw new Error("playback stopped after switching to Song mode");
+		},
+	},
+	{
+		id: "p10",
+		title: "Playing with the audio lab on (equalizer, compressor, visualizer drawing), frames and CPU 10 s",
+		launch: {
+			settings: {
+				audio: { ...normalizeAudio(undefined), eq: { ...normalizeAudio(undefined).eq, enabled: true, bands: [6, 5, 4, 2, 0, 0, 0, 0, 0, 0] }, dynamics: { normalize: false, compressor: "gentle" }, visualizer: { enabled: true, style: "bars" } },
+			},
+		},
+		run: async (t) => {
+			await prepare(t);
+			await play(t);
+			const yt = await t.view("youtube");
+			const open = `document.querySelector("ytmusic-app-layout")?.hasAttribute("player-page-open")`;
+			await waitFor(
+				async () => {
+					if (!(await yt.eval<boolean>(open))) await yt.eval(`(document.querySelector("ytmusic-player-bar .middle-controls")?.click(), true)`, { userGesture: true });
+					return yt.eval<boolean>(open);
+				},
+				15000,
+				"the player page",
+			);
+			await waitFor(async () => (await yt.eval<string>(`window.__ytmdAudio?.info().chain.join() ?? ""`)) === "eq,dynamics,analyser", 15000, "the audio chain");
+			await waitFor(async () => (await yt.eval<boolean>(`!!document.getElementById("ytmd-visualizer")?.width`)) || false, 10000, "the visualizer canvas");
+			await sleep(1500);
+			const cpu = await sampleCpu(t, 10000);
+			await frameRun("p10", t);
+			console.log(`  p10 cpu: ${JSON.stringify(cpu)}`);
+			recordPerf("p10-cpu", cpu);
 		},
 	},
 ];

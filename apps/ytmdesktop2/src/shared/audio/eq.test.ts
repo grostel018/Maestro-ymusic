@@ -46,6 +46,8 @@ describe("equalizer math", () => {
 		}).eq;
 		expect(eqFilters(auto).preamp).toBeCloseTo(-7.3);
 		expect(totalPreamp(auto)).toBeCloseTo(-7.3);
+		// AutoEq chosen but no profile loaded yet: no filters, not the 10-band curve.
+		expect(eqFilters({ ...graphic, mode: "autoeq", autoeq: null }).filters).toEqual([]);
 	});
 });
 

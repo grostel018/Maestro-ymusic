@@ -24,7 +24,7 @@ export const EQ_PRESETS: Array<{ id: string; label: string; bands: number[] }> =
 
 /** The filters and preamp (dB, before the guard) an EQ setting stands for. */
 export function eqFilters(eq: AudioSettings["eq"]): { filters: EqFilter[]; preamp: number } {
-	if (eq.mode === "autoeq" && eq.autoeq) return { filters: eq.autoeq.filters, preamp: eq.autoeq.preamp + eq.preamp };
+	if (eq.mode === "autoeq") return eq.autoeq ? { filters: eq.autoeq.filters, preamp: eq.autoeq.preamp + eq.preamp } : { filters: [], preamp: eq.preamp };
 	if (eq.mode === "parametric") return { filters: eq.filters, preamp: eq.preamp };
 	const filters = GRAPHIC_BANDS.map((frequency, i) => ({ type: "peaking" as const, frequency, q: GRAPHIC_Q, gain: eq.bands[i] ?? 0 })).filter(
 		(f) => f.gain !== 0,
