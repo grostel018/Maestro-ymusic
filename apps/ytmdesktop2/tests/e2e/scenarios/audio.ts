@@ -194,9 +194,22 @@ export const scenarios: Scenario[] = [
 			await yt.eval(`(document.querySelector("#movie_player").setVolume(50), true)`);
 			await sleep(300);
 			const before = await volume();
-			await yt.eval(`(document.querySelector("ytmusic-player-bar").dispatchEvent(new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true })), true)`);
+			await waitFor(
+				async () =>
+					yt.eval<boolean>(
+						`(() => { const bar = document.querySelector("ytmusic-player-bar, ytmusic-miniplayer"); return !!bar && bar.dispatchEvent(new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true })) === false; })()`,
+					),
+				10000,
+				"the player bar to take the wheel",
+			)
 			await waitFor(async () => ((await volume()) === before + 1 ? true : false), 3000, `the wheel to raise the volume from ${before} to ${before + 1}`);
 			if (!(await yt.eval<boolean>(`!!document.getElementById("ytmd-volume-hud")?.textContent.includes("%")`))) throw new Error("no volume readout after the wheel");
+			// Our player-bar buttons mount in every layout YTM serves (classic bar or ytmusic-miniplayer).
+			await waitFor(
+				async () => (await yt.eval<boolean>(`["ytmd-av-bar-button", "ytmd-speed-button", "ytmd-output-button", "ytmd-sleep-button"].every((id) => document.getElementById(id))`)) || false,
+				10000,
+				"the Song/Video, speed, output and sleep buttons in the player bar",
+			);
 		},
 	},
 	{

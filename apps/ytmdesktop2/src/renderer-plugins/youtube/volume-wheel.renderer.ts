@@ -42,9 +42,11 @@ const volumeWheelRenderer: RendererPluginRegistration = {
 		const onWheel = (e: WheelEvent) => {
 			if (!getAudioEngine().getState().audio.volumeWheel || !e.deltaY) return;
 			const target = e.target as Element | null;
-			if (!target?.closest?.("ytmusic-player-bar")) return;
-			const player = getPagePlayerApi();
-			if (!player) return;
+			// The classic player bar, or the newer ytmusic-miniplayer layout that replaces it.
+			if (!target?.closest?.("ytmusic-player-bar, ytmusic-miniplayer")) return;
+			// The player element carries the same volume API when the DOM lookup misses (YTM's player-bar layouts differ).
+			const player = getPagePlayerApi() ?? (document.querySelector("#movie_player") as unknown as ReturnType<typeof getPagePlayerApi>);
+			if (!player?.setVolume) return;
 			e.preventDefault();
 			e.stopPropagation();
 			const step = e.deltaY < 0 ? 1 : -1;

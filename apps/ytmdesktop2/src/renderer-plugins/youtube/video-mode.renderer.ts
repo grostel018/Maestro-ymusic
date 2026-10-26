@@ -345,12 +345,14 @@ const videoModeRenderer: RendererPluginRegistration = {
 			}
 			if (!document.getElementById(BAR_BUTTON_ID)) {
 				// YTM serves more than one player-bar layout (an A/B test): the classic one has .right-controls-buttons; the
-				// redesigned one groups likes, captions and volume on the right, so go next to the like button there.
+				// redesigned one groups likes, captions and volume on the right, so go next to the like button there. A third
+				// one replaces the bar with ytmusic-miniplayer; its right section takes the button.
 				const likes = document.querySelector("ytmusic-player-bar ytmusic-like-button-renderer");
 				const controls =
 					document.querySelector("ytmusic-player-bar .right-controls-buttons") ??
 					(likes?.closest("ytmusic-player-bar .middle-controls") ? null : likes?.parentElement) ??
-					document.querySelector("ytmusic-player-bar #right-controls");
+					document.querySelector("ytmusic-player-bar #right-controls") ??
+					document.querySelector("ytmusic-miniplayer .ytMusicMiniPlayerRightSection");
 				if (controls) {
 					const btn = document.createElement("button");
 					btn.id = BAR_BUTTON_ID;
