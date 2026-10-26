@@ -151,6 +151,11 @@ How C splits the work:
 
 ## 6. Roadmap
 
+> **Superseded for ordering and scope by
+> [`docs/superpowers/plans/2026-10-25-master-roadmap.md`](../plans/2026-10-25-master-roadmap.md)**
+> (2026-10-25: reuse-first rules, testing overhaul, sign-in fixes, audio lab, facts, comments).
+> The phase descriptions below remain the detailed design for the features they cover.
+
 Each phase ships on its own, is a separate implementation plan, and must keep the e2e and perf
 scenarios green.
 
