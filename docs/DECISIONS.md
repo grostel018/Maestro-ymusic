@@ -165,3 +165,25 @@ in `docs/superpowers/plans/2026-10-25-phase0-1-ledger.md`.
 - **Decision:** removing `disable-renderer-backgrounding` and its related switches saved no
   measurable CPU, so they stay as upstream set them.
 - **Evidence:** spec §8.
+
+## 2026-10-26: Audio engine attaches late and only to a running context
+- **Decision:** the engine creates its `MediaElementSource` only when the first audio stage turns on, and only
+  while its `AudioContext` runs. Main grants a user gesture when the context can't start alone.
+- **Why:** a media element routed into Web Audio can't go back to its native output, and a suspended context
+  would mute it. Users who never touch the audio lab keep the plain path.
+
+## 2026-10-26: Pitch shift without an AudioWorklet (D3)
+- **Decision:** ±6 semitones with a delay-line granular shifter built from standard nodes, not the SoundTouch
+  worklet.
+- **Why:** an AudioWorklet module would have to load inside YouTube Music's page, under its CSP and Trusted
+  Types; standard nodes can't be blocked and cost little. SoundTouch stays as backlog row 67 if quality isn't
+  enough. D3's fallback (speed-linked pitch) wasn't needed.
+
+## 2026-10-26: Crossfade as fade out and fade in, not two overlapping players
+- **Decision:** one fade gain on the engine; no second player.
+- **Why:** Pear's overlap plays the next track through Howler from a stream URL deciphered in main: fragile,
+  and it doubles the network. Row 44 keeps true overlap as a stretch goal.
+
+## 2026-10-26: AutoEq is fetched by main
+- **Decision:** main fetches and caches AutoEq files; the page only gets the parsed filters through settings.
+- **Why:** the YouTube Music page's CSP governs what the page may fetch, and main can cache on disk.

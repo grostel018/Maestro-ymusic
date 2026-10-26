@@ -1,10 +1,10 @@
 # YTMDesktop2 Plus - Verification Checklist
 
-Checked on 2026-10-26. **35/35 verified.**
+Checked on 2026-10-27. **43/43 verified.**
 
 Every row is tied to evidence: an end-to-end scenario (`sNN`) or a perf scenario (`pNN`), run by `tests/e2e/run.ts` against the real built app. A row is ticked only when all of its evidence passed in the last run. Perf rows other than p7 mean "measured and recorded"; their numbers are in `tests/e2e/results/perf-*.json`, and a tick means "measured", not "within budget": budgets are judged in section 8 of the design spec. Regenerate with `pnpm verify` after each batch.
 
-Suite: 36/36 passed
+Suite: 44/44 passed
 
 | # | Area | Check | Evidence | Result | Notes |
 |---|---|---|---|---|---|
@@ -28,18 +28,26 @@ Suite: 36/36 passed
 | 18 | Background / power | ignore-gpu-blocklist is off by default and the backgrounding switches match the measured decision | s11 | [x] |  |
 | 19 | Performance | CPU while paused and minimized for 60 s is measured and recorded | p6 | [x] |  |
 | 20 | Playback | Playback keeps advancing while the window is minimized (at least 100 s in 120 s) | p7 | [x] |  |
-| 21 | Bench | Settings seeded through launchApp survive startup migrations | s13 | [x] |  |
-| 22 | Ad block | Ad and tracker requests fail with ERR_BLOCKED_BY_CLIENT, every blocked URL is logged, watch-history pings are not blocked, the count rises and playback advances | s5 | [x] |  |
-| 23 | Ad block | Ad payloads are pruned from YouTube's responses: no ad keys in the player response and no ad shows for 60 s | s6 | [x] |  |
-| 24 | Ad block | An ad-showing player is muted at 16x within 1 s and both are restored when the ad ends, counted as skipped | s7 | [x] |  |
-| 25 | Ad block | Premium upsell elements are hidden while hideUpsells is on and shown when it is off | s8 | [x] |  |
-| 26 | Ad block | The ad block settings page shows the five switches with their saved values, a blocked-count line, and restart notes only where a restart is needed | s12 | [x] |  |
-| 27 | Sign-in | The Google sign-in window is a normal window (not modal, not always on top, resizable), detects Google's browser rejection, and retries with the other browser identity | s17 | [x] |  |
-| 28 | Sign-in | Import sign-in from Firefox reads the profile Firefox really uses and copies only its youtube.com / google.com cookies into the app | s18 | [x] |  |
-| 29 | Sign-in | Last.fm connects through an in-app approval window with one token (no sign-in loop) and stays connected after a restart | s19 | [x] |  |
-| 30 | Playback | The Song/Video switch and player-bar button are always visible; V toggles 5× without pausing or restarting; song mode plays the song or shows the cover and the choice is saved | s20 | [x] |  |
-| 31 | Playback | Song mode on a music video finds and plays its song near the same position, with its square cover, and Up next keeps its length | s21 | [x] |  |
-| 32 | Playback | Video mode on a song switches to its music video, or disables the Video button | s22 | [x] |  |
-| 33 | Playback | Video controls show on hover; speed, quality (saved), captions, mute, picture-in-picture, theater and fullscreen work by YouTube's keys only while the player has focus, without pausing | s23 | [x] |  |
-| 34 | Playback | The audio output menu lists devices with the system default first, switching keeps playing, and no page can open the microphone | s24 | [x] |  |
-| 35 | Playback | The player-bar speed menu sets 1.25x in Song mode and keeps playing; keep pitch flips preservesPitch and is saved | s25 | [x] |  |
+| 21 | Performance | CPU while playing in Video mode and then in Song mode is measured and recorded | p9 | [x] |  |
+| 22 | Performance | Frames and CPU while playing with the equalizer, compressor and visualizer on are measured and recorded | p10 | [x] |  |
+| 23 | Bench | Settings seeded through launchApp survive startup migrations | s13 | [x] |  |
+| 24 | Ad block | Ad and tracker requests fail with ERR_BLOCKED_BY_CLIENT, every blocked URL is logged, watch-history pings are not blocked, the count rises and playback advances | s5 | [x] |  |
+| 25 | Ad block | Ad payloads are pruned from YouTube's responses: no ad keys in the player response and no ad shows for 60 s | s6 | [x] |  |
+| 26 | Ad block | An ad-showing player is muted at 16x within 1 s and both are restored when the ad ends, counted as skipped | s7 | [x] |  |
+| 27 | Ad block | Premium upsell elements are hidden while hideUpsells is on and shown when it is off | s8 | [x] |  |
+| 28 | Ad block | The ad block settings page shows the five switches with their saved values, a blocked-count line, and restart notes only where a restart is needed | s12 | [x] |  |
+| 29 | Sign-in | The Google sign-in window is a normal window (not modal, not always on top, resizable), detects Google's browser rejection, and retries with the other browser identity | s17 | [x] |  |
+| 30 | Sign-in | Import sign-in from Firefox reads the profile Firefox really uses and copies only its youtube.com / google.com cookies into the app | s18 | [x] |  |
+| 31 | Sign-in | Last.fm connects through an in-app approval window with one token (no sign-in loop) and stays connected after a restart | s19 | [x] |  |
+| 32 | Playback | The Song/Video switch and player-bar button are always visible; V toggles 5× without pausing or restarting; song mode plays the song or shows the cover and the choice is saved | s20 | [x] |  |
+| 33 | Playback | Song mode on a music video finds and plays its song near the same position, with its square cover, and Up next keeps its length | s21 | [x] |  |
+| 34 | Playback | Video mode on a song switches to its music video, or disables the Video button | s22 | [x] |  |
+| 35 | Playback | Video controls show on hover; speed, quality (saved), captions, mute, picture-in-picture, theater and fullscreen work by YouTube's keys only while the player has focus, without pausing | s23 | [x] |  |
+| 36 | Playback | The audio output menu lists devices with the system default first, switching keeps playing, and no page can open the microphone | s24 | [x] |  |
+| 37 | Playback | The player-bar speed menu sets 1.25x in Song mode and keeps playing; keep pitch flips preservesPitch and is saved | s25 | [x] |  |
+| 38 | Audio | The audio engine attaches stages in the fixed order, toggling three on and all off never stalls or leaves a silence over 200 ms, and with all off the source plays straight out | s26 | [x] |  |
+| 39 | Audio | Bass Boost raises the low band against the mids at the analyser; switching the equalizer off takes it back out | s27 | [x] |  |
+| 40 | Audio | AutoEq search and profile load run in main, parse ParametricEQ.txt and reuse the offline cache | s27b | [x] |  |
+| 41 | Audio | Crossfeed, width, surround, 8D, normalization, compressor, pitch and vocal reduction each join the chain without silence; vocal reduction lowers the mids; the wheel moves the volume by 1 % | s28 | [x] |  |
+| 42 | Audio | A 4 s crossfade fades into the next track without a stall; the sleep timer fades and then pauses | s29 | [x] |  |
+| 43 | Audio | The Audio settings page shows the live chain and saves a change; the visualizer draws over the open player and goes away when off | s30 | [x] |  |

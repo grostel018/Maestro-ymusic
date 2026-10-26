@@ -19,8 +19,8 @@
 - `src/renderer-plugins/youtube/audio-output.logic.ts` (unit-tested): the menu list and the
   fallback.
 - `audio-output.renderer.ts`: `enumerateDevices`, `HTMLMediaElement.setSinkId` on the player's
-  element, `devicechange` for hot-plug. The audio engine (D1) will take over with
-  `AudioContext.setSinkId`.
+  element, `devicechange` for hot-plug. Once the audio engine is attached (D1), it also gets the device for
+  `AudioContext.setSinkId`, which then carries the sound.
 - **Permissions** (`src/main/lib/mediaPermissions.ts`): device names and speaker selection need
   Chromium's "media" permission. Electron used to grant every permission to every page, including
   the microphone and camera without a prompt. Now:

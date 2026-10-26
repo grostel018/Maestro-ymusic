@@ -241,6 +241,9 @@ Non-reuse (we build it, because no good source exists):
 
 ## 7. Phase D — Audio engine and audio lab (≈ 6–7 h)
 
+**Done 2026-10-26**, see `docs/superpowers/plans/2026-10-26-phase-d-audio-lab.md` (rulings: pitch without an
+AudioWorklet, crossfade as fade out/in, AutoEq fetched by main, Butterchurn to the backlog).
+
 ### D1 — Audio engine core (built first; everything else plugs into it)
 
 `src/renderer-plugins/youtube/audio-engine/` (page world):

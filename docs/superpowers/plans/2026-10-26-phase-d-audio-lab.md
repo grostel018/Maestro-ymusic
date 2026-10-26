@@ -1,6 +1,6 @@
 # Phase D: audio engine and audio lab
 
-**Status:** in progress (2026-10-26). From roadmap §7. Owner decisions: D1 (GPL code allowed), D3 (real
+**Status:** done (2026-10-26): s26–s30, s27b and p10 pass; full and perf suites at phase end. From roadmap §7. Owner decisions: D1 (GPL code allowed), D3 (real
 pitch shift if feasible, else a fallback).
 
 ## Rulings made at phase start
