@@ -5,7 +5,7 @@ export type TestHooks = {
 	services: ServiceCollection;
 	getMainWindow: () => unknown;
 	/** Google sign-in window: open on any URL (a mock page in tests), read its state, retry. */
-	googleLogin?: { open(url: string): Promise<boolean>; state(): unknown; retry(): boolean };
+	googleLogin?: { open(url: string): Promise<boolean>; state(): unknown; retry(): boolean; importFromFirefox(): Promise<unknown> };
 };
 
 declare global {

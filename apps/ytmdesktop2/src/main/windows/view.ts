@@ -191,6 +191,10 @@ export const googleLoginPopup = async (authUrl: string, parent?: Electron.Browse
 				setGoogleLoginState({ phase: "signing-in", identity });
 				void loginView.webContents.loadURL(authUrl, { httpReferrer: defaultUrl }).catch(() => undefined);
 			},
+			// signed in through the Firefox import: landing on music.youtube.com completes this window
+			reloadAfterImport() {
+				void loginView.webContents.loadURL(defaultUrl).catch(() => undefined);
+			},
 		});
 		// Recognise Google's "this browser or app may not be secure" page so the notice can offer a way out.
 		const checkPage = async () => {

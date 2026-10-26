@@ -12,7 +12,7 @@ import { findStoreFilesOutsideUserData } from "@main/lib/store/createYmlStore";
 import { runLifecycle, setLifecycleContext } from "@main/lifecycle";
 import { thumbnailCache } from "@main/services/thumbnailCache";
 import { attachTrpcWindow, initElectronTrpc } from "@main/trpc/handler";
-import { getGoogleLoginState, retryGoogleLogin } from "@main/windows/googleLogin";
+import { getGoogleLoginState, importGoogleSignInFromFirefox, retryGoogleLogin } from "@main/windows/googleLogin";
 import { googleLoginPopup } from "@main/windows/view";
 import { WindowManager } from "@main/windows/windowManager";
 import { onWindowLoad } from "@main/windows/windowUtils";
@@ -140,7 +140,12 @@ const runApp = async function () {
 		exposeTestHooks({
 			serviceCollection,
 			getMainWindow: () => mainWindow,
-			googleLogin: { open: (url) => googleLoginPopup(url, mainWindow.main), state: getGoogleLoginState, retry: retryGoogleLogin },
+			googleLogin: {
+				open: (url) => googleLoginPopup(url, mainWindow.main),
+				state: getGoogleLoginState,
+				retry: retryGoogleLogin,
+				importFromFirefox: importGoogleSignInFromFirefox,
+			},
 		});
 		await runLifecycle("init");
 

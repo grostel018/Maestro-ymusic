@@ -1,6 +1,9 @@
 // Google sign-in window, against a local mock of Google's "this browser or app may not be secure" page
-// (the real Google can't be automated: no credentials in tests, and its pages change).
-import type { Scenario } from "../lib/app.ts";
+// (the real Google can't be automated: no credentials in tests, and its pages change), and the
+// "Import sign-in from Firefox" path against a fake Firefox profile with fake cookies.
+import fs from "node:fs";
+import path from "node:path";
+import { getWorkDir, type Scenario } from "../lib/app.ts";
 import { sleep, waitFor } from "../lib/wait.ts";
 import { startMockServer } from "../mocks/server.ts";
 
@@ -61,4 +64,54 @@ export const scenarios: Scenario[] = [
 			}
 		},
 	},
+	{
+		id: "s18",
+		smoke: true,
+		title: "Import sign-in from Firefox copies only youtube.com/google.com cookies of the default profile into the app",
+		launch: () => ({ env: { YTMD_E2E_FIREFOX_DIR: makeFakeFirefox() } }),
+		run: async (t) => {
+			// the confirmation dialog is answered by the test
+			await t.mainEval(`(process.mainModule.require("electron").dialog.showMessageBox = async () => ({ response: 0 }), undefined)`);
+			const result = await t.mainEval<{ status: string; imported: number; profile?: string }>("__YTMD_TEST__.googleLogin.importFromFirefox()");
+			if (result.status !== "imported" || result.imported < 1 || result.profile !== "default-release") {
+				throw new Error(`unexpected import result ${JSON.stringify(result)}`);
+			}
+			const cookies = await t.mainEval<Array<{ name: string; domain: string }>>(
+				`process.mainModule.require("electron").session.defaultSession.cookies.get({}).then((all) => all.filter((c) => c.name.startsWith("YTMD_E2E_")).map((c) => ({ name: c.name, domain: c.domain })))`,
+			);
+			const names = cookies.map((c) => c.name).sort();
+			if (names.join() !== "YTMD_E2E_GOOGLE,YTMD_E2E_YT") throw new Error(`imported test cookies: ${JSON.stringify(cookies)} (the example.com one must not be imported)`);
+		},
+	},
 ];
+
+/**
+ * A fake Firefox folder: profiles.ini whose [Install…] entry names "default-release" (plus an unused
+ * Default=1 profile, like real installs), and a cookies.sqlite with test cookies for youtube.com,
+ * google.com and example.com.
+ */
+function makeFakeFirefox(): string {
+	const dir = path.join(getWorkDir(), "fake-firefox");
+	const profile = path.join(dir, "Profiles", "abcd.default-release");
+	const unused = path.join(dir, "Profiles", "zzzz.default");
+	fs.mkdirSync(profile, { recursive: true });
+	fs.mkdirSync(unused, { recursive: true });
+	fs.writeFileSync(
+		path.join(dir, "profiles.ini"),
+		"[Profile0]\nName=default-release\nIsRelative=1\nPath=Profiles/abcd.default-release\n\n[Install1234]\nDefault=Profiles/abcd.default-release\nLocked=1\n\n[Profile1]\nName=default\nIsRelative=1\nPath=Profiles/zzzz.default\nDefault=1\n",
+	);
+	const { DatabaseSync } = (process as unknown as { getBuiltinModule(id: string): any }).getBuiltinModule("node:sqlite");
+	for (const p of [profile, unused]) {
+		const db = new DatabaseSync(path.join(p, "cookies.sqlite"));
+		db.exec("CREATE TABLE moz_cookies (name TEXT, value TEXT, host TEXT, path TEXT, expiry INTEGER, isSecure INTEGER, isHttpOnly INTEGER, sameSite INTEGER)");
+		if (p === profile) {
+			const insert = db.prepare("INSERT INTO moz_cookies VALUES (?, 'fake', ?, '/', ?, 1, 1, 0)");
+			const future = Math.floor(Date.now() / 1000) + 86400;
+			insert.run("YTMD_E2E_YT", ".youtube.com", future);
+			insert.run("YTMD_E2E_GOOGLE", ".google.com", future);
+			insert.run("YTMD_E2E_OTHER", ".example.com", future);
+		}
+		db.close();
+	}
+	return dir;
+}
