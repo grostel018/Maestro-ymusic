@@ -47,32 +47,62 @@ const AV_STATE = `(() => {
 })()`;
 
 const avState = (yt: CdpSession) => yt.eval<AvState>(AV_STATE);
-const pressV = (yt: CdpSession) => yt.eval(`(document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "v", bubbles: true })), true)`);
-const key = (yt: CdpSession, k: string, gesture = false) =>
-	yt.eval(`(window.dispatchEvent(new KeyboardEvent("keydown", { key: ${JSON.stringify(k)}, bubbles: true, cancelable: true })), true)`, { userGesture: gesture });
-/** Pointer events the controls listen for: hover shows the bar, a press gives the player keyboard focus. */
-/** A real mouse move or click at the centre of `selector` (hit-tested by Chromium, so covering layers count). */
+// Every input below is real: Chromium hit-tests mouse events and routes key events like a user's, so a control that
+// something covers, or a key the page swallows, fails here as it would for the owner.
+const KEYS: Record<string, { code: string; vk: number; text?: string; shift?: boolean }> = {
+	Escape: { code: "Escape", vk: 27 },
+	"<": { code: "Comma", vk: 188, text: "<", shift: true },
+	">": { code: "Period", vk: 190, text: ">", shift: true },
+};
+const key = async (yt: CdpSession, k: string) => {
+	const d = KEYS[k] ?? { code: `Key${k.toUpperCase()}`, vk: k.toUpperCase().charCodeAt(0), text: k };
+	const modifiers = d.shift ? 8 : 0;
+	await yt.call("Input.dispatchKeyEvent", { type: "rawKeyDown", key: k, code: d.code, windowsVirtualKeyCode: d.vk, modifiers });
+	if (d.text) await yt.call("Input.dispatchKeyEvent", { type: "char", key: k, code: d.code, text: d.text, windowsVirtualKeyCode: d.vk, modifiers });
+	await yt.call("Input.dispatchKeyEvent", { type: "keyUp", key: k, code: d.code, windowsVirtualKeyCode: d.vk, modifiers });
+	await sleep(150);
+};
+const pressV = (yt: CdpSession) => key(yt, "v");
+/** Centre of `selector` and whether a real click there would reach it (nothing on top). */
+const spot = (yt: CdpSession, selector: string) =>
+	yt.eval<{ x: number; y: number; reach: boolean; on: string } | null>(`(() => { const e = document.querySelector(${JSON.stringify(selector)}); if (!e) return null;
+		const b = e.getBoundingClientRect(); if (!b.width) return null; const x = b.left + b.width / 2, y = b.top + b.height / 2; const h = document.elementFromPoint(x, y);
+		return { x, y, reach: !!h && (h === e || e.contains(h)), on: h ? h.tagName.toLowerCase() + (h.id ? "#" + h.id : "") : "nothing" }; })()`);
+/** A real mouse move or click at the centre of `selector`. */
 const mouse = async (yt: CdpSession, type: "mouseMoved" | "click", selector: string) => {
-	const r = await yt.eval<{ x: number; y: number }>(`(() => { const b = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; })()`);
+	const r = await spot(yt, selector);
+	if (!r) throw new Error(`${selector} is not on screen`);
 	if (type === "mouseMoved") return yt.call("Input.dispatchMouseEvent", { type, x: r.x, y: r.y });
+	await yt.call("Input.dispatchMouseEvent", { type: "mouseMoved", x: r.x, y: r.y });
 	await yt.call("Input.dispatchMouseEvent", { type: "mousePressed", x: r.x, y: r.y, button: "left", clickCount: 1 });
 	await yt.call("Input.dispatchMouseEvent", { type: "mouseReleased", x: r.x, y: r.y, button: "left", clickCount: 1 });
 };
-const pointer = (yt: CdpSession, type: "pointermove" | "pointerdown", selector: string) =>
-	yt.eval(`(document.querySelector(${JSON.stringify(selector)}).dispatchEvent(new PointerEvent(${JSON.stringify(type)}, { bubbles: true })), true)`);
-type Media = { t: number; paused: boolean; rate: number; pitch: boolean; muted: boolean; quality: string; levels: string[]; caption: string; pip: boolean; fs: boolean; theater: boolean; full: boolean };
+/** A real click on `selector`: false while it isn't there yet; an error when something covers it. */
+const click = async (yt: CdpSession, selector: string): Promise<boolean> => {
+	const r = await spot(yt, selector);
+	if (!r) return false;
+	if (!r.reach) throw new Error(`${selector} is covered by ${r.on}`);
+	await mouse(yt, "click", selector);
+	await sleep(300);
+	return true;
+};
+type Media = { t: number; paused: boolean; rate: number; pitch: boolean; muted: boolean; quality: string; levels: string[]; caption: string; pip: boolean; fs: boolean; theater: boolean; onScreen: boolean; playerW: number; videoH: number; sidePanel: boolean };
 const media = (yt: CdpSession) =>
 	yt.eval<Media>(`(() => {
 		const v = document.querySelector("video"); const mp = document.querySelector("#movie_player");
 		const track = mp.getOption?.("captions", "track") ?? {};
 		return { t: v.currentTime, paused: v.paused, rate: v.playbackRate, pitch: v.preservesPitch, muted: mp.isMuted(), quality: mp.getPlaybackQuality(), levels: mp.getAvailableQualityLevels(),
-			caption: track.languageCode ?? "", pip: !!document.pictureInPictureElement, fs: document.fullscreenElement === mp, theater: document.documentElement.classList.contains("ytmd-theater"),
-			full: mp.getBoundingClientRect().width >= window.innerWidth - 1 };
+			caption: track.languageCode ?? "", pip: !!document.pictureInPictureElement, fs: !!document.fullscreenElement, theater: document.documentElement.classList.contains("ytmd-theater"),
+			// What the owner sees: the player inside the window, a picture with height, the Up next panel shown or not.
+			onScreen: (() => { const r = mp.getBoundingClientRect(); return r.left >= 0 && r.top >= 0 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1; })(),
+			playerW: Math.round(mp.getBoundingClientRect().width), videoH: Math.round(v.getBoundingClientRect().height),
+			sidePanel: (document.querySelector("ytmusic-player-page #side-panel")?.getBoundingClientRect().width ?? 0) > 0 };
 	})()`);
-/** Clicks the entry labelled `label` in the open popup menu. */
-const pick = (yt: CdpSession, label: string) =>
-	yt.eval<boolean>(`(() => { const b = [...document.querySelectorAll("#ytmd-vc-menu button")].find((e) => e.textContent === ${JSON.stringify(label)}); b?.click(); return !!b; })()`);
-const click = (yt: CdpSession, selector: string) => yt.eval<boolean>(`(() => { const e = document.querySelector(${JSON.stringify(selector)}); e?.click(); return !!e; })()`);
+/** Really clicks the entry labelled `label` in the open popup menu. */
+const pick = async (yt: CdpSession, label: string) => {
+	const i = await yt.eval<number>(`[...document.querySelectorAll("#ytmd-vc-menu button")].findIndex((e) => e.textContent === ${JSON.stringify(label)})`);
+	return i >= 0 && click(yt, `#ytmd-vc-menu button:nth-of-type(${i + 1})`);
+};
 const until = (yt: CdpSession, test: (m: Media) => boolean, ms: number, what: string) =>
 	waitFor(async () => {
 		const m = await media(yt);
@@ -166,28 +196,39 @@ export const scenarios: Scenario[] = [
 	},
 	{
 		id: "s23",
-		title: "Video controls: bar on hover; speed, quality, captions, mute, picture-in-picture, theater, fullscreen and YouTube's keys work while the player has focus",
+		title: "Video controls with a real mouse and keys: the bar shows on hover and nothing covers it; a click pauses and plays; quality changes the picture; theater enlarges it on screen; full screen fills the screen; YouTube's keys work",
 		launch: { settings: { player: { videoMode: "video", videoControls: true } } },
 		run: async (t) => {
 			await play(t);
 			const yt = await t.view("youtube");
-			await mouse(yt, "mouseMoved", "#movie_player");
-			await waitFor(async () => (await yt.eval<boolean>(`!!document.querySelector("#movie_player.ytmd-vc-show #ytmd-vc")`)) || false, 10000, "the control bar on a real hover");
-			const hit = await yt.eval<string>(`(() => { const b = document.querySelector('#ytmd-vc button[data-name="quality"]').getBoundingClientRect(); const e = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return e?.closest("#ytmd-vc button")?.dataset.name ?? (e?.tagName + "#" + e?.id); })()`);
-			if (hit !== "quality") throw new Error(`the quality button is covered by ${hit}`);
+			const hover = async () => {
+				await mouse(yt, "mouseMoved", "ytmusic-player-page #side-panel");
+				await mouse(yt, "mouseMoved", "#movie_player");
+				await waitFor(async () => (await yt.eval<boolean>(`!!document.querySelector("#movie_player.ytmd-vc-show #ytmd-vc")`)) || false, 5000, "the control bar on a real hover");
+			};
+			await hover();
+			for (const name of ["captions", "quality", "pip", "theater", "fullscreen"]) {
+				const r = await spot(yt, `#ytmd-vc button[data-name="${name}"]`);
+				if (!r?.reach) throw new Error(`the ${name} button is ${r ? `covered by ${r.on}` : "missing"}`);
+			}
+			const dupes = await yt.eval<string[]>(`["play", "speed", "loop"].filter((n) => document.querySelector('#ytmd-vc button[data-name="' + n + '"]'))`);
+			if (dupes.length) throw new Error(`the video bar repeats player-bar controls: ${dupes.join(", ")}`);
 
-			// Keys do nothing until the player is clicked.
-			await pointer(yt, "pointerdown", "ytmusic-nav-bar");
-			await key(yt, "k");
-			await sleep(400);
-			if ((await media(yt)).paused) throw new Error("k paused playback although the player did not have focus");
-			await pointer(yt, "pointerdown", "#movie_player video");
+			// A click on the picture pauses and plays, as on YouTube, and gives the player the keys.
+			await mouse(yt, "click", "#movie_player");
+			await until(yt, (m) => m.paused, 3000, "a click on the video to pause");
+			await mouse(yt, "click", "#movie_player");
+			await until(yt, (m) => !m.paused, 3000, "a second click to play again");
+			// YTM's own player used to toggle too, which left it paused a moment later.
+			await sleep(1500);
+			if ((await media(yt)).paused) throw new Error("second click paused playback");
 
 			const start = await media(yt);
 			await key(yt, "l");
 			const fwd = await until(yt, (m) => m.t >= start.t + 9, 5000, "l to seek 10 s forward");
 			await key(yt, "j");
 			await until(yt, (m) => m.t < fwd.t - 8, 5000, "j to seek 10 s back");
+			if ((await media(yt)).paused) throw new Error("j paused playback");
 
 			await key(yt, "<");
 			await key(yt, "<");
@@ -195,13 +236,16 @@ export const scenarios: Scenario[] = [
 			await key(yt, ">");
 			await key(yt, ">");
 			await until(yt, (m) => m.rate === 1, 3000, "> twice to return to 1x");
+			if ((await media(yt)).paused) throw new Error("< and > paused playback");
 
 			const { levels } = await media(yt);
 			if (levels.includes("hd1080")) {
 				const before = (await media(yt)).t;
+				await hover();
 				await click(yt, '#ytmd-vc button[data-name="quality"]');
 				if (!(await pick(yt, "1080p"))) throw new Error(`no 1080p entry in the quality menu (levels ${levels.join(",")})`);
 				await until(yt, (m) => m.quality === "hd1080", 15000, "the quality to become 1080p");
+				await waitFor(async () => (await yt.eval<number>(`document.querySelector("video").videoHeight`)) === 1080 || false, 15000, "the picture to be 1080 lines");
 				await sleep(1800);
 				const after = await media(yt);
 				if (after.t + 2 < before) throw new Error(`changing the quality jumped back: ${before.toFixed(1)} -> ${after.t.toFixed(1)}`);
@@ -213,33 +257,53 @@ export const scenarios: Scenario[] = [
 			await until(yt, (m) => !!m.caption, 8000, "c to turn captions on");
 			await key(yt, "c");
 			await until(yt, (m) => !m.caption, 5000, "c to turn captions off");
+			if ((await media(yt)).paused) throw new Error("c paused playback");
 
 			await key(yt, "m");
 			await until(yt, (m) => m.muted, 3000, "m to mute");
 			await key(yt, "m");
 			await until(yt, (m) => !m.muted, 3000, "m to unmute");
+			if ((await media(yt)).paused) throw new Error("m paused playback");
 
-			await key(yt, "i", true);
+			await key(yt, "i");
 			await until(yt, (m) => m.pip, 5000, "i to open picture-in-picture");
-			await key(yt, "i", true);
+			if ((await media(yt)).paused) throw new Error("i (picture-in-picture on) paused playback");
+			await key(yt, "i");
 			await until(yt, (m) => !m.pip, 5000, "i to close picture-in-picture");
+			if ((await media(yt)).paused) throw new Error("i (picture-in-picture off) paused playback");
 
-			await key(yt, "t");
-			await until(yt, (m) => m.theater && m.full, 3000, "t to fill the window with the video");
+			// Theater from the button: Up next goes away and a bigger picture stays on screen.
+			const normal = await media(yt);
+			await hover();
+			await click(yt, '#ytmd-vc button[data-name="theater"]');
+			await until(yt, (m) => m.theater && !m.sidePanel && m.onScreen && m.playerW > normal.playerW + 100 && m.videoH > 300, 3000, "theater to hide Up next and enlarge the picture on screen");
+			if ((await media(yt)).paused) throw new Error("theater button paused playback");
 			await key(yt, "Escape");
-			await until(yt, (m) => !m.theater, 3000, "Escape to leave theater mode");
+			await until(yt, (m) => !m.theater && m.sidePanel, 3000, "Escape to leave theater mode");
+			if ((await media(yt)).paused) throw new Error("Escape from theater paused playback");
+			await key(yt, "t");
+			await until(yt, (m) => m.theater && m.onScreen && m.videoH > 300, 3000, "t to open theater");
+			if ((await media(yt)).paused) throw new Error("t (theater on) paused playback");
+			await key(yt, "t");
+			await until(yt, (m) => !m.theater, 3000, "t to close theater");
+			if ((await media(yt)).paused) throw new Error("t (theater off) paused playback");
 
-			await key(yt, "f", true);
-			await until(yt, (m) => m.fs, 5000, "f to enter full screen");
-			await key(yt, "f", true);
+			// Full screen from the button and from f: the picture fills the screen (it went black before).
+			await hover();
+			await click(yt, '#ytmd-vc button[data-name="fullscreen"]');
+			await until(yt, (m) => m.fs && m.videoH > 600, 5000, "the full-screen button to show the picture full size");
+			if ((await media(yt)).paused) throw new Error("full-screen button paused playback");
+			await key(yt, "Escape");
+			await until(yt, (m) => !m.fs, 5000, "Escape to leave full screen");
+			if ((await media(yt)).paused) throw new Error("Escape from full screen paused playback");
+			await key(yt, "f");
+			await until(yt, (m) => m.fs && m.videoH > 600, 5000, "f to show the picture full screen");
+			if ((await media(yt)).paused) throw new Error("f (full screen on) paused playback");
+			await key(yt, "f");
 			await until(yt, (m) => !m.fs, 5000, "f to leave full screen");
+			if ((await media(yt)).paused) throw new Error("f (full screen off) paused playback");
 
 			if ((await media(yt)).paused) throw new Error("playback paused during the controls test");
-			// A click on the picture pauses and plays, as on YouTube.
-			await mouse(yt, "click", "#movie_player");
-			await until(yt, (m) => m.paused, 3000, "a click on the video to pause");
-			await mouse(yt, "click", "#movie_player");
-			await until(yt, (m) => !m.paused, 3000, "a second click to play again");
 		},
 	},
 	{
@@ -283,7 +347,7 @@ export const scenarios: Scenario[] = [
 			if (later.paused || later.t < set.t + 2) throw new Error(`playback did not keep going at 1.25x: ${set.t.toFixed(2)} -> ${later.t.toFixed(2)}`);
 			if (!later.pitch) throw new Error("preservesPitch should start on");
 			await click(yt, "#ytmd-speed-button");
-			await yt.eval(`(document.querySelector('#ytmd-vc-menu input[type="checkbox"]').click(), true)`);
+			await click(yt, '#ytmd-vc-menu input[type="checkbox"]');
 			await until(yt, (m) => !m.pitch, 3000, "keep pitch off to clear preservesPitch");
 			await waitFor(
 				async () => ((await t.mainEval<boolean>(`__YTMD_TEST__.services.getProvider("settings").get("player.keepPitch")`)) === false ? true : false),

@@ -1,25 +1,22 @@
 import type { PlayerApi } from "ytm-client-api";
-import { getSpeed, onSpeedChange, openSpeedMenu, setSpeed } from "./playback-speed";
+import { getSpeed, setSpeed } from "./playback-speed";
 import {
 	type CaptionTrack,
 	type ControlAction,
 	captionMenu,
 	FRAME_SECONDS,
-	formatTime,
 	keyAction,
 	qualityLabel,
 	qualityMenu,
-	speedLabel,
 	stepSpeed,
 } from "./video-controls.logic";
 import { closeMenu, isMenuOpen, MENU_CSS, openMenu, setIcon } from "./video-controls.menu";
 import { getPagePlayerApi } from "./world0/context";
 import type { RendererPluginRegistration } from "./world0/types";
-import { resolveYtmStore } from "./ytm-store";
 
 // YouTube-grade video controls (roadmap C2). YTM builds its player without YouTube's control bar (probe
-// 2026-10-26: `.ytp-chrome-bottom` is absent, not hidden), so this bar drives the player API: speed, captions,
-// quality, loop, picture-in-picture, theater and fullscreen, plus YouTube's keyboard shortcuts while the player
+// 2026-10-26: `.ytp-chrome-bottom` is absent, not hidden), so this bar drives the player API: captions, quality,
+// picture-in-picture, theater and fullscreen (play, time, speed and repeat live in the player bar), plus YouTube's keyboard shortcuts while the player
 // has focus. Only in Video mode; decisions live in video-controls.logic.ts.
 
 const SETTING = "player.videoControls";
@@ -33,11 +30,8 @@ const AUDIO_VIEW = "ytmd-audio-view";
 const HIDE_AFTER_MS = 2500;
 
 const ICONS = {
-	play: "M8 5v14l11-7z",
-	pause: "M6 19h4V5H6v14zm8-14v14h4V5h-4z",
 	captions: "M19 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm-8 7H9.5v-.5h-2v3h2V13H11v1a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1zm7 0h-1.5v-.5h-2v3h2V13H18v1a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1z",
 	quality: "M19.14 12.94a7.07 7.07 0 0 0 0-1.88l2.03-1.58a.5.5 0 0 0 .12-.61l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7 7 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54a7 7 0 0 0-1.62.94l-2.39-.96a.5.5 0 0 0-.61.22L2.71 8.88a.5.5 0 0 0 .12.61l2.03 1.58a7.07 7.07 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.61l1.92 3.32a.5.5 0 0 0 .61.22l2.39-.96c.5.38 1.04.7 1.62.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54a7 7 0 0 0 1.62-.94l2.39.96a.5.5 0 0 0 .61-.22l1.92-3.32a.5.5 0 0 0-.12-.61l-2.03-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z",
-	loop: "M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z",
 	pip: "M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z",
 	theater: "M19 6H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm0 10H5V8h14v8z",
 	fullscreen: "M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z",
@@ -61,11 +55,11 @@ html.${ON}:not(.${AUDIO_VIEW}) ytmusic-player :is(#song-media-window, #bezel) { 
 #${BAR_ID} button[aria-pressed="true"] { color: #fff; box-shadow: inset 0 -2px 0 #fff; }
 #${BAR_ID} button[data-text] { padding: 0 10px; }
 #${BAR_ID} svg { width: 22px; height: 22px; fill: currentColor; }
-#${BAR_ID} .ytmd-vc-time { padding: 0 8px; font-variant-numeric: tabular-nums; color: rgba(255, 255, 255, 0.85); }
 #${BAR_ID} .ytmd-vc-spacer { flex: 1; }
-/* Theater: the video fills the window. */
-html.${THEATER} #movie_player { position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 2000 !important; background: #000; }
-html.${THEATER} #movie_player video, #movie_player:fullscreen video { left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; object-fit: contain; }
+/* Theater: the Up next panel goes away and the player takes the page width. (Filling the window from inside the
+   player is impossible: YTM's player page and player have transforms, which trap position: fixed.) */
+html.${THEATER} ytmusic-player-page #side-panel { display: none !important; }
+html.${THEATER} ytmusic-player-page #main-panel { flex: 1 1 auto !important; max-width: none !important; width: 100% !important; }
 `;
 
 type Player = PlayerApi & {
@@ -155,12 +149,6 @@ const videoControlsRenderer: RendererPluginRegistration = {
 			render();
 		};
 
-		const repeatMode = () => resolveYtmStore()?.getState()?.queue?.repeatMode ?? "NONE";
-		const toggleLoop = () => {
-			resolveYtmStore()?.dispatch({ type: "SET_REPEAT", payload: repeatMode() === "REPEAT_ONE" ? "NONE" : "REPEAT_ONE" });
-			render();
-		};
-
 		const togglePip = () => {
 			const v = video();
 			if (!v) return;
@@ -168,9 +156,11 @@ const videoControlsRenderer: RendererPluginRegistration = {
 			else void v.requestPictureInPicture().catch((err) => ctx.log.warn("picture-in-picture failed", err));
 		};
 
+		// The whole page, as YTM's own "f" does: YTM then shows its full-screen player (video, controls, queue). Fullscreen
+		// of #movie_player alone left the <video> 0 px tall inside YTM's zero-height video container.
 		const toggleFullscreen = () => {
 			if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
-			else void moviePlayer()?.requestFullscreen().catch((err) => ctx.log.warn("fullscreen failed", err));
+			else void document.documentElement.requestFullscreen().catch((err) => ctx.log.warn("fullscreen failed", err));
 		};
 
 		const run = (action: ControlAction) => {
@@ -238,15 +228,11 @@ const videoControlsRenderer: RendererPluginRegistration = {
 			if (!enabled || !mp || document.getElementById(BAR_ID)) return;
 			const bar = document.createElement("div");
 			bar.id = BAR_ID;
-			const time = document.createElement("span");
-			time.className = "ytmd-vc-time";
 			const spacer = document.createElement("span");
 			spacer.className = "ytmd-vc-spacer";
+			// Play, time, speed and repeat are in the player bar right below; this bar has only what is about the picture.
 			bar.append(
-				button("play", "Play (k)", () => run({ kind: "play-pause" }), ICONS.play),
-				time,
 				spacer,
-				button("speed", "Playback speed", (btn) => openSpeedMenu(btn)),
 				button("captions", "Subtitles (c)", (btn) => {
 					const current = captionsTrack();
 					const tracks = captionTracks();
@@ -264,7 +250,6 @@ const videoControlsRenderer: RendererPluginRegistration = {
 						onSelect: () => setQuality(level),
 					})));
 				}, ICONS.quality),
-				button("loop", "Loop", toggleLoop, ICONS.loop),
 				button("pip", "Picture-in-picture (i)", togglePip, ICONS.pip),
 				button("theater", "Theater mode (t)", () => setTheater(!theaterOn()), ICONS.theater),
 				button("fullscreen", "Full screen (f)", toggleFullscreen, ICONS.fullscreen),
@@ -278,20 +263,8 @@ const videoControlsRenderer: RendererPluginRegistration = {
 		const render = () => {
 			const bar = document.getElementById(BAR_ID);
 			if (!bar) return;
-			const v = video();
-			const p = player();
 			const q = (name: string) => bar.querySelector<HTMLButtonElement>(`button[data-name="${name}"]`);
-			const play = q("play");
-			if (play) {
-				setIcon(play, v && !v.paused ? ICONS.pause : ICONS.play);
-				play.title = v && !v.paused ? "Pause (k)" : "Play (k)";
-			}
-			const time = bar.querySelector(".ytmd-vc-time");
-			if (time && p) time.textContent = `${formatTime(p.getCurrentTime())} / ${formatTime(p.getDuration())}`;
-			const speed = q("speed");
-			if (speed) speed.textContent = speedLabel(getSpeed()).replace("Normal", "1×");
 			q("captions")?.setAttribute("aria-pressed", String(!!captionsTrack()));
-			q("loop")?.setAttribute("aria-pressed", String(repeatMode() === "REPEAT_ONE"));
 			q("pip")?.setAttribute("aria-pressed", String(!!document.pictureInPictureElement));
 			q("theater")?.setAttribute("aria-pressed", String(theaterOn()));
 			const fs = q("fullscreen");
@@ -302,7 +275,6 @@ const videoControlsRenderer: RendererPluginRegistration = {
 			window.clearTimeout(hideTimer);
 			if (isMenuOpen()) return;
 			moviePlayer()?.classList.remove(SHOW);
-			video()?.removeEventListener("timeupdate", render);
 		};
 		const show = () => {
 			const mp = moviePlayer();
@@ -310,8 +282,6 @@ const videoControlsRenderer: RendererPluginRegistration = {
 			mount();
 			if (!mp.classList.contains(SHOW)) {
 				mp.classList.add(SHOW);
-				// The time only ticks while the bar is visible.
-				video()?.addEventListener("timeupdate", render);
 				render();
 			}
 			armHide();
@@ -336,13 +306,16 @@ const videoControlsRenderer: RendererPluginRegistration = {
 			const target = e.target as Element | null;
 			focused = !!target?.closest?.("#movie_player, #ytmd-vc-menu");
 		};
-		// A click on the picture plays or pauses, as on YouTube (YTM's layer that did it no longer takes the mouse).
+		// A click on the picture plays or pauses, as on YouTube. YTM's own player sometimes toggles on the same click
+		// (racy while a track starts), and two toggles cancel out, so ours runs first (capture) and keeps the click to
+		// itself. Clicks on our bar and menus pass through untouched.
 		const onClick = (e: MouseEvent) => {
 			const target = e.target as Element | null;
 			if (!enabled || !isVideoMode() || e.button !== 0 || !target?.closest?.("#movie_player")) return;
 			if (target.closest(`#${BAR_ID}, #ytmd-vc-menu, .ytp-ad-module, a, button`)) return;
 			const p = player();
 			if (!p) return;
+			e.stopImmediatePropagation();
 			if (video()?.paused) p.playVideo();
 			else p.pauseVideo();
 		};
@@ -372,11 +345,10 @@ const videoControlsRenderer: RendererPluginRegistration = {
 		document.addEventListener("pointermove", onMove, { passive: true });
 		document.addEventListener("pointerleave", onLeave, true);
 		document.addEventListener("pointerdown", onDown, true);
-		document.addEventListener("click", onClick);
+		document.addEventListener("click", onClick, true);
 		window.addEventListener("keydown", onKey, true);
 		document.addEventListener("fullscreenchange", onFullscreen);
 		document.addEventListener("visibilitychange", onVisibility);
-		offs.push(onSpeedChange(render));
 
 		let attached: Player | null = null;
 		const attach = () => {
@@ -425,7 +397,7 @@ const videoControlsRenderer: RendererPluginRegistration = {
 			document.removeEventListener("pointermove", onMove);
 			document.removeEventListener("pointerleave", onLeave, true);
 			document.removeEventListener("pointerdown", onDown, true);
-			document.removeEventListener("click", onClick);
+			document.removeEventListener("click", onClick, true);
 			window.removeEventListener("keydown", onKey, true);
 			document.removeEventListener("fullscreenchange", onFullscreen);
 			document.removeEventListener("visibilitychange", onVisibility);

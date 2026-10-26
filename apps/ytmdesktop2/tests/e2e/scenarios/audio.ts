@@ -33,6 +33,20 @@ const untilChain = (yt: CdpSession, test: (g: Graph) => boolean, what: string, m
 	}, ms, what);
 const sameChain = (want: string[]) => (g: Graph) => g.attached && g.chain.join() === want.join();
 
+/** Centre of `selector` (scrolled into view) and whether a real click there reaches it. */
+const spot = (s: CdpSession, selector: string) =>
+	s.eval<{ x: number; y: number; w: number; reach: boolean; on: string } | null>(`(() => { const e = document.querySelector(${JSON.stringify(selector)}); if (!e) return null;
+		e.scrollIntoView({ block: "center" }); const b = e.getBoundingClientRect(); const x = b.left + b.width / 2, y = b.top + b.height / 2; const h = document.elementFromPoint(x, y);
+		return { x, y, w: b.width, reach: !!h && (h === e || e.contains(h)), on: h ? h.tagName.toLowerCase() + (h.id ? "#" + h.id : "") : "nothing" }; })()`);
+/** A real, hit-tested mouse click on `selector`; fails when something covers it. */
+async function realClick(s: CdpSession, selector: string) {
+	const r = await spot(s, selector);
+	if (!r?.reach) throw new Error(`${selector} is ${r ? `covered by ${r.on}` : "missing"}`);
+	await s.call("Input.dispatchMouseEvent", { type: "mouseMoved", x: r.x, y: r.y });
+	await s.call("Input.dispatchMouseEvent", { type: "mousePressed", x: r.x, y: r.y, button: "left", clickCount: 1 });
+	await s.call("Input.dispatchMouseEvent", { type: "mouseReleased", x: r.x, y: r.y, button: "left", clickCount: 1 });
+}
+
 /** Mean of `n` band readings `everyMs` apart (music varies; one reading is noise). */
 async function bandDb(yt: CdpSession, fromHz: number, toHz: number, n = 20, everyMs = 100): Promise<number> {
 	let sum = 0;
@@ -194,14 +208,11 @@ export const scenarios: Scenario[] = [
 			await yt.eval(`(document.querySelector("#movie_player").setVolume(50), true)`);
 			await sleep(300);
 			const before = await volume();
-			await waitFor(
-				async () =>
-					yt.eval<boolean>(
-						`(() => { const bar = document.querySelector("ytmusic-player-bar, ytmusic-miniplayer"); return !!bar && bar.dispatchEvent(new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true })) === false; })()`,
-					),
-				10000,
-				"the player bar to take the wheel",
-			)
+			// A real wheel turn over the player bar (either layout), left of its centre buttons.
+			const bar = await spot(yt, "ytmusic-player-bar, ytmusic-miniplayer");
+			if (!bar) throw new Error("no player bar on screen");
+			await yt.call("Input.dispatchMouseEvent", { type: "mouseMoved", x: bar.x - 250, y: bar.y });
+			await yt.call("Input.dispatchMouseEvent", { type: "mouseWheel", x: bar.x - 250, y: bar.y, deltaX: 0, deltaY: -100 });
 			await waitFor(async () => ((await volume()) === before + 1 ? true : false), 3000, `the wheel to raise the volume from ${before} to ${before + 1}`);
 			if (!(await yt.eval<boolean>(`!!document.getElementById("ytmd-volume-hud")?.textContent.includes("%")`))) throw new Error("no volume readout after the wheel");
 			// Our player-bar buttons mount in every layout YTM serves (classic bar or ytmusic-miniplayer).
@@ -255,7 +266,7 @@ export const scenarios: Scenario[] = [
 			await waitFor(
 				async () => {
 					if (!(await yt.eval<boolean>(`document.querySelector("ytmusic-app-layout").hasAttribute("player-page-open")`)))
-						await yt.eval(`(document.querySelector("ytmusic-player-bar .middle-controls .title, ytmusic-player-bar .middle-controls")?.click(), true)`, { userGesture: true });
+						await realClick(yt, "ytmusic-player-bar .middle-controls .title, ytmusic-miniplayer ytmusic-track-info");
 					return yt.eval<boolean>(`document.querySelector("ytmusic-app-layout").hasAttribute("player-page-open")`);
 				},
 				15000,
@@ -277,11 +288,16 @@ export const scenarios: Scenario[] = [
 				15000,
 				"the chain view to list the compressor",
 			);
-			const clicked = await page.eval<boolean>(
-				`(() => { const b = [...document.querySelectorAll('[role="radiogroup"][aria-label="Compressor"] [role="radio"]')].find((e) => e.textContent.trim() === "Night"); b?.click(); return !!b; })()`,
-			);
-			if (!clicked) throw new Error("no Night option in the compressor control");
+			const night = await page.eval<number>(`[...document.querySelectorAll('[role="radiogroup"][aria-label="Compressor"] [role="radio"]')].findIndex((e) => e.textContent.trim() === "Night")`);
+			if (night < 0) throw new Error("no Night option in the compressor control");
+			await realClick(page, `[role="radiogroup"][aria-label="Compressor"] [role="radio"]:nth-of-type(${night + 1})`);
 			await waitFor(async () => ((await savedAudio(t)).dynamics.compressor === "night" ? true : false), 5000, "audio.dynamics.compressor to be saved as night");
+			// Sliders are wide enough to use, and a real click on one moves it (they were 21 px wide).
+			const width = await spot(page, '[data-slot="slider"][aria-label="Stereo width"]');
+			if (!width || width.w < 100) throw new Error(`the stereo width slider is ${width ? `${Math.round(width.w)} px` : "missing"} wide`);
+			await page.call("Input.dispatchMouseEvent", { type: "mousePressed", x: width.x + width.w * 0.4, y: width.y, button: "left", clickCount: 1 });
+			await page.call("Input.dispatchMouseEvent", { type: "mouseReleased", x: width.x + width.w * 0.4, y: width.y, button: "left", clickCount: 1 });
+			await waitFor(async () => ((await savedAudio(t)).spatial.width !== 100 ? true : false), 5000, "a click on the stereo width slider to change it");
 
 			await setAudio(t, audio((a) => (a.dynamics.compressor = "night")));
 			await waitFor(async () => (await yt.eval<boolean>(`!document.getElementById("ytmd-visualizer")`)) || false, 5000, "the visualizer to go away when switched off");

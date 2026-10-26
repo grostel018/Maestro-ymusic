@@ -98,15 +98,18 @@ function Range({
 }) {
 	return (
 		<div className="flex items-center gap-3">
-			<Slider
-				className={className}
-				value={[value]}
-				min={min}
-				max={max}
-				step={step}
-				aria-label={label}
-				onValueChange={(v) => onChange(Array.isArray(v) ? (v[0] as number) : (v as number))}
-			/>
+			{/* A fixed-width box: the slider's own w-full (data-horizontal) would otherwise take 100 % of nothing. */}
+			<div className={className}>
+				<Slider
+					className="w-full"
+					value={[value]}
+					min={min}
+					max={max}
+					step={step}
+					aria-label={label}
+					onValueChange={(v) => onChange(Array.isArray(v) ? (v[0] as number) : (v as number))}
+				/>
+			</div>
 			<span className="text-muted-foreground w-14 text-right text-xs tabular-nums">{format(value)}</span>
 		</div>
 	);
