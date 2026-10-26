@@ -34,21 +34,25 @@ body::before {
 // Chrome surfaces: translucent instead of solid black.
 // One translucent layer per area; the side panel stacks three elements, so only the outer one is tinted
 // (stacking three made it darker than the rest).
+// Side panel: no tint of its own, so it matches the rest of the window exactly (owner report: some
+// areas were darker than others). The drawer scrim only matters in overlay mode.
 #guide-wrapper,
-#nav-bar-background {
-  background: rgba(3, 3, 3, 0.35) !important;
-}
-
 #mini-guide-background,
-tp-yt-app-drawer#guide #contentContainer {
+tp-yt-app-drawer#guide #contentContainer,
+tp-yt-app-drawer#guide #scrim {
   background: transparent !important;
 }
 
-// More specific than the Default theme's `#player-bar-background.ytmusic-app-layout { … !important }`,
-// which is injected after this layer.
+// Top and bottom bars: page content scrolls under them, so a plain translucent tint showed text through
+// (owner report). A light tint + blur of the same background keeps them uniform with the page and turns
+// scrolling content into a soft blur. Two thin bars: cheap. More specific than the Default theme's
+// `#player-bar-background.ytmusic-app-layout { … !important }`, which is injected after this layer.
+ytmusic-app ytmusic-app-layout > #nav-bar-background,
 ytmusic-app ytmusic-app-layout > #player-bar-background.ytmusic-app-layout {
-  background: rgba(3, 3, 3, 0.55) !important;
-  background-color: rgba(3, 3, 3, 0.55) !important;
+  background: rgba(3, 3, 3, 0.28) !important;
+  background-color: rgba(3, 3, 3, 0.28) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(140%) !important;
+  backdrop-filter: blur(24px) saturate(140%) !important;
 }
 
 // YouTube's page gradient (60% black fading to solid black over the whole page) hides the artwork and
