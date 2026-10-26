@@ -34,7 +34,8 @@ YouTube Music web page, running in a `WebContentsView`. We add features in three
 
 - **Providers.** Every `src/main/trpc/routers/<name>/service.ts` default-exports a class
   extending `BaseProvider`. It's auto-registered (`src/main/core/baseCollection.ts` globs
-  them) and gets lifecycle hooks: `BeforeStart` (before app ready), `OnInit`, `AfterInit`,
+  them, along with `src/main/providers/*.provider.ts` and `src/main/events/*.event.ts`) and gets
+  lifecycle hooks: `BeforeStart` (before app ready), `OnInit`, `AfterInit`,
   `OnDestroy`.
   - Look up another provider with `this.getProvider("settings")`.
   - Expose a provider to our React views by adding `router.ts` and registering it in
@@ -63,13 +64,13 @@ YouTube Music web page, running in a `WebContentsView`. We add features in three
 - **Plugins.** A plugin is `src/renderer-plugins/youtube/<name>.plugin.ts` (metadata, created
   with `definePlugin`) plus `<name>.renderer.ts` (page-world code).
   - The world-0 host (`world0/host.ts`) auto-loads every `*.renderer.ts`.
-  - It calls `start(ctx)`, `onConfigChange(key, value, ctx)` and `onPlayerApiReady(playerApi)`.
+  - It calls `start(ctx)`, `onConfigChange(key, value, ctx)` and `onPlayerApiReady(playerApi, ctx)`.
   - `ctx.ytmd` gives settings get/set and `emit`/`on` to main. Page events have to be on the
     allow-list in `src/preload/ytmd-bridge.ts`.
 - **Document-start scripts.**
   - Code that must run before YouTube's own scripts is injected from `src/preload/youtube.ts`
     with `executeJavaScriptInIsolatedWorld(0, …)`. Examples: the ad-block prune script, the
-    ytmd agent.
+    ytmd agent. `src/preload/base.ts` has a generic helper that does the same.
   - Settings it needs at that moment come through a launch argument (`src/shared/*/flag.ts`).
     That's why some toggles say "restart required".
 - **Rules:**

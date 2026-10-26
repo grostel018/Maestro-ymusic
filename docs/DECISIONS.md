@@ -24,6 +24,14 @@ in `docs/superpowers/plans/2026-10-25-phase0-1-ledger.md`.
 - **Cost if wrong:** state leaking between shared scenarios. That's why `reuse` is opt-in and a
   failure gets a fresh launch.
 
+## 2026-10-26: Test what the app did, not what the page happens to show
+- **What happened:** the glass test checked the page's computed style. YouTube opens music videos
+  in Video mode, where its own styles override the glass layer, so the test was flaky. Also,
+  `webContents.insertCSS` sheets don't appear in `document.styleSheets`.
+- **Decision:** when a check depends on YouTube's changing page, ask our own code instead (here
+  the theme service's injector) through `__YTMD_TEST__`.
+- **Known limit:** glass doesn't show over Video mode.
+
 ## 2026-10-26: Re-apply layout after window state changes
 - **What happened:** maximizing a frameless window on Windows can settle its content size after
   the `maximize` event, with no new `resize`, which left the YouTube view 2 px short.

@@ -6,7 +6,7 @@ perf suites run once, at the end of a phase.
 | Tier | Command (repo root) | What runs | Typical time |
 |---|---|---|---|
 | Unit | `pnpm t:unit` | vitest: pure logic in `src/**/*.test.ts` and `apps/*/tests/**/*.test.ts` | < 30 s |
-| Smoke | `pnpm t:smoke` | Real-app scenarios tagged `smoke` (one or two per area), sharing launches | about 1 min |
+| Smoke | `pnpm t:smoke` (or `pnpm t:smoke layout` for one area) | Real-app scenarios tagged `smoke` (one or two per area), sharing launches | about 1 min |
 | Full | `pnpm t:full` | Every functional scenario (`sNN`), keeps going after failures | a few min |
 | Perf | `pnpm t:perf` | `pNN` performance scenarios; results in `tests/e2e/results/perf-*.json` | about 10 min |
 | Account | `pnpm t:account` | Scenarios needing a signed-in profile (`E2E_PROFILE=signed-in`) | — |
@@ -37,6 +37,11 @@ node tests/e2e/run.ts --login        # sign in once on the bench's signed-in pro
 These commands use the existing `out/` build. Run `pnpm --filter ytmdesktop2 build:cached`
 first after code changes.
 
+**Bench runs are silent.** The app's sound is muted at the webContents level, so `video.muted`
+checks still work. Perf runs (`--perf`) stay audible, because Chromium treats audible pages
+differently in the background. `E2E_AUDIBLE=1` turns sound on. The test track (`TRACK_URL`) is
+an official music video, so YouTube Music opens it in **Video** mode.
+
 **When something fails:** the run stops (unless you pass `--keep-going`) and saves
 `tests/e2e/results/<id>/youtube.png` plus `app-log-tail.txt`. The temp work folder is kept and
 its path is printed. `tests/e2e/results/last-suite.log` and `last-perf.log` hold the last run.
@@ -60,10 +65,15 @@ A scenario is an object in `tests/e2e/scenarios/<area>.ts`:
 Then add a row to `tests/e2e/checks.ts`, so it appears in `VERIFICATION.md`.
 
 **Rules:**
-- **Only mark `reuse`** when the scenario leaves the app usable. Between shared scenarios the
-  runner restores the window to 1500×800, leaves fullscreen and pauses playback. If the reset
-  finds the app gone, it relaunches.
-- **Don't change settings at runtime** in a `reuse` scenario. Use `launch.settings` instead.
+- **Only mark `reuse`** when the scenario leaves the app usable and doesn't check startup itself.
+  - Between shared scenarios the runner leaves HTML fullscreen, leaves OS fullscreen,
+    unmaximizes, and waits until the window is a normal 1500×800.
+  - It also pauses playback and resets mute and speed.
+  - It doesn't navigate: scenarios load what they need, and `play()` loads the test track.
+  - If the app is gone, the runner relaunches.
+- **Don't change settings at runtime** in a `reuse` scenario. Use `launch.settings` instead. The
+  runner compares settings with how they were right after launch and relaunches if they changed,
+  so a leak costs time, not correctness.
 - **Use `play(t)`** from `lib/perf.ts` to start the test track. It skips pre-roll ads.
 - **Use the mock server for third-party APIs**, never the real ones with real keys:
   ```ts
@@ -71,7 +81,10 @@ Then add a row to `tests/e2e/checks.ts`, so it appears in `VERIFICATION.md`.
   mock.on("GET", "/2.0/", (r) => ({ json: { … } }));
   await launchApp({ env: { YTMD_E2E_API_LASTFM: mock.url } });
   ```
-  The app reads the override through `src/shared/e2e/apiBase.ts`, only when `YTMD_E2E=1`.
+  The helper `src/shared/e2e/apiBase.ts` returns the override, only when `YTMD_E2E=1`.
+  **Each API client must call `apiBase(name, defaultUrl)` to build its URLs;** none do yet, and
+  phase B wires Last.fm first.
+  - It reads `process.env`, so call it in the main process or a preload, not in the page world.
 - **The bench only kills processes it started.** If a port (9361/9362) is busy, it stops and
   tells you; close the stale app yourself.
 

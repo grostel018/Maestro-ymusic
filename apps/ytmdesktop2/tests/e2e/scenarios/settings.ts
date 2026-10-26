@@ -7,6 +7,7 @@ type Seen = { hideUpsells: unknown; glass: unknown; blur: unknown; volume: unkno
 export const scenarios: Scenario[] = [
 	{
 		id: "s13",
+		smoke: true,
 		title: "Seeded settings survive startup migrations",
 		launch: { settings: {
 			adblock: { enabled: true, network: true, prune: true, fallback: true, hideUpsells: false, stats: { total: 0 } },

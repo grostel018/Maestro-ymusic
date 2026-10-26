@@ -59,6 +59,8 @@ export type LaunchOptions = {
 	/** `false` launches without `--user-data-dir` (the app picks its own folder); isolate it with `env.YTMD_E2E_APPDATA`. */
 	userDataFlag?: boolean;
 	env?: Record<string, string>;
+	/** Keep the app's sound on (perf runs). Default: muted, so bench runs are silent. */
+	audible?: boolean;
 };
 
 let workDir: string | null = null;
@@ -248,6 +250,15 @@ export async function launchApp(opts: LaunchOptions = {}): Promise<TestApp> {
 			30000,
 			"the test hooks (__YTMD_TEST__)",
 		);
+		// Silence the app (whole webContents, so `video.muted` checks are unaffected). Perf runs stay audible:
+		// Chromium treats audible pages differently in the background. E2E_AUDIBLE=1 turns sound back on.
+		if (!opts.audible && process.env.E2E_AUDIBLE !== "1") {
+			await app.mainEval(`(() => {
+				const { app: a, webContents } = process.mainModule.require("electron");
+				for (const wc of webContents.getAllWebContents()) wc.setAudioMuted(true);
+				a.on("web-contents-created", (_e, wc) => wc.setAudioMuted(true));
+			})()`);
+		}
 	} catch (e) {
 		await app.close();
 		throw e;

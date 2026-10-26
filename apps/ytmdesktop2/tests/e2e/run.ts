@@ -10,7 +10,7 @@ import { APP_DIR, createWorkDir, ELECTRON, gpuInfo, launchApp, type Scenario, ty
 import { perfFile } from "./lib/perf.ts";
 import { launchOptionsOf, planGroups, selectScenarios } from "./lib/plan.ts";
 import { SIGNED_IN_PROFILE, useSignedInProfile, writeSettings } from "./lib/profile.ts";
-import { resetApp } from "./lib/session.ts";
+import { resetApp, settingsFingerprint } from "./lib/session.ts";
 import { scenarios as adblock } from "./scenarios/adblock.ts";
 import { scenarios as background } from "./scenarios/background.ts";
 import { scenarios as boot } from "./scenarios/boot.ts";
@@ -49,11 +49,15 @@ function log(...parts: unknown[]) {
 	fs.appendFileSync(LOG, `${line}\n`);
 }
 const secs = (ms: number) => `${(ms / 1000).toFixed(1)}s`;
+/** The app the runner currently has open, so a runner crash can still close it (it owns the debug ports). */
+let current: TestApp | null = null;
 // runner bugs and unhandled errors land in the log too, not only on the console
 for (const event of ["uncaughtException", "unhandledRejection"] as const) {
 	process.on(event, (e: unknown) => {
 		log(`ERROR ${event}: ${e instanceof Error ? (e.stack ?? e.message) : String(e)}`);
-		process.exit(1);
+		const app = current;
+		current = null;
+		void Promise.race([app?.close() ?? Promise.resolve(), new Promise((r) => setTimeout(r, 6000))]).finally(() => process.exit(1));
 	});
 }
 
@@ -66,13 +70,15 @@ if (flag("login")) {
 	process.exit(0);
 }
 
-const ids = args.filter((a, i) => !a.startsWith("--") && args[i - 1] !== "--area");
+// bare words: `s12` / `p4` are scenario ids, anything else is an area (so `pnpm t:smoke layout` works)
+const words = args.filter((a, i) => !a.startsWith("--") && args[i - 1] !== "--area");
+const ids = words.filter((w) => /^[sp]\d+[a-z]?$/i.test(w));
 let selected: Scenario[];
 try {
 	selected = selectScenarios(flag("perf") ? PERF : FUNCTIONAL, {
 		ids,
 		smoke: flag("smoke"),
-		areas: optionValues("area"),
+		areas: [...optionValues("area"), ...words.filter((w) => !ids.includes(w))],
 		account: flag("account") || useSignedInProfile(),
 	});
 } catch (e) {
@@ -95,28 +101,52 @@ let failed = 0;
 let skipped = 0;
 let gpuLogged = false;
 
+/** The newest electron-N.log in the work folder (covers launches that failed before a TestApp existed). */
+function newestAppLog(): string | null {
+	const logs = fs
+		.readdirSync(workDir)
+		.filter((n) => /^electron-\d+\.log$/.test(n))
+		.map((n) => path.join(workDir, n));
+	return logs.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs)[0] ?? null;
+}
+
 /** Screenshot + the tail of the app log for a failed scenario, in results/<id>/. */
 async function saveFailure(s: Scenario, t: TestApp | null) {
 	const dir = path.join(RESULTS, s.id);
 	fs.rmSync(dir, { recursive: true, force: true });
 	fs.mkdirSync(dir, { recursive: true });
-	if (!t) return;
-	try {
-		await (await t.view("youtube")).screenshot(path.join(dir, "youtube.png"));
-	} catch (err) {
-		log(`  no screenshot: ${(err as Error).message}`);
+	if (t) {
+		try {
+			const yt = await t.view("youtube");
+			await yt.screenshot(path.join(dir, "youtube.png"));
+		} catch (err) {
+			log(`  no screenshot: ${(err as Error).message}`);
+		}
 	}
+	const logFile = t?.logFile ?? newestAppLog();
 	try {
-		const tail = fs.readFileSync(t.logFile, "utf8").split(/\r?\n/).slice(-200).join("\n");
-		fs.writeFileSync(path.join(dir, "app-log-tail.txt"), tail);
+		if (logFile) fs.writeFileSync(path.join(dir, "app-log-tail.txt"), fs.readFileSync(logFile, "utf8").split(/\r?\n/).slice(-200).join("\n"));
 	} catch {
 		// no log yet
 	}
 	log(`  details: ${dir}`);
 }
 
+async function launch(s: Scenario): Promise<TestApp> {
+	const app = await launchApp({ ...launchOptionsOf(s), audible: flag("perf") });
+	current = app;
+	return app;
+}
+
+async function closeApp(t: TestApp | null) {
+	if (current === t) current = null;
+	await t?.close();
+}
+
 outer: for (const g of groups) {
 	let t: TestApp | null = null;
+	/** settings right after this group's launch; a reuse scenario that changes them triggers a relaunch */
+	let baseline: string | null = null;
 	try {
 		for (const [i, s] of g.scenarios.entries()) {
 			if (s.account && !useSignedInProfile()) {
@@ -126,21 +156,25 @@ outer: for (const g of groups) {
 			}
 			const t0 = Date.now();
 			try {
+				if (t && i > 0) {
+					try {
+						const changed = baseline !== null && (await settingsFingerprint(t)) !== baseline;
+						if (changed) throw new Error("the previous scenario changed settings");
+						await resetApp(t);
+					} catch (e) {
+						// e.g. the previous scenario quit the app or changed settings: relaunch instead of leaking state
+						log(`  reset: ${(e as Error).message}, relaunching`);
+						await closeApp(t);
+						t = null;
+					}
+				}
 				if (!t) {
-					t = await launchApp(launchOptionsOf(s));
+					t = await launch(s);
+					baseline = g.scenarios.length > 1 ? await settingsFingerprint(t) : null;
 					log(`  launched in ${secs(Date.now() - t0)}${g.scenarios.length > 1 ? ` (shared by ${g.scenarios.length})` : ""}`);
 					if (!gpuLogged) {
 						gpuLogged = true;
 						log(`GPU: ${await gpuInfo().catch((e: Error) => `unknown (${e.message})`)}`);
-					}
-				} else if (i > 0) {
-					try {
-						await resetApp(t);
-					} catch (e) {
-						// e.g. the previous scenario quit the app: relaunch instead of failing this one
-						log(`  reset failed (${(e as Error).message}), relaunching`);
-						await t.close();
-						t = await launchApp(launchOptionsOf(s));
 					}
 				}
 				const t1 = Date.now();
@@ -152,13 +186,13 @@ outer: for (const g of groups) {
 				log(`FAIL ${s.id} ${s.title}: ${(e as Error).message}`);
 				await saveFailure(s, t);
 				// the app's state is unknown after a failure: the rest of the group gets a fresh launch
-				await t?.close();
+				await closeApp(t);
 				t = null;
 				if (!keepGoing) break outer;
 			}
 		}
 	} finally {
-		await t?.close();
+		await closeApp(t);
 	}
 }
 

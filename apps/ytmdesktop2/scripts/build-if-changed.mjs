@@ -9,7 +9,19 @@ import { fileURLToPath } from "node:url";
 
 const APP = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const HASH_FILE = path.join(APP, "out", ".build-hash");
-const INPUTS = ["src", "electron.vite.config.ts", "package.json", ".env.local", "tsconfig.json", "tsconfig.node.json", "tsconfig.web.json"];
+const INPUTS = [
+	"src",
+	"vite-plugins", // sidecar builds (world-0 host, embeds)
+	"build", // icons/images imported with ?asset
+	"electron.vite.config.ts",
+	"tsr.config.json",
+	"package.json",
+	"../../pnpm-lock.yaml", // a lockfile-only dependency bump changes the bundle
+	".env.local",
+	"tsconfig.json",
+	"tsconfig.node.json",
+	"tsconfig.web.json",
+];
 // written by the build itself, so they must not count as inputs
 const GENERATED = [/\.generated\.[^/\\]+$/, /routeTree\.gen\.ts$/, /[/\\]preload[/\\]generated[/\\]/];
 
@@ -52,5 +64,8 @@ if (r.status !== 0) {
 	console.error("build: FAILED");
 	process.exit(r.status ?? 1);
 }
-fs.writeFileSync(HASH_FILE, inputHash());
+// Record the inputs the build actually started from. If files changed while it ran, don't claim them as
+// built: leave the hash stale so the next run builds again.
+if (inputHash() === before) fs.writeFileSync(HASH_FILE, before);
+else console.warn("build: inputs changed during the build; the next run will build again");
 console.log(`build: done in ${((Date.now() - t0) / 1000).toFixed(1)}s`);

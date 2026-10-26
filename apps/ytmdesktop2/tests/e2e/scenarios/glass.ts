@@ -25,20 +25,12 @@ const PROBE = `(() => {
 	return { bigBackdrop, before };
 })()`;
 
-/**
- * A seeded settings file has no store version, so the old migrations run and switch the thumbnail background and
- * blur off. A brand-new install defaults both on; set that state (plus `glass`) through the settings service.
- */
-async function setThemes(t: TestApp, glass: boolean) {
-	await t.mainEval(`(async () => {
-		const s = __YTMD_TEST__.services.getProvider("settings");
-		s.set("themes.thumbnailBackground", true); s.set("themes.blur", true); s.set("themes.glass", ${glass});
-	})()`);
-}
+/** Seeded at launch (seeded settings survive startup), so nothing changes while the page loads. */
+const themes = (glass: boolean) => ({
+	settings: { themes: { enabled: true, selected: "default", customFile: null, watching: false, thumbnailBackground: true, blur: true, glass } },
+});
 
-async function onPlayerPage(t: TestApp, glass: boolean): Promise<CdpSession> {
-	await waitFor(async () => (await t.mainEval<boolean>("!!globalThis.__YTMD_TEST__?.getMainWindow()?.views?.youtubeView")) || false, 60000, "the test hooks and main window");
-	await setThemes(t, glass);
+async function onPlayerPage(t: TestApp): Promise<CdpSession> {
 	await play(t);
 	const yt = await t.view("youtube");
 	await waitFor(async () => (await yt.eval<boolean>("!!document.querySelector('.content.ytmusic-player-page')")) || false, 30000, "the player page content");
@@ -50,9 +42,11 @@ const probe = (yt: CdpSession) => yt.eval<Probe>(PROBE);
 export const scenarios: Scenario[] = [
 	{
 		id: "s4",
+		smoke: true,
 		title: "Artwork background is a pre-blurred image; no full-page glass by default",
+		launch: themes(false),
 		run: async (t) => {
-			const yt = await onPlayerPage(t, false);
+			const yt = await onPlayerPage(t);
 			const p = await waitFor(
 				async () => {
 					const r = await probe(yt);
@@ -63,14 +57,25 @@ export const scenarios: Scenario[] = [
 			);
 			if (p.before?.filter.includes("blur")) throw new Error(`::before filter still blurs: ${p.before.filter}`);
 			if (p.bigBackdrop.length) throw new Error(`full-page backdrop-filter without glass: ${p.bigBackdrop.join(", ")}`);
+			if (await glassInjected(t)) throw new Error("the glass layer is injected although themes.glass is off");
 		},
 	},
 	{
 		id: "s4b",
-		title: "themes.glass restores the full-page backdrop-filter",
+		title: "themes.glass injects the full-page glass stylesheet",
+		launch: themes(true),
 		run: async (t) => {
-			const yt = await onPlayerPage(t, true);
-			await waitFor(async () => ((await probe(yt)).bigBackdrop.length > 0) || false, 30000, "a full-page backdrop-filter with themes.glass");
+			await onPlayerPage(t);
+			await waitFor(async () => (await glassInjected(t)) || false, 30000, "the theme service to inject the glass layer");
 		},
 	},
 ];
+
+/**
+ * Whether the theme service has the glass layer injected into the YouTube view. Asked in the main process:
+ * webContents.insertCSS sheets are not visible in document.styleSheets, and YouTube's Video mode overrides the
+ * glass layer's computed style, so the page cannot answer this reliably.
+ */
+function glassInjected(t: TestApp): Promise<boolean> {
+	return t.mainEval<boolean>(`!!__YTMD_TEST__.services.getProvider("themes").injector?.has("glass")`);
+}

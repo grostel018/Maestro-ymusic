@@ -19,7 +19,7 @@ Before you change anything, read these in order:
   and get one review at the end of the phase.
 - **Test in tiers.**
   - After each edit: `pnpm t:unit`.
-  - After each task: `pnpm t:smoke` (or `node tests/e2e/run.ts --area <x>`).
+  - After each task: `pnpm t:smoke` (or `pnpm t:smoke <area>`, e.g. `pnpm t:smoke adblock`).
   - Only at the end of a phase: `pnpm t:full` and `pnpm t:perf`.
 - **Definition of done** (roadmap §1.3):
   - can be switched off,

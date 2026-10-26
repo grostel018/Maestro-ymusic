@@ -31,6 +31,7 @@ let upstreamBefore: Array<string | null> = [];
 export const scenarios: Scenario[] = [
 	{
 		id: "s15",
+		smoke: true,
 		title: "Without --user-data-dir the settings and credential stores land in the fork's own folder",
 		launch: () => {
 			appData = path.join(getWorkDir(), "appdata");

@@ -6,7 +6,6 @@ export const scenarios: Scenario[] = [
 	{
 		id: "s1",
 		smoke: true,
-		reuse: true,
 		title: "Boots into music.youtube.com on an isolated profile",
 		run: async (t) => {
 			await waitFor(async () => (await listTargets(PORTS.cdp)).find((x) => x.url.startsWith("https://music.youtube.com/")) ?? false, 60000, "a music.youtube.com target");
