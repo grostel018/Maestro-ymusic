@@ -17,18 +17,19 @@ Before you change anything, read these in order:
   header), don't rebuild.
 - **Work phase by phase.** Write a short plan (4–6 tasks) from the roadmap, build it in order,
   and get one review at the end of the phase.
-- **Test in tiers.**
-  - After each edit: `pnpm t:unit`.
-  - After each task: `pnpm t:smoke` (or `pnpm t:smoke <area>`, e.g. `pnpm t:smoke adblock`).
-  - Only at the end of a phase: `pnpm t:full` and `pnpm t:perf`.
+- **Test once, at the end** (owner rule, 2026-10-27).
+  - While building: `pnpm t:unit` and the typecheck only. Don't launch the app.
+  - At the end of the phase: `pnpm t:smoke`, once (about 3–5 min). Fix what fails and rerun only the
+    failing scenario.
+  - `pnpm t:full` and `pnpm t:perf` run only when the owner asks.
 - **Definition of done** (roadmap §1.3):
   - can be switched off,
   - settings + migration,
   - unit tests,
-  - a bench scenario + a `checks.ts` row,
+  - at most one smoke scenario for the phase's main path (not one per feature or button),
   - `docs/features/<name>.md`,
   - a `docs/REUSE.md` entry,
-  - no performance regression.
+  - performance is checked later, when the owner asks.
 - **Never break** (roadmap §1.4):
   - playback never stalls or goes silent,
   - startup never waits more than 3 s on the network,

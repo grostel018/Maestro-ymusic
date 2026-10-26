@@ -1,7 +1,14 @@
 # Testing
 
-Four tiers, from seconds to minutes. Run the smallest one that covers your change. The full and
-perf suites run once, at the end of a phase.
+**The rule (owner, 2026-10-27): one app run per phase.**
+- While building: `pnpm t:unit` and the typecheck. Don't launch the app.
+- At the end of the phase: `pnpm t:smoke`, once (3–5 min). If something fails, fix it and rerun only
+  that scenario (`node tests/e2e/run.ts sNN`).
+- `pnpm t:full` and `pnpm t:perf` run only when the owner asks.
+- A phase adds at most one smoke scenario, for its main path. Don't write a scenario per feature or
+  per button; pure logic gets unit tests instead.
+
+The tiers below are what exists.
 
 | Tier | Command (repo root) | What runs | Typical time |
 |---|---|---|---|

@@ -63,8 +63,10 @@ switched off. Everything is documented so others can collaborate.
 - **One review per phase.** The strongest model reviews the whole phase diff once, then there's
   one fix wave.
 - **Short phase plans:** 4–6 tasks each, written from this roadmap in under 15 minutes.
-- **Tiered testing** (§2). Each task runs unit tests plus the smoke tests for its own area. The
-  full suite and the performance suite run once, at the end of the phase.
+- **Test once, at the end** (owner rule, 2026-10-27, replaces the per-task tiers). While building,
+  run unit tests and the typecheck only, and don't launch the app. At the end of the phase, run
+  `pnpm t:smoke` once (3–5 min); fix failures by rerunning only the failing scenario. The full and
+  perf suites run only when the owner asks. Trust the code: test the main path, not every button.
 - **Small Conventional Commits** per task (`feat(eq): …`) with the Biome hook on. Upstream
   conventions still apply: see the `follow-upstream-contribution-policy` memory.
 
@@ -76,14 +78,14 @@ A feature is done only when all of these hold:
    lazily and stop when hidden.
 2. **The settings UI exists** (a page or a section), and each new settings key has a migration.
 3. **Pure logic has unit tests** (vitest).
-4. **At least one smoke scenario** in the bench proves the feature in the real app.
+4. **The phase's main path is in the smoke set.** At most one new smoke scenario per phase, covering
+   what the phase is for. No scenario per feature or per button.
 5. **`docs/features/<feature>.md`** exists: what it does, settings, source, limits, and how to
    test it.
 6. **`docs/REUSE.md`** has an entry: the source repo, SHA, license and what was ported.
-7. **A `VERIFICATION.md` row** is added (in `tests/e2e/checks.ts`), and the item moves to Done
-   in `IMPROVEMENTS.md`.
-8. **The phase-end performance run** shows no regression beyond the §8 budgets in the design
-   doc.
+7. **The item moves to Done** in `IMPROVEMENTS.md` (and a `checks.ts` row when the phase adds a
+   scenario).
+8. **Performance** is not measured per phase for now; the owner asks for a perf pass when wanted.
 
 ### 1.4 Never-break rules (from the design's anti-goals)
 
@@ -140,7 +142,8 @@ How it gets fast:
    - `tests/e2e/mocks/*.ts`, served by one tiny Node HTTP server.
    - The app reads base URLs from `YTMD_E2E_API_<NAME>` only when `YTMD_E2E=1`.
    - Tests become deterministic and need no keys.
-8. **Agents run smoke, not full.** An implementer never runs the full or perf suite mid-phase.
+8. **One app run per phase** (2026-10-27): `t:smoke` at the end only; `t:full` and `t:perf` on the
+   owner's request.
 
 `docs/TESTING.md` documents all of this. It replaces the scattered notes.
 
@@ -235,7 +238,7 @@ Non-reuse (we build it, because no good source exists):
 | C2 | **YouTube-grade video controls** (done 2026-10-26, see `docs/superpowers/plans/2026-10-26-phase-c2-c4.md`) | 1st choice: **re-enable YouTube's own control bar** (`.ytp-chrome-bottom` inside `#movie_player`, hidden by YTM CSS); a 10-minute probe decides. Else port Pear `quality-changer`, `captions-selector`, `playback-speed`, `picture-in-picture`. | Controls:<br>• Quality (up to the stream maximum, remembers the `player.res` preference).<br>• Speed 0.25–2× plus custom.<br>• Captions with language selection.<br>• Loop.<br>• Picture-in-picture.<br>• Theater mode (fills the window).<br>• Fullscreen (the phase-1 HTML fullscreen path).<br><br>YouTube's keyboard shortcuts:<br>• `k` / space play/pause, `j` / `l` ±10 s, ← / → ±5 s.<br>• `,` / `.` frame step, `<` / `>` speed, `0–9` seek.<br>• `f` fullscreen, `m` mute, `c` captions, `i` picture-in-picture, `t` theater.<br>• Active only while the player is focused, so they don't clash with global shortcuts. | Unit: shortcut map; smoke: set 0.5× and 1080p (where available), captions on, PiP opens and closes, keys work |
 | C3 | **Audio output device selector** | Pear `custom-output-device` (MIT) | Behavior:<br>• Device list via `enumerateDevices`, with labels.<br>• Main grants the `media` permission only to the app's own pages with `setPermissionRequestHandler`, so no microphone prompt appears and nothing records.<br>• Applied with `AudioContext.setSinkId` (via the engine, D1), or `HTMLMediaElement.setSinkId` when the engine is off.<br>• Hot-plug updates the list.<br>• Falls back to the default device if the chosen one disappears, with a toast. | Unit: fallback logic; smoke: list non-empty, switching to "default" keeps playing |
 | C4 | **Speed and keep-pitch** | Pear `playback-speed` | The speed control also works in audio mode. "Keep pitch" maps to `preservesPitch`. (Real pitch shift comes in D6.) | Smoke: 1.25× keeps playing; pitch toggle flips `preservesPitch` |
-| C5 | **Phase review** | — | Full + perf. Perf watch: audio-mode CPU, video-mode p95. | |
+| C5 | **Phase review** | — | Smoke once (rule 2026-10-27) | |
 
 ---
 
@@ -294,7 +297,7 @@ AudioWorklet, crossfade as fade out/in, AutoEq fetched by main, Butterchurn to t
 | E1 | **Theme engine** | spicetify-themes palettes (MIT), Metrolist palette *ideas* | Design doc §6 phase 3, unchanged:<br>• Modes: light, dark, black, dynamic.<br>• Tokens become CSS variables in both the YouTube page and the React views.<br>• About 20 presets.<br>• Accent picker.<br>• Font.<br>• Corner radius.<br>• Density.<br>• `.ytmdtheme.json` import / export.<br>• Custom SCSS on top. | Unit: token compiler; smoke: switch preset → page and toolbar colors match |
 | E2 | **Blurred song / video background** | Pear `ambient-mode` (MIT), our phase-1 pre-blurred artwork, Pear `album-color-theme` + fast-average-color | Three background modes:<br>• **Artwork** (existing cheap blur).<br>• **Video ambient:** a canvas sampled from the video at **4 fps**, downscaled to 32 px, blurred once, cross-faded; paused when hidden or in audio mode.<br>• **Dynamic color** gradient from the dominant colors. | Perf: ambient on → p95 within budget, CPU delta < 2% |
 | E3 | **Apple-style top bar** | Built (existing React toolbar) | Design doc §6 phase 3:<br>• Centered "LCD" now-playing pill.<br>• Back / forward and search.<br>• Window controls. | Smoke: pill shows the current track, click opens Now Playing (F1) |
-| E4 | **Phase review** | — | Full + perf | |
+| E4 | **Phase review** | — | Smoke once (rule 2026-10-27) | |
 
 ---
 
@@ -308,7 +311,7 @@ AudioWorklet, crossfade as fade out/in, AutoEq fetched by main, Butterchurn to t
 | F4 | **YouTube comments** | `youtubei.js` (MIT) | Fetching:<br>• Uses `Innertube.getComments(videoId)`.<br>• Top comments, sorted Top / Newest, replies on expand, "load more" paging.<br>• Read-only in v1 (posting needs extra auth, so it goes to the backlog).<br>• Fetched only when the Comments tab opens. Cached for 1 h. | Unit: comment mapper on fixtures; smoke: tab shows ≥ 1 comment for the test video |
 | F5 | **Queue panel + mini player** | Existing `navigation` service; Pear `album-actions` ideas | Queue panel:<br>• Drag reorder, remove, play next (new page commands on YTM's queue store).<br><br>Mini player:<br>• The existing `trayView` with artwork background, always-on-top option. | Smoke: reorder reflected in YTM queue |
 | F6 | **Full-screen karaoke mode** (owner request 2026-10-26) | F1 view + F2 lyrics + D6 vocal reduction; Apple Music "Sing" as the model | Opened from Now Playing or with `K`:<br>• Fullscreen, lyrics only: huge current line with word fill, next line dimmed, artwork background (E2).<br>• Vocal slider (D6) in a small overlay that hides after 3 s; pitch control when D3's SoundTouch lands.<br>• Countdown dots before the first line and in instrumental gaps.<br>• Falls back to line-synced (or plain scrolling) lyrics when a provider has no word timing.<br>• Esc leaves; playback never pauses. | Smoke: enter/exit keeps playing, current line advances; perf: fullscreen frame time within p8 |
-| F7 | **Phase review** | — | Full + perf (p8 Now Playing) | |
+| F7 | **Phase review** | — | Smoke once (rule 2026-10-27) | |
 
 ---
 
