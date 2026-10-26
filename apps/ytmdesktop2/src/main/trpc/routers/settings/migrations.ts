@@ -224,6 +224,12 @@ const migrations: Omit<Migration<SettingsStore>, "version">[] = [
 			migrateThemesBackground(store as never);
 		},
 	},
+	{
+		hook(store) {
+			const mode = (store.store as { player?: { videoMode?: unknown } })?.player?.videoMode;
+			if (mode !== "video" && mode !== "audio") store.set("player.videoMode", "video");
+		},
+	},
 ];
 
 export default migrations;

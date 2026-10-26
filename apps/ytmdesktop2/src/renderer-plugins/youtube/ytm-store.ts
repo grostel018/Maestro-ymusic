@@ -9,6 +9,10 @@ export type YtmStoreLike = {
 			shuffleEnabled?: boolean;
 			repeatMode?: string;
 			queueContextParams?: string;
+			/** "OMV_PREFERRED" (music videos) or "ATV_PREFERRED" (songs); see video-mode. */
+			playbackContentMode?: string;
+			/** "Up next" autoplay entries, kept apart from `items`. */
+			automixItems?: unknown[];
 		};
 		likeStatus?: {
 			videos?: Record<string, YtmLikeStatusCode | string>;

@@ -18,6 +18,7 @@ import { scenarios as boot } from "./scenarios/boot.ts";
 import { scenarios as surface } from "./scenarios/surface.ts";
 import { scenarios as layout } from "./scenarios/layout.ts";
 import { scenarios as perf } from "./scenarios/perf.ts";
+import { scenarios as playback } from "./scenarios/playback.ts";
 import { scenarios as profile } from "./scenarios/profile.ts";
 import { scenarios as settings } from "./scenarios/settings.ts";
 
@@ -38,6 +39,7 @@ const FUNCTIONAL: Scenario[] = [
 	...withArea("settings", settings),
 	...withArea("adblock", adblock),
 	...withArea("auth", auth),
+	...withArea("playback", playback),
 ];
 const PERF = withArea("perf", perf);
 

@@ -25,7 +25,7 @@ function playlistBrowseId(playlistId: string): string {
 	return `VL${id}`;
 }
 
-function dispatchYtNavigate(endpoint: Record<string, unknown>): void {
+export function dispatchYtNavigate(endpoint: Record<string, unknown>): void {
 	// Upstream (ytmdesktop) only fires this event - do not also call ytmusic-app.navigate().
 	// Dual dispatch starts playback but clears main content (empty page behind player).
 	document.dispatchEvent(

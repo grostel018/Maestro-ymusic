@@ -73,6 +73,8 @@ const defaultSettings = {
 		deepLinkOpen: "ask" as "ask" | "play",
 		/** Rewrite YTM “Copy link” clipboard URLs to `ytmd://` */
 		replaceShareLinks: true,
+		/** Song (audio) or music video; flipped by the Song/Video switch, the player-bar button or `V`. */
+		videoMode: "video" as "video" | "audio",
 		/** Native YTM Cast via in-app chrome.cast shim. Off until restart. */
 		chromecastEnabled: false,
 		res: {

@@ -52,3 +52,4 @@ license duties stay clear.
 |---|---|---|---|
 | `src/main/trpc/routers/lastfm/service.ts` (`openAuthWindow`) | Approach of pear-desktop@7c55260:`src/plugins/scrobbler/services/lastfm.ts` (`authenticate`) | MIT | Pattern only, not code: in-app approval window instead of browser + callback; we kept our existing client and its polling |
 | `src/main/auth/firefoxCookies.ts` | Approach of yt-dlp `--cookies-from-browser` (Firefox: copy `cookies.sqlite`, read `moz_cookies`); no code ported, so no pinned commit | Unlicense | Written for Node's built-in SQLite, YouTube/Google cookies only, Electron cookie mapping |
+| `src/renderer-plugins/youtube/video-mode.logic.ts` / `video-mode.renderer.ts` | Approach of pear-desktop@7c55260:`src/plugins/video-toggle` | MIT | Pattern only: cover instead of video when there's no song version. Added: YTM's own song/video twin swap, its queue playback mode, our switch in YTM's hidden slot, a player-bar button, `V` |
