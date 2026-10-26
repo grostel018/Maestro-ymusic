@@ -326,11 +326,22 @@ export class WindowManager {
 		if (!this.mainWindow || !this.views) return;
 		// synchronous on purpose: a debounced layout lets the views trail the window by several frames
 		const layout = () => this.applyLayout();
+		// Windows can settle a frameless window's content size after the state event without another
+		// "resize" (seen: maximized content 1032 px tall, views laid out for 1030). Re-apply shortly after;
+		// re-applying identical bounds is a no-op.
+		let settleTimers: NodeJS.Timeout[] = [];
+		const layoutAndSettle = () => {
+			layout();
+			for (const t of settleTimers) clearTimeout(t);
+			settleTimers = [setTimeout(layout, 50), setTimeout(layout, 250)];
+		};
 		this.mainWindow.on("resize", layout);
-		this.mainWindow.on("maximize", layout);
-		this.mainWindow.on("unmaximize", layout);
-		this.mainWindow.on("enter-full-screen", layout);
-		this.mainWindow.on("leave-full-screen", layout);
+		this.mainWindow.on("resized", layoutAndSettle);
+		this.mainWindow.on("maximize", layoutAndSettle);
+		this.mainWindow.on("unmaximize", layoutAndSettle);
+		this.mainWindow.on("enter-full-screen", layoutAndSettle);
+		this.mainWindow.on("leave-full-screen", layoutAndSettle);
+		this.mainWindow.once("closed", () => settleTimers.forEach(clearTimeout));
 	}
 	private computeBounds() {
 		const [width, height] = this.mainWindow?.getContentSize() ?? [0, 0];
