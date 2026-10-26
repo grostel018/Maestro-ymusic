@@ -36,11 +36,20 @@ export interface RankedLrcLibHit {
 	durationDelta: number;
 }
 
+/** LRCLib answers 503/429 under load; one short retry turns most of those into hits instead of "no lyrics". */
+export const LRCLIB_RETRY_MS = 800;
+
 async function searchApi(params: URLSearchParams, signal?: AbortSignal): Promise<LrcLibHit[]> {
-	const { data, error } = await lrclibFetch<LrcLibHit[]>("/api/search", {
-		query: Object.fromEntries(params),
-		...(signal ? { signal } : {}),
-	});
+	const request = () =>
+		lrclibFetch<LrcLibHit[]>("/api/search", {
+			query: Object.fromEntries(params),
+			...(signal ? { signal } : {}),
+		});
+	let { data, error } = await request();
+	if (error && (error.status === 429 || error.status >= 500) && !signal?.aborted) {
+		await new Promise((resolve) => setTimeout(resolve, LRCLIB_RETRY_MS));
+		({ data, error } = await request());
+	}
 	if (error) throw new Error(`LRCLib HTTP ${error.status}`);
 	if (!Array.isArray(data)) throw new Error("LRCLib: expected array");
 	return data;

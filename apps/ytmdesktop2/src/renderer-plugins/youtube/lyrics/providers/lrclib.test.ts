@@ -60,6 +60,14 @@ describe("searchLrcLib sync level", () => {
 		expect(result).toMatchObject({ provider: "lrclib", syncLevel: "line", hasWordSync: false });
 	});
 
+	it("retries once when LRCLib is overloaded (503)", async () => {
+		fetchMock.mockResolvedValueOnce(new Response("busy", { status: 503 }));
+		respond("[00:01.00] hello");
+		const result = await searchLrcLib(info, { showEvenIfInexact: true });
+		expect(result).toMatchObject({ provider: "lrclib", syncLevel: "line" });
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
 	it("exposes word sync when LRCLib returns enhanced LRC", async () => {
 		respond("[00:01.00] <00:01.00>hello <00:01.50>big <00:01.80>world\n[00:02.00] plain");
 		const result = await searchLrcLib(info, { showEvenIfInexact: true });

@@ -1,3 +1,4 @@
+import { cleanTrackForSearch } from "../normalize";
 import type { LyricResult, LyricsMissReason, TrackSearchInfo } from "../types";
 import { searchBetterLyrics } from "./better-lyrics";
 import { CURRENT_VIDEO_ONLY_PROVIDERS, enabledLyricsProviderIds, type LyricsProviderId } from "./catalog";
@@ -77,6 +78,7 @@ export async function searchLyricsDetailed(
 	options: LyricsSearchOptions,
 ): Promise<LyricsSearchOutcome> {
 	const order = enabledLyricsProviderIds(options.providers);
+	info = cleanTrackForSearch(info);
 	const outcome: LyricsSearchOutcome = { result: null };
 	let timedFallback: LyricResult | null = null;
 	let plainFallback: LyricResult | null = null;
