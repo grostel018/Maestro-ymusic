@@ -44,6 +44,10 @@ your password at all.
   - `s18`: import, against a fake Firefox profile.
 
 ## Known limits
+- The Firefox import copies your google.com sign-in too, so this app's browser is signed in to
+  your whole Google account (as Firefox is), not only YouTube. The confirmation dialog says so.
+- Pop-ups from the sign-in window stay in the app only for Google/YouTube hosts. Other links open
+  in your default browser, and child windows get no app bridge.
 - The window can't reuse a sign-in from another browser except through the Firefox import. It's
   a separate browser with its own cookies.
 - Google may ask you to confirm it's you after an import.

@@ -197,6 +197,11 @@ export class LastFMClient {
 		return url.toString();
 	}
 
+	/** The session key once connected (set by getSession / tryGetSession). */
+	getSessionKey() {
+		return this.session;
+	}
+
 	getName() {
 		if (!this.session) return null;
 		return this.sessionName;

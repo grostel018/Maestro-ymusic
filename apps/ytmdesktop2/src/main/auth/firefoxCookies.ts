@@ -93,7 +93,8 @@ export function toElectronCookie(row: FirefoxCookieRow, nowSec = Date.now() / 10
 		secure,
 		httpOnly: !!row.isHttpOnly,
 		expirationDate: expiry || undefined,
-		sameSite: row.sameSite === 1 ? "lax" : row.sameSite === 2 ? "strict" : row.sameSite === 0 ? "no_restriction" : "unspecified",
+		// SameSite=None is only valid on Secure cookies; Chromium rejects it otherwise
+		sameSite: row.sameSite === 1 ? "lax" : row.sameSite === 2 ? "strict" : row.sameSite === 0 && secure ? "no_restriction" : "unspecified",
 	};
 	// __Host- cookies and host-only cookies must not carry a Domain attribute
 	if (!hostOnly && !row.name.startsWith("__Host-")) cookie.domain = row.host;

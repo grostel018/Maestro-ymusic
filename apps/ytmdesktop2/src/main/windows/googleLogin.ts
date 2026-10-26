@@ -72,6 +72,7 @@ export async function importGoogleSignInFromFirefox(): Promise<FirefoxImportResu
 		message: `Copy your YouTube / Google sign-in from Firefox ("${profile.name}") into this app?`,
 		detail:
 			"Only youtube.com and google.com cookies are copied, from this computer's Firefox into this app. Nothing is sent anywhere. " +
+			"The google.com cookies sign this app in to your whole Google account (as Firefox is), not only YouTube. " +
 			"Google may ask you to confirm it's you the first time.",
 	};
 	const { response } = parent ? await dialog.showMessageBox(parent, options) : await dialog.showMessageBox(options);
@@ -90,9 +91,13 @@ export async function importGoogleSignInFromFirefox(): Promise<FirefoxImportResu
 		}
 		await session.defaultSession.cookies.flushStore();
 		log.info(`imported ${imported}/${cookies.length} cookies from Firefox profile "${profile.name}"`);
-		active?.reloadAfterImport();
-		const views = (getLifecycleContext().windows as { views?: { youtubeView?: Electron.WebContentsView } } | undefined)?.views;
-		void views?.youtubeView?.webContents.loadURL(defaultUrl).catch(() => undefined);
+		if (active) {
+			// the open sign-in window completes on music.youtube.com and the window manager then reloads YouTube
+			active.reloadAfterImport();
+		} else {
+			const views = (getLifecycleContext().windows as { views?: { youtubeView?: Electron.WebContentsView } } | undefined)?.views;
+			void views?.youtubeView?.webContents.loadURL(defaultUrl).catch(() => undefined);
+		}
 		return { status: "imported", imported, profile: profile.name };
 	} catch (err) {
 		log.error("Firefox sign-in import failed", err);

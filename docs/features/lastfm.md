@@ -19,6 +19,9 @@ The fork uses its **own** Last.fm API account; upstream's key is private to its 
    ```
 3. Rebuild. The keys are baked into the build, so don't share installers built from your folder.
 
+**Without keys** the Last.fm client isn't created. Settings → Last.fm then shows an error state
+and connecting does nothing. A clear "not configured" message is on the backlog.
+
 ## How it works
 1. Connect → `auth.getToken`.
 2. Last.fm's "allow access" page opens **in an app window**. That's the Pear Desktop approach;

@@ -4,7 +4,7 @@ import { getLifecycleContext } from "@main/lifecycle";
 import { classifyGoogleLoginPage, type GoogleLoginIdentity, nextIdentity } from "@shared/auth/googleLogin";
 import { createLogger } from "@shared/utils/console";
 import translations from "@translations/index";
-import { BrowserWindow, BrowserWindowConstructorOptions, ipcMain, WebContentsView, WebContentsViewConstructorOptions, WebPreferences } from "electron";
+import { BrowserWindow, BrowserWindowConstructorOptions, ipcMain, shell, WebContentsView, WebContentsViewConstructorOptions, WebPreferences } from "electron";
 import { join } from "path";
 import appIconPath from "~/build/favicon.ico?asset";
 import { getGoogleLoginState, setActiveGoogleLogin, setGoogleLoginState, userAgentFor } from "./googleLogin";
@@ -134,15 +134,38 @@ export const googleLoginPopup = async (authUrl: string, parent?: Electron.Browse
 	setGoogleLoginState({ phase: "signing-in", identity, rejections: 0 });
 
 	// Google's own pop-ups (account chooser, passkeys, 2FA) stay inside the app: sending them to the default
-	// browser (as before) dropped the user into Firefox, where the sign-in can't reach this app.
-	loginView.webContents.setWindowOpenHandler(({ url }) => {
-		if (!url.startsWith("http")) return { action: "deny" };
+	// browser (as before) dropped the user into Firefox, where the sign-in can't reach this app. Anything else
+	// ("learn more" links, other sites) opens in the default browser. Children get no preload and no relaxed
+	// security, and apply the same rule to their own pop-ups.
+	const isSignInHost = (url: string) => {
+		try {
+			const { protocol, hostname } = new URL(url);
+			return protocol === "https:" && /(^|\.)(google\.[a-z.]+|gstatic\.com|youtube\.com|googleusercontent\.com)$/i.test(hostname);
+		} catch {
+			return false;
+		}
+	};
+	const openHandler = ({ url }: { url: string }): ReturnType<Parameters<Electron.WebContents["setWindowOpenHandler"]>[0]> => {
+		if (!isSignInHost(url)) {
+			if (/^https?:\/\//.test(url)) void shell.openExternal(url);
+			return { action: "deny" };
+		}
 		return {
 			action: "allow",
-			overrideBrowserWindowOptions: { parent: popup, autoHideMenuBar: true, webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true } },
+			overrideBrowserWindowOptions: {
+				parent: popup,
+				autoHideMenuBar: true,
+				webPreferences: { preload: undefined, contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true },
+			},
 		};
+	};
+	loginView.webContents.setWindowOpenHandler(openHandler);
+	loginView.webContents.on("did-create-window", (child, { url }) => {
+		child.webContents.setWindowOpenHandler(openHandler);
+		// the first request may have gone out with the default UA: reload with the identity
+		child.webContents.setUserAgent(userAgentFor(identity));
+		void child.webContents.loadURL(url).catch(() => undefined);
 	});
-	loginView.webContents.on("did-create-window", (child) => child.webContents.setUserAgent(userAgentFor(identity)));
 	if (isDevelopment) {
 		loginView.webContents.openDevTools({ mode: "detach" });
 		noticeView.webContents.openDevTools({ mode: "detach" });
@@ -152,10 +175,12 @@ export const googleLoginPopup = async (authUrl: string, parent?: Electron.Browse
 	const clearGC = () => {
 		timeoutHandler && clearTimeout(timeoutHandler);
 	};
-	ipcMain.once("subwindow.close/loginView", () => {
-		popup.close();
+	const onCloseRequest = () => {
+		if (!popup.isDestroyed()) popup.close();
 		clearGC();
-	});
+	};
+	ipcMain.once("subwindow.close/loginView", onCloseRequest);
+	popup.once("closed", () => ipcMain.removeListener("subwindow.close/loginView", onCloseRequest));
 	const isMusicYoutubeUrl = (url: string) => {
 		try {
 			return new URL(url).hostname.indexOf("music.youtube") === 0;
@@ -163,10 +188,11 @@ export const googleLoginPopup = async (authUrl: string, parent?: Electron.Browse
 			return false;
 		}
 	};
-	return await new Promise<boolean>((resolve, reject) => {
+	return await new Promise<boolean>((resolve) => {
+		// after 10 minutes give up: close the window (resolving false) instead of leaving a live, orphaned one
 		timeoutHandler = setTimeout(
 			() => {
-				reject();
+				if (!popup.isDestroyed()) popup.close();
 			},
 			10 * 60 * 1000,
 		);

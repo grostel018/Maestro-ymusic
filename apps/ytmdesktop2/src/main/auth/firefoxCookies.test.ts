@@ -85,6 +85,9 @@ describe("toElectronCookie", () => {
 		expect(host?.secure).toBe(true);
 		expect(host?.sameSite).toBe("strict");
 	});
+	it("never sends SameSite=None without Secure (Chromium rejects it)", () => {
+		expect(toElectronCookie(row({ isSecure: 0, sameSite: 0 }), now)?.sameSite).toBe("unspecified");
+	});
 	it("skips other sites, expired cookies and nameless rows", () => {
 		expect(toElectronCookie(row({ host: ".example.com" }), now)).toBeNull();
 		expect(toElectronCookie(row({ host: ".notyoutube.com" }), now)).toBeNull();

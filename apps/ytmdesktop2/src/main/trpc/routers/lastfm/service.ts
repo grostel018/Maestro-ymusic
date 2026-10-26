@@ -3,7 +3,6 @@ import { emitAppToast } from "@main/lib/appToast";
 import { stringifyJson } from "@main/lib/json";
 import { LASTFM_KEYTAR_SESSION, LASTFM_KEYTAR_TOKEN } from "@main/lib/keytar";
 import { LastFMClient } from "@main/lib/lastfm";
-import { LASTFM_WEB } from "@main/lib/lastfm/client";
 import secureStore from "@main/lib/secureStore";
 import IPC_EVENT_NAMES from "@shared/constants/eventNames";
 import { lastFmListenKey } from "@shared/track/lastfmTrackSession";
@@ -132,11 +131,19 @@ export default class LastFMProvider extends BaseProvider implements AfterInit, O
 		win.on("closed", () => {
 			if (this.authWindow === win) this.authWindow = null;
 			if (gen !== this.authGen || !this.authProgress || !this.client) return;
-			void this.client.tryGetSession().then((sessionToken) => {
+			const client = this.client;
+			void client.tryGetSession().then((sessionToken) => {
 				if (gen !== this.authGen || !this.authProgress) return;
-				if (sessionToken) void this.finishAuth(sessionToken, gen);
+				// a poll already in flight may have connected the client first: finish, don't cancel
+				const token = sessionToken ?? (client.isConnected() ? client.getSessionKey() : null);
+				if (token) void this.finishAuth(token, gen);
 				else this.cancelAuth("abort");
 			});
+		});
+		// links on Last.fm pages open in the default browser, not in more app windows
+		win.webContents.setWindowOpenHandler(({ url }) => {
+			if (/^https?:\/\//.test(url)) void shell.openExternal(url);
+			return { action: "deny" };
 		});
 		void win.loadURL(url).catch((err) => this.logger.warn("Last.fm auth page failed to load", err));
 	}
@@ -269,9 +276,6 @@ export default class LastFMProvider extends BaseProvider implements AfterInit, O
 		// No callback link: approval is detected by polling auth.getSession, so a `ytmd://` callback that lands
 		// in another installed app (the old "sign in 10 times" loop) can't happen.
 		const authUrl = this.client.getUserAuthorizeUrl();
-		if (!authUrl.startsWith(`${LASTFM_WEB}/api/auth`)) {
-			throw new Error("Last.fm auth URL rejected");
-		}
 
 		this.authProgress = true;
 		this.sendState();

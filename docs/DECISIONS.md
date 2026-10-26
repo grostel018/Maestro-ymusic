@@ -24,6 +24,28 @@ in `docs/superpowers/plans/2026-10-25-phase0-1-ledger.md`.
 - **Cost if wrong:** state leaking between shared scenarios. That's why `reuse` is opt-in and a
   failure gets a fresh launch.
 
+## 2026-10-26: Phase B review: fixed vs. deferred
+- **Fixed:**
+  - Sign-in pop-ups are allow-listed to Google/YouTube hosts, with no preload and a handler on
+    children.
+  - Pop-ups reload with the chosen identity.
+  - The 10-minute timeout closes the window instead of orphaning it.
+  - SameSite=None is only set with Secure.
+  - Closing the Last.fm window right after approving finishes the connection instead of
+    cancelling.
+  - Last.fm links open in the browser.
+  - There's no double YouTube reload after an import.
+  - The close listener no longer leaks.
+  - s18 checks the Cancel path, and s19 moved to the full tier.
+- **Deferred to the backlog** (they don't block using the app):
+  - centring the sign-in window on the main window,
+  - a longer UA fallback list (ESR pinning),
+  - a "sign-in is per app profile" note in Settings,
+  - an s17 success-close check (music.youtube.com can't be mocked),
+  - scrobble-sent and signature unit checks for Last.fm,
+  - an explicit "Last.fm not configured" UI message,
+  - the signed-in account smoke on the real account (manual owner check, D6).
+
 ## 2026-10-26: Sign-in that works the first time (phase B)
 - **Google:**
   - **Causes:** the login window presented Firefox 92 (2021) on Windows, was modal and always

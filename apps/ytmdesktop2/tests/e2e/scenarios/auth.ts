@@ -70,7 +70,12 @@ export const scenarios: Scenario[] = [
 		title: "Import sign-in from Firefox copies only youtube.com/google.com cookies of the default profile into the app",
 		launch: () => ({ env: { YTMD_E2E_FIREFOX_DIR: makeFakeFirefox() } }),
 		run: async (t) => {
-			// the confirmation dialog is answered by the test
+			// Cancel first: nothing may be read or set
+			await t.mainEval(`(process.mainModule.require("electron").dialog.showMessageBox = async () => ({ response: 1 }), undefined)`);
+			const cancelled = await t.mainEval<{ status: string }>("__YTMD_TEST__.googleLogin.importFromFirefox()");
+			const leaked = await t.mainEval<number>(`process.mainModule.require("electron").session.defaultSession.cookies.get({}).then((all) => all.filter((c) => c.name.startsWith("YTMD_E2E_")).length)`);
+			if (cancelled.status !== "cancelled" || leaked !== 0) throw new Error(`Cancel must import nothing (status ${cancelled.status}, cookies ${leaked})`);
+			// then Import
 			await t.mainEval(`(process.mainModule.require("electron").dialog.showMessageBox = async () => ({ response: 0 }), undefined)`);
 			const result = await t.mainEval<{ status: string; imported: number; profile?: string }>("__YTMD_TEST__.googleLogin.importFromFirefox()");
 			if (result.status !== "imported" || result.imported < 1 || result.profile !== "default-release") {
@@ -87,7 +92,7 @@ export const scenarios: Scenario[] = [
 
 scenarios.push({
 	id: "s19",
-	smoke: true,
+	// full tier: it launches its own app twice (the mock's address must exist before launch)
 	title: "Last.fm connects through an in-app window in one go and stays connected after a restart",
 	run: async (t) => {
 		const mock = await startMockServer();
