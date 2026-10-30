@@ -10,7 +10,6 @@ $ErrorActionPreference = "Stop"
 $App = Split-Path -Parent $PSScriptRoot
 $Root = (Resolve-Path (Join-Path $App "..\..")).Path
 $Log = Join-Path $App "out\launch.log"
-$Electron = Join-Path $App "node_modules\electron\dist\electron.exe"
 $UserData = Join-Path $env:APPDATA "ytmdesktop2-dev"
 $Name = "YTMDesktop2 Plus"
 $Icon = Join-Path $App "build\icon.ico"
@@ -60,15 +59,20 @@ function Run([string]$exe, [string[]]$argv, [string]$cwd) {
 try {
 	$node = (Get-Command node.exe).Source
 	$corepack = Join-Path (Split-Path $node) "corepack.cmd"
+	# Electron's binary, wherever pnpm put it (it is hoisted to the workspace root's node_modules).
+	$findElectron = { Push-Location $App; try { (& $node -e "process.stdout.write(require('electron'))" 2>$null) } finally { Pop-Location } }
+	$Electron = & $findElectron
 
 	# Dependencies: reinstall only when pnpm-lock.yaml changed since the last install from this launcher.
 	$lockHash = (Get-FileHash (Join-Path $Root "pnpm-lock.yaml")).Hash
 	$lockMark = Join-Path $App "out\.lock-hash"
 	$installed = if (Test-Path $lockMark) { (Get-Content $lockMark -Raw).Trim() } else { "" }
-	if (-not (Test-Path $Electron) -or $installed -ne $lockHash) {
+	if (-not $Electron -or -not (Test-Path $Electron) -or $installed -ne $lockHash) {
 		Show-Busy "Installing updated dependencies..."
 		if ((Run $corepack @("pnpm", "install", "--frozen-lockfile") $Root) -ne 0) { Fail "Installing dependencies failed." }
 		Set-Content $lockMark $lockHash
+		$Electron = & $findElectron
+		if (-not $Electron -or -not (Test-Path $Electron)) { Fail "Electron is missing after installing dependencies." }
 	}
 
 	# Build only when the code changed: `--check` exits 0 when the last build is current, 10 when one is needed.
@@ -85,4 +89,10 @@ try {
 }
 
 if ($script:tray) { $script:tray.Dispose() }
-Start-Process -FilePath $Electron -ArgumentList @(".", "--user-data-dir=`"$UserData`"") -WorkingDirectory $App
+try {
+	"starting $Electron" | Add-Content $Log
+	Start-Process -FilePath $Electron -ArgumentList @(".", "--user-data-dir=`"$UserData`"") -WorkingDirectory $App
+} catch {
+	$_ | Out-String | Add-Content $Log
+	Fail "Could not start $Name."
+}
