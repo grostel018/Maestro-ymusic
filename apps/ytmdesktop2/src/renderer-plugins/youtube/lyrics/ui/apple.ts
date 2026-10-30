@@ -7,6 +7,8 @@
 // - word-synced lyrics fill word by word (a gradient driven by a CSS variable), line-synced ones line by line;
 // - a gap of 4 s or more shows breathing dots; a click on a line seeks there; the wheel scrolls freely for 2.5 s.
 // "stage" is the full-screen karaoke look (F6): bigger, centred.
+
+import { withEstimatedWords } from "../estimate";
 import type { LyricsLineStyle } from "../line-style";
 import { primaryActiveLineIndex } from "../lrc";
 import { wordProgress } from "../progress";
@@ -66,7 +68,7 @@ const CSS = `
 	filter: blur(1.4px); transition: transform 450ms cubic-bezier(.22, 1, .36, 1), color 300ms ease, filter 300ms ease; }
 .ytmd-al-line[data-d="1"], .ytmd-al-line[data-d="2"] { filter: blur(.6px); color: rgba(255,255,255,.42); }
 .ytmd-al-line[data-d="0"] { color: #fff; filter: none; transform: scale(1); }
-.ytmd-al-line:hover { filter: none; background: rgba(255,255,255,.06); }
+.ytmd-al-line:not([data-d="0"]):hover { filter: none; background: rgba(255,255,255,.06); }
 .ytmd-al-viewport.plain .ytmd-al-line { filter: none; transform: none; color: rgba(255,255,255,.85); cursor: default; font-size: calc(20px * var(--ytmd-al-scale, 1)); }
 .ytmd-al-line.fill[data-d="0"] .ytmd-al-w, .ytmd-al-line.fill.lines[data-d="0"] .ytmd-al-text {
 	--ytmd-al-base: linear-gradient(90deg, #fff var(--p, 0%), rgba(255,255,255,.38) var(--p, 0%));
@@ -91,7 +93,7 @@ const CSS = `
 @property --ytmd-al-fx1 { syntax: "<percentage>"; inherits: true; initial-value: 0%; }
 @property --ytmd-al-fx2 { syntax: "<percentage>"; inherits: true; initial-value: 0%; }
 @property --ytmd-al-fx3 { syntax: "<percentage>"; inherits: true; initial-value: 0%; }
-.ytmd-al.glow .ytmd-al-line[data-d="0"] { background: color-mix(in srgb, var(--ytmd-al-glow) 10%, transparent);
+.ytmd-al.glow .ytmd-al-line[data-d="0"] { background: none;
 	animation: ytmd-al-fx1 2.4s linear infinite, ytmd-al-fx2 3.1s linear infinite, ytmd-al-fx3 4.3s ease-in-out infinite alternate; }
 .ytmd-al.glow .ytmd-al-line[data-d="0"] :is(.ytmd-al-w, .ytmd-al-text, .ytmd-al-part) {
 	--k: .45;
@@ -329,7 +331,8 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 		const showTimes = options.showTimeCodes();
 
 		if (synced && result?.lines) {
-			lines = result.lines;
+			// Line-synced lyrics fill word by word too, with timing estimated from syllables.
+			lines = fill ? result.lines.map(withEstimatedWords) : result.lines;
 			let prevEnd = 0;
 			lines.forEach((line, i) => {
 				if (line.timeMs - prevEnd >= GAP_MS) {

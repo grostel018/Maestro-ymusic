@@ -24,6 +24,8 @@ export interface LyricsSearchOutcome {
 	betterLyricsMiss?: LyricsMissReason;
 	/** True when at least one enabled provider was skipped (prefetch) — the outcome is not final. */
 	partial?: boolean;
+	/** True when a provider failed (server busy, network) rather than finding nothing: worth asking again later. */
+	failed?: boolean;
 }
 
 async function runProvider(
@@ -99,7 +101,8 @@ export async function searchLyricsDetailed(
 			}
 			if (isPlainOnly(result) && !plainFallback) plainFallback = result;
 		} catch {
-			/* try next provider */
+			// Try the next provider; remember the failure, so a miss is retried instead of trusted.
+			if (!options.signal?.aborted) outcome.failed = true;
 		}
 	}
 	outcome.result = timedFallback ?? plainFallback;

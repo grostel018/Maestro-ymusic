@@ -25,6 +25,9 @@ interface CacheEntry {
 
 type Listener = (snap: LyricsStoreSnapshot) => void;
 
+/** Waits before asking the providers again after one failed. */
+const RETRY_DELAYS_MS = [6000, 20000];
+
 function applyDisplay(snap: LyricsStoreSnapshot): LyricsStoreSnapshot {
 	const hasTimedLines = !!snap.result?.lines?.length;
 	const resolved = resolveLyricsDisplay({
@@ -45,8 +48,10 @@ function applyDisplay(snap: LyricsStoreSnapshot): LyricsStoreSnapshot {
 				result: { title: "", artists: [], plain: stock.text, provider: "youtube-music", syncLevel: "plain", inexact: false },
 			};
 		}
-		setLyricsTabDisplayMode(resolved.mode);
-		return { ...snap, status: "stock", errorMessage: undefined, betterLyricsMiss: undefined };
+		// No lyrics text in YTM's panel (its "Lyrics not available" message is long enough to look like lyrics): keep our
+		// view and its own empty state.
+		setLyricsTabDisplayMode("overlay");
+		return snap;
 	}
 	setLyricsTabDisplayMode(resolved.mode);
 	return snap;
@@ -67,6 +72,9 @@ export function createLyricsStore() {
 	let abort: AbortController | null = null;
 	let prefetchAbort: AbortController | null = null;
 	let generation = 0;
+	/** Background retries after a failed search, per video. */
+	const retries = new Map<string, number>();
+	let retryTimer: ReturnType<typeof setTimeout> | undefined;
 	let snap: LyricsStoreSnapshot = {
 		status: "idle",
 		result: null,
@@ -166,7 +174,8 @@ export function createLyricsStore() {
 					/* prefetch failures stay silent */
 				});
 		},
-		async fetchForTrack(info: TrackSearchInfo, options: LyricsFetchOptions): Promise<void> {
+		/** `quiet`: a background retry; the current view stays up while it runs. */
+		async fetchForTrack(info: TrackSearchInfo, options: LyricsFetchOptions, quiet = false): Promise<void> {
 			const cached = cache.get(info.videoId);
 			if (cached) {
 				setSnap(snapFromEntry(cached, info.videoId));
@@ -174,24 +183,41 @@ export function createLyricsStore() {
 			}
 
 			abort?.abort();
+			clearTimeout(retryTimer);
 			abort = new AbortController();
 			const gen = ++generation;
 			const signal = abort.signal;
-			setSnap({
-				status: "loading",
-				result: null,
-				videoId: info.videoId,
-				errorMessage: undefined,
-				betterLyricsMiss: undefined,
-			});
+			if (!quiet)
+				setSnap({
+					status: "loading",
+					result: null,
+					videoId: info.videoId,
+					errorMessage: undefined,
+					betterLyricsMiss: undefined,
+				});
 
 			try {
 				const outcome = await searchLyricsDetailed(info, { ...options, signal });
 				if (gen !== generation) return;
+				const timed = !!outcome.result?.lines?.length;
+				// A provider failed (LRCLib is often "busy"): show what we have, but don't trust the miss. Ask again in
+				// the background; timed lyrics found later replace YouTube Music's plain text.
+				if (outcome.failed && !timed) {
+					setSnap(snapFromEntry(outcome, info.videoId));
+					const tries = (retries.get(info.videoId) ?? 0) + 1;
+					retries.set(info.videoId, tries);
+					if (tries <= RETRY_DELAYS_MS.length) {
+						retryTimer = setTimeout(() => {
+							if (gen === generation) void this.fetchForTrack(info, options, true);
+						}, RETRY_DELAYS_MS[tries - 1]);
+					} else cache.set(info.videoId, outcome);
+					return;
+				}
+				retries.delete(info.videoId);
 				cache.set(info.videoId, outcome);
 				setSnap(snapFromEntry(outcome, info.videoId));
 			} catch (err) {
-				if (signal.aborted || gen !== generation) return;
+				if (signal.aborted || gen !== generation || quiet) return;
 				const message = err instanceof Error ? err.message : String(err);
 				setSnap({
 					status: "error",

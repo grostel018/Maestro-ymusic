@@ -1,5 +1,7 @@
 // Song ⇄ video matching for Song mode without YouTube's twins (roadmap C1b). Pure: parses YTM `/search` responses
 // and picks the version of the playing track. The page side (search call, cache) lives in video-mode.search.ts.
+
+import { hdArt } from "@shared/track/thumbnail";
 import { artistMatchRatio, stringSimilarity } from "./lyrics/match";
 import { cleanArtist, cleanTitle } from "./lyrics/normalize";
 import { ATV } from "./video-mode.logic";
@@ -26,8 +28,8 @@ export type TrackQuery = { title: string; artist: string; durationSec: number };
 
 /** Longest allowed length difference between the playing track and its other version. */
 export const MAX_DURATION_GAP_SEC = 10;
-/** Music videos often add an intro or outro: a song this much shorter still counts when title and artist are near exact. */
-export const MAX_VIDEO_EXTRA_SEC = 60;
+/** Music videos often add an intro, skit or outro (some run 2 min or more): a song this much shorter still counts when title and artist are near exact. */
+export const MAX_VIDEO_EXTRA_SEC = 180;
 const STRONG = 0.9;
 const MIN_TITLE = 0.8;
 const MIN_ARTIST = 0.8;
@@ -46,10 +48,9 @@ function parseDuration(text: string): number | undefined {
 	return text.split(":").reduce((sum, part) => sum * 60 + Number(part), 0);
 }
 
-/** `=w60-h60-…` googleusercontent art scaled to 544 px (the size YTM uses on the player page). */
+/** `=w60-h60-…` googleusercontent art at high resolution (see `hdArt`). */
 export function largestArt(url: string | undefined): string | undefined {
-	if (!url) return undefined;
-	return /googleusercontent\.com/.test(url) ? url.replace(/=w\d+-h\d+/, "=w544-h544") : url;
+	return url ? hdArt(url) : undefined;
 }
 
 function parseItem(item: Obj): SearchHit | null {

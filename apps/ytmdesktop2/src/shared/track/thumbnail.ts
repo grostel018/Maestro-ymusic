@@ -32,3 +32,14 @@ export function resolveArtworkUrl(track: {
 	const largest = list.reduce<ThumbList[number] | null>((best, t) => (t.url && (t.width ?? 0) >= (best?.width ?? -1) ? t : best), null);
 	return largest?.url?.trim() || track?.meta?.thumbnail?.trim() || null;
 }
+
+/** Square art served by Google's image CDN, asked for at 2048 px (it returns the original when that is smaller). */
+export const HD_ART_PX = 2048;
+
+/** The same artwork at high resolution: googleusercontent `=w60-h60-…` / `=s120-…` sizes become 2048 px. */
+export function hdArt(url: string): string {
+	if (!/googleusercontent\.com|ggpht\.com/.test(url)) return url;
+	if (/=w\d+-h\d+/.test(url)) return url.replace(/=w\d+-h\d+/, `=w${HD_ART_PX}-h${HD_ART_PX}`);
+	if (/=s\d+/.test(url)) return url.replace(/=s\d+/, `=s${HD_ART_PX}`);
+	return url;
+}

@@ -36,7 +36,7 @@ export interface RankedLrcLibHit {
 	durationDelta: number;
 }
 
-/** LRCLib answers 503/429 under load; one short retry turns most of those into hits instead of "no lyrics". */
+/** LRCLib answers 503/429 under load; two retries (0.8 s, then 3.2 s) turn most of those into hits instead of "no lyrics". */
 export const LRCLIB_RETRY_MS = 800;
 
 async function searchApi(params: URLSearchParams, signal?: AbortSignal): Promise<LrcLibHit[]> {
@@ -46,8 +46,8 @@ async function searchApi(params: URLSearchParams, signal?: AbortSignal): Promise
 			...(signal ? { signal } : {}),
 		});
 	let { data, error } = await request();
-	if (error && (error.status === 429 || error.status >= 500) && !signal?.aborted) {
-		await new Promise((resolve) => setTimeout(resolve, LRCLIB_RETRY_MS));
+	for (let attempt = 1; attempt <= 2 && error && (error.status === 429 || error.status >= 500) && !signal?.aborted; attempt++) {
+		await new Promise((resolve) => setTimeout(resolve, LRCLIB_RETRY_MS * attempt * attempt));
 		({ data, error } = await request());
 	}
 	if (error) throw new Error(`LRCLib HTTP ${error.status}`);
