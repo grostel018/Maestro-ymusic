@@ -1,6 +1,6 @@
 // Builds the app (electron-vite build) only when its inputs changed since the last build.
 // Inputs: src/** (minus generated files), build config, package.json, .env.local (keys are baked in).
-// The hash of the last successful build is kept in out/.build-hash. `--force` always builds.
+// The hash of the last successful build is kept in out/.build-hash. `--force` always builds; `--check` only reports.
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
@@ -57,6 +57,8 @@ if (!force && built && previous === before) {
 	console.log("build: cached (inputs unchanged)");
 	process.exit(0);
 }
+// `--check`: report only (exit 10 = a build is needed); used by scripts/launch.ps1 to decide whether to say so.
+if (process.argv.includes("--check")) process.exit(10);
 console.log(`build: ${force ? "forced" : built ? "inputs changed" : "no build yet"}, running electron-vite build`);
 const t0 = Date.now();
 const r = spawnSync("npx", ["electron-vite", "build"], { cwd: APP, stdio: "inherit", shell: process.platform === "win32" });
