@@ -9,6 +9,7 @@ import { trackService } from "@main/trpc/routers/track";
 import { normalizeAudio } from "@shared/audio/settings";
 import eventNames from "@shared/constants/eventNames";
 import { FORK } from "@shared/fork";
+import { normalizeLook } from "@shared/theme/look";
 import { VideoResSetting } from "@shared/utils/ISettings";
 import { App, IpcMainEvent, IpcMainInvokeEvent } from "electron";
 import { Migration } from "electron-conf";
@@ -101,6 +102,7 @@ const defaultSettings = {
 		customFile: null,
 		watching: false,
 		background: "artwork",
+		look: normalizeLook(undefined),
 	} as ThemesConfig,
 	state: {
 		currentUrl: null,

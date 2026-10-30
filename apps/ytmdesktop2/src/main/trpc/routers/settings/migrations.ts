@@ -1,6 +1,7 @@
 import { platform } from "@electron-toolkit/utils";
 import type { LegacyCustomCssConfig } from "@main/trpc/routers/themes/types";
 import { normalizeAudio } from "@shared/audio/settings";
+import { normalizeLook } from "@shared/theme/look";
 import { app } from "electron";
 import { Migration } from "electron-conf";
 import { readFileSync, rmSync, statSync } from "fs";
@@ -250,6 +251,12 @@ const migrations: Omit<Migration<SettingsStore>, "version">[] = [
 		hook(store) {
 			// Game mode, on by default.
 			if (typeof (store.store as SettingsStore)?.app?.gameMode !== "boolean") store.set("app.gameMode", true);
+		},
+	},
+	{
+		hook(store) {
+			// Phase E: the look (palette, accent, corner radius).
+			store.set("themes.look", normalizeLook((store.store as { themes?: { look?: unknown } })?.themes?.look));
 		},
 	},
 ];

@@ -4,6 +4,7 @@ import { onMusicReload } from "@main/lifecycle";
 import SettingsProvider from "@main/trpc/routers/settings/service";
 import chromeScrollbarScss from "@main/trpc/routers/themes/assets/chrome/scrollbar.scss?raw";
 import chromeSurfaceScss from "@main/trpc/routers/themes/assets/chrome/surface.scss?raw";
+import { lookCss, normalizeLook } from "@shared/theme/look";
 import type { App } from "electron";
 import fs from "fs";
 import { debounce } from "lodash-es";
@@ -22,7 +23,7 @@ export default class ThemesProvider extends BaseProvider implements AfterInit {
 	private injector: CssInjector | null = null;
 	private chromeCss: string | null = null;
 	/** The window surface, compiled once per background mode. */
-	private surfaceCss: Record<ThemeBackground, string | null> = { artwork: null, plain: null };
+	private surfaceCss: Record<ThemeBackground, string | null> = { artwork: null, plain: null, video: null, color: null };
 	private readonly DEBOUNCE_DELAY = 1000;
 	private reapplyChain: Promise<void> = Promise.resolve();
 
@@ -66,9 +67,11 @@ private boundWebContentsId: number | null = null;
 		if (!this.chromeCss) {
 			this.chromeCss = await this.compiler.compileString(chromeScrollbarScss, "chrome:scrollbar");
 		}
-		for (const mode of ["artwork", "plain"] as const) {
+		for (const mode of ["artwork", "plain", "video", "color"] as const) {
 			if (!this.surfaceCss[mode]) {
-				const vars = `$artwork: ${mode === "artwork"};
+				// Video ambient draws over the artwork layer, so it keeps the artwork as its fallback.
+				const vars = `$artwork: ${mode === "artwork" || mode === "video"};
+$color: ${mode === "color"};
 $toolbar: ${TOOLBAR_HEIGHT}px;
 `;
 				this.surfaceCss[mode] = await this.compiler.compileString(vars + chromeSurfaceScss, `chrome:surface:${mode}`);
@@ -173,11 +176,19 @@ $toolbar: ${TOOLBAR_HEIGHT}px;
 		return this.reapplyChain;
 	}
 
-	/** (Re)injects the surface last, so it always sits above the theme in the cascade. */
+	/** The look (palette, accent, radius): YouTube Music's color variables, independent of "Theme styling". */
+	private async applyLook(): Promise<void> {
+		const injector = this.getInjector();
+		if (!injector) return;
+		await injector.inject("look", lookCss(normalizeLook(this.getConfig().look)));
+	}
+
+	/** (Re)injects the look and the surface last, so they always sit above the theme in the cascade. */
 	private async applySurface(): Promise<void> {
 		const injector = this.getInjector();
 		if (!injector) return;
 		await this.ensureChromeCompiled();
+		await this.applyLook();
 		const css = this.surfaceCss[backgroundMode(this.getConfig())];
 		if (css) await injector.inject("surface", css);
 	}
@@ -186,7 +197,7 @@ $toolbar: ${TOOLBAR_HEIGHT}px;
 		const config = this.getConfig();
 		this.logger.debug(`Themes setting changed: ${key}`);
 
-		if (key === "themes.background") {
+		if (key === "themes.background" || key === "themes.look") {
 			await this.applySurface();
 			return;
 		}
@@ -235,7 +246,7 @@ $toolbar: ${TOOLBAR_HEIGHT}px;
 		await this.ensureChromeCompiled();
 
 		this.settingsInstance.onSettingChange(
-			["themes.enabled", "themes.selected", "themes.customFile", "themes.watching", "themes.background"],
+			["themes.enabled", "themes.selected", "themes.customFile", "themes.watching", "themes.background", "themes.look"],
 			(value, prev, key) => void this.onThemesSettingChange(value, prev, key),
 			{ debounce: 1000 },
 		);
