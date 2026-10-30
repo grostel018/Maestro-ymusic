@@ -46,6 +46,36 @@ export const navigationRouter = router({
 		if (!contents || contents.isDestroyed() || !contents.navigationHistory.canGoBack()) return;
 		contents.navigationHistory.goBack();
 	}),
+	goforward: publicProcedure.mutation(({ ctx }): void => {
+		const contents = provider(ctx, "window").views.youtubeView?.webContents;
+		if (!contents || contents.isDestroyed() || !contents.navigationHistory.canGoForward()) return;
+		contents.navigationHistory.goForward();
+	}),
+	/** Opens YouTube Music's player page (the now-playing view) from the toolbar pill. */
+	playerPage: publicProcedure.mutation(async ({ ctx }): Promise<void> => {
+		const contents = provider(ctx, "window").views.youtubeView?.webContents;
+		if (!contents || contents.isDestroyed()) return;
+		await contents
+			.executeJavaScript(
+				`(() => { if (document.querySelector("ytmusic-app-layout")?.hasAttribute("player-page-open")) return;
+				document.querySelector("ytmusic-player-bar .middle-controls .content-info-wrapper, ytmusic-player-bar .middle-controls, ytmusic-miniplayer ytmusic-track-info")?.click(); })()`,
+				true,
+			)
+			.catch(() => undefined);
+	}),
+	/** Puts the cursor in YouTube Music's search box. */
+	search: publicProcedure.mutation(async ({ ctx }): Promise<void> => {
+		const contents = provider(ctx, "window").views.youtubeView?.webContents;
+		if (!contents || contents.isDestroyed()) return;
+		contents.focus();
+		await contents
+			.executeJavaScript(
+				`(() => { const box = document.querySelector("ytmusic-search-box"); const input = box?.querySelector("input"); if (!input) return;
+				box.click(); input.focus(); input.select(); })()`,
+				true,
+			)
+			.catch(() => undefined);
+	}),
 	devTools: publicProcedure.mutation(({ ctx }): void => provider(ctx, "navigation").toggleDevTools()),
 	/**
 	 * Open ytmd:// or https music|youtube|youtu.be URL immediately (no ask dialog).

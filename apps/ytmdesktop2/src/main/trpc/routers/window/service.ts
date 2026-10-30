@@ -43,6 +43,7 @@ export default class WindowUtilsProvider extends BaseProvider implements AfterIn
 				navigation:
 					(this.views.youtubeView && {
 						canGoBack: this.views.youtubeView.webContents.navigationHistory.canGoBack(),
+						canGoForward: this.views.youtubeView.webContents.navigationHistory.canGoForward(),
 						index: this.views.youtubeView.webContents.navigationHistory.getActiveIndex(),
 					}) ||
 					null,
