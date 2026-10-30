@@ -83,6 +83,8 @@ const defaultSettings = {
 		videoControls: true,
 		/** Keep the pitch when the playback speed changes (`preservesPitch`). */
 		keepPitch: true,
+		/** Skip non-music parts of music videos marked on SponsorBlock (privacy endpoint, hash prefix only). */
+		sponsorBlock: true,
 		/** Output device id for the player's audio; "default" follows the system. */
 		outputDevice: "default",
 		/** Native YTM Cast via in-app chrome.cast shim. Off until restart. */

@@ -13,6 +13,7 @@ import { lastfmRouter } from "@main/trpc/routers/lastfm";
 import { navigationRouter } from "@main/trpc/routers/navigation";
 import { settingsRouter } from "@main/trpc/routers/settings";
 import { shortcutRouter } from "@main/trpc/routers/shortcut";
+import { statsRouter } from "@main/trpc/routers/stats";
 import { themesRouter } from "@main/trpc/routers/themes";
 import { trackRouter } from "@main/trpc/routers/track";
 import { trayRouter } from "@main/trpc/routers/tray";
@@ -45,6 +46,7 @@ export const appRouter = router({
 	adblock: adblockRouter,
 	googleLogin: googleLoginRouter,
 	audio: audioRouter,
+	stats: statsRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -46,6 +46,13 @@ function PlayerGeneralSettingsPage() {
 						>
 							Exponential volume ratio
 						</SettingsCheckbox>
+						<SettingsCheckbox
+							configKey="player.sponsorBlock"
+							defaultValue={true}
+							description="In music videos, skip the non-music parts (intros, skits, outros), sponsor reads and self-promotion that SponsorBlock users marked. Only a short hash of the video id is sent."
+						>
+							Skip non-music parts
+						</SettingsCheckbox>
 						<SettingsCheckbox configKey="app.enableTaskbarProgress" description="Show playback progress on the taskbar.">
 							Enable Taskbar Progress
 						</SettingsCheckbox>

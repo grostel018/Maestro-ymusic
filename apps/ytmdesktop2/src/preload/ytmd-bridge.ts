@@ -15,6 +15,8 @@ const EMIT_ALLOWLIST = new Set<string>([
 	"audio:gesture-needed",
 	"facts:request",
 	"facts:open",
+	"sponsorblock:request",
+	"stats:listen",
 ]);
 
 /** Channels page-world `ytmd.on` may subscribe to. */
@@ -24,6 +26,7 @@ const PUSH_ALLOWLIST = new Set<string>([
 	"css.thumbnail",
 	"css.thumbnail-accent",
 	"facts:result",
+	"sponsorblock:segments",
 ]);
 
 function assertEmitAllowed(event: string): void {

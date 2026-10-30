@@ -259,6 +259,12 @@ const migrations: Omit<Migration<SettingsStore>, "version">[] = [
 			store.set("themes.look", normalizeLook((store.store as { themes?: { look?: unknown } })?.themes?.look));
 		},
 	},
+	{
+		hook(store) {
+			// Phase G: SponsorBlock for music videos, on by default.
+			if (typeof (store.store as SettingsStore)?.player?.sponsorBlock !== "boolean") store.set("player.sponsorBlock", true);
+		},
+	},
 ];
 
 export default migrations;

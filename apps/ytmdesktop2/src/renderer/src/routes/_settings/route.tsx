@@ -1,6 +1,7 @@
 import {
 	RiAlbumLine,
 	RiArrowRightSLine,
+	RiBarChart2Line,
 	RiChatQuoteLine,
 	RiCodeSSlashLine,
 	RiCommandLine,
@@ -64,6 +65,7 @@ const playerSubs = [
 	{ to: "/player/audio", label: "Audio", icon: RiEqualizerLine },
 	{ to: "/player/lyrics", label: "Lyrics", icon: RiChatQuoteLine },
 	{ to: "/player/adblock", label: "Ad block", icon: RiShieldCheckLine },
+	{ to: "/player/stats", label: "Your stats", icon: RiBarChart2Line },
 	{ to: "/player/shortcuts", label: "Shortcuts", icon: RiCommandLine },
 ] as const;
 
