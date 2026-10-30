@@ -50,7 +50,7 @@ function PlayerGeneralSettingsPage() {
 						<SettingsCheckbox
 							configKey="player.sponsorBlock"
 							defaultValue={true}
-							description="In music videos, skip the non-music parts (intros, skits, outros), sponsor reads and self-promotion that SponsorBlock users marked. Only a short hash of the video id is sent."
+							description="In music videos, skip the non-music parts (intros, skits, outros) that SponsorBlock users marked. Each skip shows Undo and Turn off. Only a short hash of the video id is sent."
 						>
 							Skip non-music parts
 						</SettingsCheckbox>

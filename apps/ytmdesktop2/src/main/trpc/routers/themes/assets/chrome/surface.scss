@@ -69,6 +69,32 @@ ytmusic-app ytmusic-player-bar.ytmusic-app {
   background: transparent !important;
 }
 
+// Search results: the YT MUSIC / LIBRARY tab bar sticks under the top bar when you scroll and YouTube paints it
+// solid black (a band across the window). Give it the top bar's tint and blur instead.
+ytmusic-tabbed-search-results-renderer ytmusic-tabs#tabs,
+ytmusic-tabs[stuck],
+ytmusic-tabs.stuck,
+ytmusic-tabs #tabs.tab-container {
+  background: transparent !important;
+}
+ytmusic-tabbed-search-results-renderer ytmusic-tabs#tabs[stuck],
+ytmusic-tabbed-search-results-renderer ytmusic-tabs#tabs.stuck {
+  background: $bar-tint !important;
+  -webkit-backdrop-filter: $bar-blur !important;
+  backdrop-filter: $bar-blur !important;
+}
+
+// The search box: the palette's surface, see-through, with a faint edge, instead of YouTube's flat grey slab.
+ytmusic-search-box .search-box.ytmusic-search-box,
+ytmusic-search-box #input-box,
+ytmusic-search-box tp-yt-paper-input {
+  background: color-mix(in srgb, var(--ytmd-surface, #212121) 55%, transparent) !important;
+}
+ytmusic-search-box .search-box.ytmusic-search-box {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 10px !important;
+}
+
 // Dividers: YouTube draws two stacked 15% lines under the top bar and two at the side panel's edge, which
 // cut the surface into boxes. Keep one faint hairline each.
 ytmusic-app ytmusic-app-layout > #nav-bar-background {

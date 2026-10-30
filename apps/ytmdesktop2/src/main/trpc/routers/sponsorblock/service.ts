@@ -6,8 +6,8 @@ import { type Segment, segmentsFor } from "@shared/sponsorblock";
 import { net } from "electron";
 
 const API = "https://sponsor.ajay.app/api/skipSegments";
-/** Non-music parts of music videos, sponsor reads and self-promotion. */
-const CATEGORIES = ["music_offtopic", "sponsor", "selfpromo"];
+/** Only the non-music parts of music videos: sponsor and self-promotion marks skipped real song parts. */
+const CATEGORIES = ["music_offtopic"];
 const TIMEOUT_MS = 8000;
 
 /**
