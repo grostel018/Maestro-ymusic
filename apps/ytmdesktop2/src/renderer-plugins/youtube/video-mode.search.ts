@@ -1,6 +1,6 @@
 // Finds the other version of a track through YTM's own `/search` (roadmap C1b). The call goes through the page's
 // signed-in InnerTube client; results are cached (hits and misses) so each track costs at most one request a week.
-import { cleanQuery, type MatchKind, parseSearch, pickMatch, type TrackQuery, type VersionMatch } from "./video-mode.match";
+import { type MatchKind, parseSearch, pickMatch, searchQuery, type TrackQuery, type VersionMatch } from "./video-mode.match";
 
 // YTM's search filter chips ("Songs", "Videos"), as ytmusicapi sends them.
 export const SEARCH_PARAMS: Record<MatchKind, string> = {
@@ -90,8 +90,7 @@ export function createVersionFinder(fetch: () => SearchFetch | null, cache: Matc
 			timer = setTimeout(() => resolve("timeout"), timeoutMs);
 		});
 		try {
-			const clean = cleanQuery(req);
-			const query = `${clean.title} ${clean.artist}`.trim();
+			const query = searchQuery(req);
 			const res = await Promise.race([call("/search", { query, params: SEARCH_PARAMS[req.want] }), timeout]);
 			if (res === "timeout") return null;
 			const match = pickMatch(req, parseSearch(res), req.want);

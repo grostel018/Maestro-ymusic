@@ -26,6 +26,9 @@ export type TrackQuery = { title: string; artist: string; durationSec: number };
 
 /** Longest allowed length difference between the playing track and its other version. */
 export const MAX_DURATION_GAP_SEC = 10;
+/** Music videos often add an intro or outro: a song this much shorter still counts when title and artist are near exact. */
+export const MAX_VIDEO_EXTRA_SEC = 60;
+const STRONG = 0.9;
 const MIN_TITLE = 0.8;
 const MIN_ARTIST = 0.8;
 
@@ -109,23 +112,54 @@ export function cleanQuery(track: Pick<TrackQuery, "title" | "artist">): { title
 	return { artist, title: cleanTitle(track.title, artist) };
 }
 
+/**
+ * Ways to read the playing track: as given, and for a video uploaded by a label or fan channel ("Atlantic Records":
+ * "Artist - Song (Official Video)"), the artist and song from the title itself.
+ */
+function readings(track: Pick<TrackQuery, "title" | "artist">): { title: string; artist: string }[] {
+	const out = [cleanQuery(track)];
+	const dash = track.title.trim().split(/\s+[-–—]\s+/);
+	if (dash.length >= 2) {
+		const artist = cleanArtist(dash[0]);
+		out.push({ artist, title: cleanTitle(dash.slice(1).join(" - "), artist) });
+	}
+	return out;
+}
+
+/** Search text: for a label upload, the artist and song read from the title instead of the channel name. */
+export function searchQuery(track: Pick<TrackQuery, "title" | "artist">): string {
+	const [given, fromTitle] = readings(track);
+	const q = fromTitle && /\s[-–—]\s/.test(given.title) ? fromTitle : given;
+	return `${q.title} ${q.artist}`.trim();
+}
+
 /** The best hit of the wanted kind, or null when none is close enough in title, artist, length and variant. */
 export function pickMatch(track: TrackQuery, hits: SearchHit[], want: MatchKind): VersionMatch | null {
 	if (!(track.durationSec > 0) || !track.title.trim()) return null;
-	const q = cleanQuery(track);
+	const qs = readings(track);
 	const qVariants = variants(`${track.title} ${track.artist}`);
 	const wantType = want === "song" ? ATV : OMV;
 	let best: { hit: SearchHit; score: number } | null = null;
 	for (const hit of hits) {
 		if (hit.type !== wantType || hit.durationSec === undefined) continue;
-		const gap = Math.abs(hit.durationSec - track.durationSec);
-		if (gap > MAX_DURATION_GAP_SEC) continue;
 		if (variants(`${hit.title} ${hit.artist}`) !== qVariants) continue;
-		const artist = artistMatchRatio(q.artist, cleanArtist(hit.artist));
-		if (artist < MIN_ARTIST) continue;
-		const title = stringSimilarity(q.title, cleanTitle(hit.title, hit.artist));
-		if (title < MIN_TITLE) continue;
-		const score = title * 0.5 + artist * 0.3 + (1 - gap / MAX_DURATION_GAP_SEC) * 0.2;
+		const hitArtist = cleanArtist(hit.artist);
+		const hitTitle = cleanTitle(hit.title, hit.artist);
+		let artist = 0;
+		let title = 0;
+		for (const q of qs) {
+			const a = artistMatchRatio(q.artist, hitArtist);
+			const t = stringSimilarity(q.title, hitTitle);
+			if (a + t > artist + title) [artist, title] = [a, t];
+		}
+		if (artist < MIN_ARTIST || title < MIN_TITLE) continue;
+		// The video is the longer one (song wanted while a video plays, or a video wanted while its song plays).
+		const extra = want === "song" ? track.durationSec - hit.durationSec : hit.durationSec - track.durationSec;
+		const gap = Math.abs(hit.durationSec - track.durationSec);
+		const strong = artist >= STRONG && title >= STRONG;
+		const limit = strong && extra > 0 ? MAX_VIDEO_EXTRA_SEC : MAX_DURATION_GAP_SEC;
+		if (gap > limit) continue;
+		const score = title * 0.5 + artist * 0.3 + (1 - gap / limit) * 0.2 - (gap > MAX_DURATION_GAP_SEC ? 0.1 : 0);
 		if (!best || score > best.score) best = { hit, score };
 	}
 	return best ? { ...best.hit } : null;

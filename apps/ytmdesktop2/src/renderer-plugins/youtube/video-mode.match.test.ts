@@ -49,7 +49,13 @@ describe("pickMatch", () => {
 	it("returns null when nothing matches", () => {
 		expect(pickMatch({ title: "zqxjvwk plormf tribbunax", artist: "Nobody", durationSec: 200 }, parseSearch(none), "song")).toBeNull();
 		expect(pickMatch({ title: "Never Gonna Give You Up", artist: "Rick Astley", durationSec: 0 }, parseSearch(clear), "song")).toBeNull();
-		expect(pickMatch({ title: "Never Gonna Give You Up", artist: "Rick Astley", durationSec: 260 }, parseSearch(clear), "song")).toBeNull();
+		expect(pickMatch({ title: "Never Gonna Give You Up", artist: "Rick Astley", durationSec: 300 }, parseSearch(clear), "song")).toBeNull();
+	});
+	it("reads artist and song from a label upload and allows a music-video intro", () => {
+		const hits = parseSearch(clear);
+		expect(pickMatch({ title: "Rick Astley - Never Gonna Give You Up (Official Video)", artist: "Some Records", durationSec: 213 }, hits, "song")?.videoId).toBe("lYBUbBu4W08");
+		expect(pickMatch({ title: "Never Gonna Give You Up", artist: "Rick Astley", durationSec: 250 }, hits, "song")?.videoId).toBe("lYBUbBu4W08");
+		expect(pickMatch({ title: "Never Gonna Give You Up", artist: "Rick Astley", durationSec: 190 }, hits, "song")).toBeNull();
 	});
 	it("finds the official video of a song, not a remix or a lyric upload", () => {
 		const m = pickMatch({ title: "Never Gonna Give You Up", artist: "Rick Astley", durationSec: 214 }, parseSearch(videos), "video");
