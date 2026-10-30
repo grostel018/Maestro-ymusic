@@ -63,3 +63,7 @@ license duties stay clear.
 | `src/renderer-plugins/youtube/transitions.renderer.ts`, `audio-engine/transitions.logic.ts` | Approach of pear-desktop@7c55260:`src/plugins/{crossfade,skip-silences}` | MIT | Pattern only: fade gain instead of Howler overlap; threshold-and-hold silence detection with our numbers; sleep timer added |
 | `src/renderer-plugins/youtube/volume-wheel.renderer.ts` | Approach of pear-desktop@7c55260:`src/plugins/precise-volume` | MIT | Pattern only: wheel over the player bar, 1 % steps, readout |
 | `src/renderer-plugins/youtube/visualizer.renderer.ts` | Approach of pear-desktop@7c55260:`src/plugins/visualizer` | MIT | Pattern only: our canvas bars and wave; Butterchurn not taken (backlog) |
+| `src/shared/theme/look.ts` | Palette colors of the editor themes as ported by spicetify/spicetify-themes | MIT | Colors only; the token set and the YouTube Music variable mapping are ours |
+| `src/renderer-plugins/youtube/ambient.renderer.ts` | Approach of pear-desktop@7c55260:`src/plugins/ambient-mode` | MIT | Pattern only: sampled, blurred video behind the page; ours draws a 32 × 18 canvas at 4 fps over the artwork surface |
+| `src/shared/sponsorblock.ts` | pear-desktop@7c55260:`src/plugins/sponsorblock/segments.ts` | MIT | `sortSegments` as `mergeSegments` (on a copy); added the hashed-prefix reader |
+| `src/main/trpc/routers/facts/service.ts`, `src/shared/facts/cards.ts` | Public APIs: Wikipedia REST, MusicBrainz, Last.fm, Genius | API terms | Built here |

@@ -187,3 +187,19 @@ in `docs/superpowers/plans/2026-10-25-phase0-1-ledger.md`.
 ## 2026-10-26: AutoEq is fetched by main
 - **Decision:** main fetches and caches AutoEq files; the page only gets the parsed filters through settings.
 - **Why:** the YouTube Music page's CSP governs what the page may fetch, and main can cache on disk.
+
+## 2026-10-30: Game mode steps back instead of capping memory
+- **Decision:** while another app is in front, lower our non-audio processes' priority; while hidden, decode the
+  video at 144p and free Blink's caches. No heap limits.
+- **Why:** a game competes for CPU and GPU time, which priority and decoding settle. A heap cap on the YouTube
+  Music page would risk crashing playback.
+
+## 2026-10-30: Now Playing, comments and queue come from YouTube Music (F1, F4, F5)
+- **Decision:** no separate Now Playing view, comments client or queue panel. The title-bar pill opens YouTube
+  Music's player page, which now has the artwork or video, the queue (drag to reorder), lyrics, comments and related.
+- **Why:** building them again would duplicate what the page already does well and add a second view to keep in
+  sync. Our parts (lyrics view, About panel, karaoke) plug into that page.
+
+## 2026-10-30: Karaoke on Shift+K
+- **Decision:** capital K (Shift+K) and a microphone button open karaoke; lowercase k stays play/pause.
+- **Why:** YouTube's k is play/pause, and the video controls already use it.

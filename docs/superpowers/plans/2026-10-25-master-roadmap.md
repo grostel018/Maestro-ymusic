@@ -292,6 +292,10 @@ AudioWorklet, crossfade as fade out/in, AutoEq fetched by main, Butterchurn to t
 
 ## 8. Phase E — Look and feel (≈ 4 h)
 
+**Done 2026-10-30:** palettes, accent, corners, theme import/export (E1); video ambient and song color backgrounds
+(E2); title bar with back, forward, search and a now-playing pill (E3). Light mode not done (dark palettes only).
+See `docs/features/themes.md`.
+
 | # | Task | Reuse | Details | Tests |
 |---|---|---|---|---|
 | E1 | **Theme engine** | spicetify-themes palettes (MIT), Metrolist palette *ideas* | Design doc §6 phase 3, unchanged:<br>• Modes: light, dark, black, dynamic.<br>• Tokens become CSS variables in both the YouTube page and the React views.<br>• About 20 presets.<br>• Accent picker.<br>• Font.<br>• Corner radius.<br>• Density.<br>• `.ytmdtheme.json` import / export.<br>• Custom SCSS on top. | Unit: token compiler; smoke: switch preset → page and toolbar colors match |
@@ -302,6 +306,10 @@ AudioWorklet, crossfade as fade out/in, AutoEq fetched by main, Butterchurn to t
 ---
 
 ## 9. Phase F — Now Playing, lyrics, facts, comments (≈ 6–7 h)
+
+**Done 2026-10-30:** F2 Apple-style lyrics, F3 About panel, F6 karaoke. F1, F4 and F5 use what YouTube Music now
+has (its player page is the Now Playing view, opened by the title-bar pill; its Comments tab; its Up next with drag
+to reorder), see DECISIONS. Not done: romanization and translation lines.
 
 | # | Task | Reuse | Details | Tests |
 |---|---|---|---|---|
@@ -316,6 +324,9 @@ AudioWorklet, crossfade as fade out/in, AutoEq fetched by main, Butterchurn to t
 ---
 
 ## 10. Phase G — Extras and the competitor-inspired list (≈ 6 h, pick-and-choose)
+
+**Picked 2026-10-30:** G5 SponsorBlock and G3 listening stats are done. Also added: game mode (owner request).
+The others stay in the backlog.
 
 | # | Feature | Inspired by | Reuse | Notes |
 |---|---|---|---|---|

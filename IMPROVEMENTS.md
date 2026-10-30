@@ -136,3 +136,4 @@ Done: 26. Next free ID: 68.
 - 2026-10-26: Phase C2–C4 video controls, speed and output device done (rows 1, 2, 3, 5, 7, 8, 9, 10, 12); item 4 narrowed to auto-translate.
 - 2026-10-26: Phase C closed (C5): perf p9 shows Song mode CPU 4.72% vs Video 5.01%.
 - 2026-10-26: Phase D (audio engine and audio lab) done: rows 39, 40, 41, 42, 43, 45, 46, 47. Added 66 (Butterchurn) and 67 (SoundTouch).
+- 2026-10-30: Game mode added. Phase E (themes, backgrounds, title bar), F (lyrics view, About panel, karaoke; F1/F4/F5 from YouTube Music) and G picks (SponsorBlock, stats) done; rows not yet moved to Done (audit pending).
