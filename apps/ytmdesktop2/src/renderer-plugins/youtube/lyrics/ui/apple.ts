@@ -51,6 +51,41 @@ const ANCHOR_BEFORE_START = 0.12;
 const LEAD_MS = 80;
 const GAP_MS = 4000;
 const MANUAL_SCROLL_MS = 2500;
+/** Per-song timing nudges (ms, + = lyrics sooner), kept in this origin's localStorage. */
+const OFFSETS_KEY = "ytmd-lyrics-offsets";
+const OFFSET_EVENT = "ytmd-lyrics-offset";
+const OFFSET_STEP_MS = 250;
+const MAX_OFFSETS = 300;
+
+function readOffsets(): Record<string, number> {
+	try {
+		const v = JSON.parse(localStorage.getItem(OFFSETS_KEY) ?? "{}");
+		return v && typeof v === "object" ? v : {};
+	} catch {
+		return {};
+	}
+}
+
+function readOffset(videoId: string | null): number {
+	const v = videoId ? readOffsets()[videoId] : 0;
+	return typeof v === "number" && Number.isFinite(v) ? v : 0;
+}
+
+function writeOffset(videoId: string, ms: number): void {
+	const all = readOffsets();
+	delete all[videoId];
+	if (ms) all[videoId] = ms;
+	const keys = Object.keys(all);
+	for (const k of keys.slice(0, Math.max(0, keys.length - MAX_OFFSETS))) delete all[k];
+	try {
+		localStorage.setItem(OFFSETS_KEY, JSON.stringify(all));
+	} catch {
+		/* storage blocked: this session only */
+	}
+	window.dispatchEvent(new CustomEvent(OFFSET_EVENT, { detail: { videoId, ms } }));
+}
+
+const offsetLabel = (ms: number) => (ms ? `${ms > 0 ? "+" : "−"}${(Math.abs(ms) / 1000).toFixed(2).replace(/0$/, "")} s` : "Sync");
 const STYLE_ID = "ytmd-al-style";
 
 const CSS = `
@@ -122,6 +157,10 @@ const CSS = `
 .ytmd-al-size button { all: unset; cursor: pointer; min-width: 28px; height: 26px; padding: 0 6px; box-sizing: border-box; text-align: center; border-radius: 8px;
 	font: 600 12px/26px "YouTube Sans", Roboto, sans-serif; color: #fff; background: rgba(0,0,0,.45); }
 .ytmd-al-size button:hover { background: rgba(255,255,255,.18); }
+.ytmd-al-size .ytmd-al-sync { min-width: 52px; padding: 0 8px; box-sizing: border-box; text-align: center; border-radius: 8px;
+	font: 500 11px/26px "YouTube Sans", Roboto, sans-serif; color: rgba(255,255,255,.8); background: rgba(0,0,0,.35); }
+.ytmd-al-size .ytmd-al-sync.set { color: #fff; background: color-mix(in srgb, var(--ytmd-al-glow, #fff) 35%, rgba(0,0,0,.5)); }
+.ytmd-al-size .ytmd-al-sep { width: 8px; }
 .ytmd-al-size button:focus-visible { outline: 2px solid #fff; }
 @media (prefers-reduced-motion: reduce) { .ytmd-al-scroller, .ytmd-al-line { transition: none; } .ytmd-al-dots[data-d="0"] span, .ytmd-al.glow .ytmd-al-line[data-d="0"] { animation: none; } }
 `;
@@ -163,6 +202,21 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 	let builtFor: unknown[] | null = null;
 	let resize: ResizeObserver | null = null;
 	let disposed = false;
+	/** This song's timing nudge (see OFFSETS_KEY). */
+	let offsetMs = 0;
+	let syncLabel: HTMLElement | null = null;
+	const showOffset = () => {
+		if (!syncLabel) return;
+		syncLabel.textContent = offsetLabel(offsetMs);
+		syncLabel.classList.toggle("set", offsetMs !== 0);
+	};
+	const onOffset = (e: Event) => {
+		const d = (e as CustomEvent<{ videoId: string; ms: number }>).detail;
+		if (d?.videoId !== snap.videoId) return;
+		offsetMs = d.ms;
+		showOffset();
+	};
+	window.addEventListener(OFFSET_EVENT, onOffset);
 
 	const video = () => document.querySelector<HTMLVideoElement>("video.html5-main-video, #movie_player video");
 
@@ -201,7 +255,7 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 		raf = 0;
 		if (!running || disposed || !scroller || !lines.length) return;
 		const v = video();
-		const t = (v ? v.currentTime * 1000 : 0) + LEAD_MS;
+		const t = (v ? v.currentTime * 1000 : 0) + LEAD_MS + offsetMs;
 		// The active item: a line, or the dots of the gap we are in.
 		const li = primaryActiveLineIndex(lines, t);
 		let active = li >= 0 ? lineItem[li] : -1;
@@ -232,7 +286,8 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 				for (let i = 0; i < it.words.length; i++) {
 					const p = Math.round(wordProgress(words[i], t) * 100);
 					const el = it.words[i];
-					if (p > 0 && p < 100) now = el;
+					// The word being sung, or the last one sung until the next starts (no dark gap between words).
+					if (p > 0) now = el;
 					if (el.dataset.p !== String(p)) {
 						el.dataset.p = String(p);
 						el.style.setProperty("--p", `${p}%`);
@@ -279,6 +334,8 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 		current = -2;
 		nowWord = null;
 		lastY = Number.NaN;
+		offsetMs = readOffset(snap.videoId);
+		syncLabel = null;
 		const root = document.createElement("div");
 		root.className = `ytmd-al${options.variant === "stage" ? " stage" : ""}`;
 		root.style.setProperty("--ytmd-al-scale", String(options.fontScale?.() ?? 1));
@@ -306,6 +363,31 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 					options.onScale?.(delta);
 				});
 				size.appendChild(b);
+			}
+			// Timing nudge for synced lyrics: − = lyrics later, + = lyrics sooner, label resets it.
+			if (snap.result?.lines?.length && snap.result.syncLevel !== "plain" && snap.videoId) {
+				const id = snap.videoId;
+				const sep = document.createElement("span");
+				sep.className = "ytmd-al-sep";
+				const nudge = (label: string, title: string, delta: number) => {
+					const b = document.createElement("button");
+					b.type = "button";
+					b.textContent = label;
+					b.title = title;
+					b.setAttribute("aria-label", title);
+					b.addEventListener("click", (e) => {
+						e.stopPropagation();
+						writeOffset(id, delta ? offsetMs + delta : 0);
+					});
+					return b;
+				};
+				const later = nudge("−", "Lyrics later (0.25 s)", -OFFSET_STEP_MS);
+				const reset = nudge("", "Reset lyrics timing", 0);
+				reset.className = "ytmd-al-sync";
+				syncLabel = reset;
+				const sooner = nudge("+", "Lyrics sooner (0.25 s)", OFFSET_STEP_MS);
+				size.append(sep, later, reset, sooner);
+				showOffset();
 			}
 			root.appendChild(size);
 		}
@@ -479,6 +561,7 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 			raf = 0;
 			resize?.disconnect();
 			document.removeEventListener("visibilitychange", onVisibility);
+			window.removeEventListener(OFFSET_EVENT, onOffset);
 			getHost()?.replaceChildren();
 		},
 	};

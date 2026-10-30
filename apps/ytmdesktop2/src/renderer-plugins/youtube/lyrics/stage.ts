@@ -77,6 +77,7 @@ export function createKaraokeStage(opts: {
 	onSeek: (ms: number) => void;
 	fontScale?: () => number;
 	glow?: () => { mode: LyricsGlow; color: string };
+	onScale?: (delta: number) => void;
 }): KaraokeStage {
 	let snap: LyricsStoreSnapshot = { status: "idle", result: null, videoId: null };
 	let renderer: LyricsRenderApi | null = null;
@@ -234,6 +235,7 @@ export function createKaraokeStage(opts: {
 			variant: "stage",
 			fontScale: opts.fontScale,
 			glow: opts.glow,
+			onScale: opts.onScale,
 		});
 		renderer.setSnapshot(snap);
 		renderer.setRunning(true);

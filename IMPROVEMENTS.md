@@ -30,20 +30,30 @@ Done: 26. Next free ID: 82.
 
 | ID | Area | Request | Status |
 |---|---|---|---|
-| 68 | Lyrics | Optional glow in the song's color circling the current lyrics line; color selectable (song, theme accent, custom) | in progress |
-| 69 | Lyrics | Lyrics text size the user can change any time (setting and quick A−/A+ in the lyrics view) | in progress |
-| 70 | Lyrics | At the start of a song the lyrics sit far down the panel; start near the top | in progress |
-| 71 | Lyrics | When no provider has lyrics, show YouTube Music's own lyrics inside our view (same look and size), not the stock view | in progress |
-| 72 | Settings | Reorganize the settings layout; the equalizer section is confusing | in progress |
-| 73 | Player | Popup menus (sleep timer, speed, output, video bar) stay open when their button is clicked again; check every button | in progress |
-| 74 | SponsorBlock | Skips happened where nothing was off-topic; easy undo and an obvious off switch; music-only category by default | in progress |
-| 75 | Search | Search page: a black bar behind the result tabs and an odd search box layout | in progress |
-| 76 | Playback | Song mode still misses the song version of some music videos (test on the owner's real account, allowed 2026-10-30) | in progress |
+| 68 | Lyrics | Optional glow in the song's color flowing through the current line's letters (pulses with the bass); color selectable (song, theme accent, custom) | done |
+| 69 | Lyrics | Lyrics text size the user can change any time (setting and quick A−/A+ in the lyrics view) | done |
+| 70 | Lyrics | At the start of a song the lyrics sit far down the panel; start near the top | done |
+| 71 | Lyrics | When no provider has lyrics, show YouTube Music's own lyrics inside our view (same look and size), not the stock view | done |
+| 72 | Settings | Reorganize the settings layout; the equalizer section is confusing | done |
+| 73 | Player | Popup menus (sleep timer, speed, output, video bar) stay open when their button is clicked again; check every button | done |
+| 74 | SponsorBlock | Skips happened where nothing was off-topic; easy undo and an obvious off switch; music-only category by default | done |
+| 75 | Search | Search page: a black bar behind the result tabs and an odd search box layout | done (not reproduced; unverified) |
+| 76 | Playback | Song mode still misses the song version of some music videos (test on the owner's real account, allowed 2026-10-30) | done |
 | 77 | Release | Public repo for this fork: README, feature list, demo video or screenshots | todo |
 | 78 | Release | Post on Reddit and forums for free download | todo |
 | 79 | Security | Security audit of the app before publishing | todo |
 | 80 | Docs | Easy user documentation | todo |
 | 81 | Release | In-app update button: offer the new version from the fork's own releases when the app opens | todo |
+| 82 | Lyrics | Estimated word fill sometimes runs ahead of or behind the singing (fixed pace for every song) | done: per-song pace |
+| 83 | Lyrics | No way to correct lyrics that are a bit early or late; add a per-song timing nudge (−/+ 0.25 s) in the view and karaoke | done |
+| 84 | Lyrics | Between two words no word is marked as sung, so the glow drops for a moment; keep the last sung word lit | done |
+| 85 | Lyrics | Glow halo cut by a hard edge on the left of the lyrics panel | done |
+| 86 | Lyrics | Line-synced lyrics only fill whole lines; fill word by word with estimated timing | done |
+| 87 | Lyrics | LRCLib often answers 503 (busy); a miss was trusted and YouTube Music's text shown for good | done: retries |
+| 88 | Karaoke | Karaoke lacked the glow pulse backdrop, song info, progress, playback controls and countdown dots | done |
+| 89 | Karaoke | No A−/A+ text size in karaoke | done |
+| 90 | Lyrics | Exact syllable timing for line-only lyrics would need speech alignment (Whisper-style); too heavy for now | backlog |
+| 91 | Video mode | Some music videos show a black picture (E. SIGNALER remix, 2026-10-30); not reproduced yet | todo |
 
 ## Tier 0 - Make the core experience work
 

@@ -217,7 +217,7 @@ async function startLyrics() {
 		onSeek,
 		...look,
 	});
-	runtime.stage = createKaraokeStage({ settings, lineStyle: () => readLyricsSettings().lineStyle, onSeek, fontScale: look.fontScale, glow: look.glow });
+	runtime.stage = createKaraokeStage({ settings, lineStyle: () => readLyricsSettings().lineStyle, onSeek, fontScale: look.fontScale, glow: look.glow, onScale: look.onScale });
 
 	runtime.unsubStore = runtime.store.subscribe((snap) => {
 		runtime.renderer?.setSnapshot(snap);
