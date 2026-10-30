@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { ResetDefaults } from "@/components/reset-defaults";
 import { SettingsCheckbox } from "@/components/settings-checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,6 +66,7 @@ function AdblockSettingsPage() {
 					</FieldGroup>
 				</CardContent>
 			</Card>
+			<ResetDefaults keys={["adblock.enabled", "adblock.network", "adblock.prune", "adblock.fallback", "adblock.hideUpsells"]} />
 		</>
 	);
 }

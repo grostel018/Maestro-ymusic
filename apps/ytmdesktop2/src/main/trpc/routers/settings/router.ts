@@ -23,6 +23,10 @@ export const settingsRouter = router({
 		settings.set(input.key, input.value);
 		settings.saveToDrive();
 	}),
+	/** Back to the app's defaults: the given keys, or every user setting (sign-ins kept) without keys. */
+	resetDefaults: publicProcedure
+		.input(z.object({ keys: z.array(z.string().min(1).max(64)).max(32).optional() }))
+		.mutation(({ ctx, input }): string[] => provider(ctx, "settings").resetToDefaults(input.keys ?? [])),
 	onChange: publicProcedure.subscription(({ ctx }) =>
 		observable<{ key: string; value: unknown; prevValue: unknown }>((emit) => {
 			const sub = provider(ctx, "settings").settingChanged.subscribe((ev) => emit.next(ev));

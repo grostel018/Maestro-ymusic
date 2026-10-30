@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { ResetDefaults } from "@/components/reset-defaults";
 import { SettingsCheckbox } from "@/components/settings-checkbox";
 import { SettingsSelect } from "@/components/settings-select";
 import { Badge } from "@/components/ui/badge";
@@ -145,6 +146,7 @@ function PlayerGeneralSettingsPage() {
 					</FieldGroup>
 				</CardContent>
 			</Card>
+			<ResetDefaults keys={["player", "volumeRatio"]} />
 		</>
 	);
 }

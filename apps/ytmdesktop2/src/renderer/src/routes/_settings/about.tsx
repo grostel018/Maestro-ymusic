@@ -1,6 +1,6 @@
+import { RiFolderOpenLine } from "@remixicon/react";
 import { UPDATE_CHANNEL_LABELS, type UpdateChannel } from "@shared/utils/updater";
 import { createFileRoute } from "@tanstack/react-router";
-import { RiFolderOpenLine } from "@remixicon/react";
 import { SettingsSelect } from "@/components/settings-select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

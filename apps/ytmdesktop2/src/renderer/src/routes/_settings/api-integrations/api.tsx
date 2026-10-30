@@ -1,3 +1,5 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { SettingsCheckbox } from "@/components/settings-checkbox";
 import { SettingsInlineEditor } from "@/components/settings-inline-editor";
 import { Badge } from "@/components/ui/badge";
@@ -6,8 +8,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { FieldGroup } from "@/components/ui/field";
 import { useSettingsState } from "@/hooks/use-settings";
 import { trpc } from "@/lib/trpc";
-import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
 
 export const Route = createFileRoute("/_settings/api-integrations/api")({
 	component: ApiSettingsPage,

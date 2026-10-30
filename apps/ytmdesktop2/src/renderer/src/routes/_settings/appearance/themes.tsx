@@ -1,6 +1,7 @@
 import { DEFAULT_LOOK, exportLook, type Look, lookTokens, normalizeLook, PALETTES, readTokens } from "@shared/theme/look";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { ResetDefaults } from "@/components/reset-defaults";
 import { SettingsCheckbox } from "@/components/settings-checkbox";
 import { SettingsInput } from "@/components/settings-input";
 import { SettingsSelect } from "@/components/settings-select";
@@ -211,6 +212,7 @@ function ThemesSettingsPage() {
 				</FieldGroup>
 			</CardContent>
 		</Card>
+		<ResetDefaults keys={["themes"]} />
 		</>
 	);
 }

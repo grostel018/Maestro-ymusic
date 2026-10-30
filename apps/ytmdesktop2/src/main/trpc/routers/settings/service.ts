@@ -132,6 +132,27 @@ const defaultSettings = {
 	},
 };
 
+/**
+ * What "Restore all settings" resets: everything you set, but not sign-ins (Last.fm, Google identity), the API
+ * token, the remembered page or the ad-block count.
+ */
+export const RESETTABLE_KEYS = [
+	"app",
+	"trayView",
+	"volumeRatio",
+	"lyrics",
+	"player",
+	"discord",
+	"themes",
+	"shortcuts",
+	"audio",
+	"adblock.enabled",
+	"adblock.network",
+	"adblock.prune",
+	"adblock.fallback",
+	"adblock.hideUpsells",
+];
+
 export type SettingsStore = typeof defaultSettings & {
 	__meta?: { migratedFromJson?: boolean };
 	plugins?: {
@@ -211,6 +232,20 @@ export default class SettingsProvider extends BaseProvider implements OnDestroy,
 
 	get<T = unknown>(key: string, defaultValue?: T): T {
 		return _get(_settingsStore.store, key, defaultValue) as T;
+	}
+
+	/** Puts `keys` (all resettable settings when empty) back to the app's defaults. Returns the keys reset. */
+	resetToDefaults(keys: string[] = []): string[] {
+		const list = keys.length ? keys : RESETTABLE_KEYS;
+		const done: string[] = [];
+		for (const key of list) {
+			const value = _get(defaultSettings, key);
+			if (value === undefined) continue;
+			this.set(key, JSON.parse(JSON.stringify(value)));
+			done.push(key);
+		}
+		this.saveToDrive();
+		return done;
 	}
 
 	set(key: string, value: unknown) {

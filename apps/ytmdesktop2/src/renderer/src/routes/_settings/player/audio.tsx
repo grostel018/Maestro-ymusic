@@ -12,6 +12,7 @@ import {
 } from "@shared/audio/settings";
 import { createFileRoute } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { ResetDefaults } from "@/components/reset-defaults";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -410,9 +411,32 @@ function ChainView() {
 	);
 }
 
+/** The effects that change the sound with these settings, in plain words (empty: the sound is untouched). */
+function activeEffects(a: AudioSettings): string[] {
+	const out: string[] = [];
+	if (a.eq.enabled) out.push("Equalizer");
+	if (a.spatial.crossfeed !== "off") out.push(`Crossfeed (${a.spatial.crossfeed})`);
+	if (a.spatial.width !== 100) out.push(`Stereo width ${a.spatial.width}%`);
+	if (a.spatial.surround) out.push("Virtual surround");
+	if (a.spatial.rotate) out.push("8D rotation");
+	if (a.dynamics.normalize) out.push("Loudness normalization");
+	if (a.dynamics.compressor !== "off") out.push(`Compressor (${a.dynamics.compressor})`);
+	if (a.karaoke.enabled && a.karaoke.amount > 0) out.push("Vocal reduction");
+	if (a.pitch.semitones !== 0) out.push(`Pitch ${a.pitch.semitones > 0 ? "+" : ""}${a.pitch.semitones} semitones`);
+	if (a.transitions.crossfade > 0) out.push(`Crossfade ${a.transitions.crossfade} s`);
+	return out;
+}
+
+/** Every sound effect off; keeps the equalizer's curve and presets, the visualizer and wheel volume. */
+function allOff(a: AudioSettings): AudioSettings {
+	const d = normalizeAudio(undefined);
+	return { ...d, eq: { ...a.eq, enabled: false }, visualizer: a.visualizer, volumeWheel: a.volumeWheel };
+}
+
 function AudioSettingsPage() {
 	const [audio, update] = useAudio();
 	const sp = audio.spatial;
+	const active = activeEffects(audio);
 	return (
 		<>
 			<Card>
@@ -424,9 +448,21 @@ function AudioSettingsPage() {
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
-					<Row label="Signal chain" description="Stages running now, in order.">
-						<ChainView />
-					</Row>
+					<FieldGroup>
+						<Row
+							label={active.length ? "Changing the sound now" : "The sound is untouched"}
+							description={active.length ? active.join(" · ") : "No effect is on: YouTube Music plays its sound as it is."}
+						>
+							{active.length ? (
+								<Button size="sm" variant="outline" onClick={() => update((a) => Object.assign(a, allOff(a)))}>
+									Turn all off
+								</Button>
+							) : null}
+						</Row>
+						<Row label="Signal chain" description="Stages running now, in order.">
+							<ChainView />
+						</Row>
+					</FieldGroup>
 				</CardContent>
 			</Card>
 
@@ -555,7 +591,12 @@ function AudioSettingsPage() {
 								/>
 							</Row>
 						) : null}
-						<Row label="Pitch" description="Semitones up or down. Adds a short delay to the sound.">
+						<Row label="Pitch" description="Semitones up or down. It colours the sound and adds a short delay, so keep it Off unless you need it.">
+							{audio.pitch.semitones !== 0 ? (
+								<Button size="xs" variant="outline" onClick={() => update((a) => (a.pitch.semitones = 0))}>
+									Off
+								</Button>
+							) : null}
 							<Range
 								label="Pitch"
 								value={audio.pitch.semitones}
@@ -594,6 +635,7 @@ function AudioSettingsPage() {
 					</FieldGroup>
 				</CardContent>
 			</Card>
+			<ResetDefaults keys={["audio"]} label="Turn every audio effect off (defaults)" />
 		</>
 	);
 }

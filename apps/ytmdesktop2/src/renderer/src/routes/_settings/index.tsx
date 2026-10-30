@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { ResetDefaults } from "@/components/reset-defaults";
 import { SettingsCheckbox } from "@/components/settings-checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -111,6 +112,8 @@ function GenericSettingsPage() {
 					</FieldGroup>
 				</CardContent>
 			</Card>
+			<ResetDefaults keys={["app"]} label="Restore Generic defaults" />
+			<ResetDefaults all />
 		</>
 	);
 }

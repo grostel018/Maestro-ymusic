@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LyricsProvidersOrder } from "@/components/lyrics-providers-order";
+import { ResetDefaults } from "@/components/reset-defaults";
 import { SettingsCheckbox } from "@/components/settings-checkbox";
 import { SettingsInput } from "@/components/settings-input";
 import { SettingsSelect, type SettingsSelectOption } from "@/components/settings-select";
@@ -121,6 +122,7 @@ function LyricsSettingsPage() {
 					<p className="text-xs text-muted-foreground">Site links open each provider&apos;s homepage or docs.</p>
 				</CardFooter>
 			</Card>
+			<ResetDefaults keys={["lyrics"]} />
 		</>
 	);
 }
