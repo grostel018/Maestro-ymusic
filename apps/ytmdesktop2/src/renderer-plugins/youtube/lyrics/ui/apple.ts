@@ -8,7 +8,7 @@
 // - a gap of 4 s or more shows breathing dots; a click on a line seeks there; the wheel scrolls freely for 2.5 s.
 // "stage" is the full-screen karaoke look (F6): bigger, centred.
 
-import { withEstimatedWords } from "../estimate";
+import { withEstimatedTiming } from "../estimate";
 import type { LyricsLineStyle } from "../line-style";
 import { primaryActiveLineIndex } from "../lrc";
 import { wordProgress } from "../progress";
@@ -58,7 +58,7 @@ const CSS = `
 	font-family: "YouTube Sans", Roboto, Arial, sans-serif; }
 .ytmd-al-status { padding: 24px 12px; font-size: 16px; color: rgba(255,255,255,.7); }
 .ytmd-al-hint { margin-top: 8px; font-size: 13px; color: rgba(255,255,255,.5); }
-.ytmd-al-viewport { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden;
+.ytmd-al-viewport { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 0 22px; margin: 0 -10px;
 	-webkit-mask-image: linear-gradient(transparent 0, #000 14%, #000 78%, transparent 100%); mask-image: linear-gradient(transparent 0, #000 14%, #000 78%, transparent 100%); }
 .ytmd-al-viewport.plain { overflow-y: auto; -webkit-mask-image: none; mask-image: none; }
 .ytmd-al-scroller { padding: 45vh 0; will-change: transform; transition: transform 700ms cubic-bezier(.22, 1, .36, 1); }
@@ -79,13 +79,19 @@ const CSS = `
 .ytmd-al-dots { display: flex; gap: 10px; padding: 18px 14px; opacity: .25; transition: opacity 300ms ease; }
 .ytmd-al-dots span { width: 10px; height: 10px; border-radius: 50%; background: #fff; }
 .ytmd-al-dots[data-d="0"] { opacity: 1; }
-.ytmd-al-dots[data-d="0"] span { animation: ytmd-al-breathe 1.6s ease-in-out infinite; }
-.ytmd-al-dots[data-d="0"] span:nth-child(2) { animation-delay: .2s; }
-.ytmd-al-dots[data-d="0"] span:nth-child(3) { animation-delay: .4s; }
+/* Countdown: the dots light up one by one through an intro or pause; the line comes when the third is lit. */
+.ytmd-al-dots span { opacity: .3; transform: scale(.75); transition: opacity 250ms ease, transform 250ms ease; }
+.ytmd-al-dots[data-d="0"][data-n="1"] span:nth-child(-n+1), .ytmd-al-dots[data-d="0"][data-n="2"] span:nth-child(-n+2),
+.ytmd-al-dots[data-d="0"][data-n="3"] span { opacity: 1; transform: scale(1); background: var(--ytmd-al-glow, #fff); }
+.ytmd-al-dots[data-d="0"][data-n="3"] span { animation: ytmd-al-breathe 1s ease-in-out infinite; }
 @keyframes ytmd-al-breathe { 0%, 100% { transform: scale(.7); opacity: .5; } 50% { transform: scale(1.15); opacity: 1; } }
 .ytmd-al-footer { padding: 6px 12px; font-size: 11px; color: rgba(255,255,255,.4); }
 .ytmd-al.stage .ytmd-al-line { font-size: calc(clamp(32px, 4.6vw, 64px) * var(--ytmd-al-scale, 1)); text-align: center; transform-origin: center; padding: 14px 24px; }
 .ytmd-al.stage .ytmd-al-dots { justify-content: center; }
+.ytmd-al.stage .ytmd-al-dots span { width: 16px; height: 16px; }
+/* Karaoke: the next lines smaller and quieter, so the sung line stands out. */
+.ytmd-al.stage .ytmd-al-line:not([data-d="0"]) { transform: scale(.72); }
+.ytmd-al.stage .ytmd-al-line[data-d="far"] { opacity: .5; }
 .ytmd-al.stage .ytmd-al-footer { text-align: center; }
 /* Glow: streaks of light in the song's (or theme's) color flow through the letters of the current line, above the
    fill, with a halo that follows the letter shapes. The sung word shines most; --ytmd-al-beat (0-1, set from the bass
@@ -206,6 +212,12 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 			current = active;
 			nowWord?.removeAttribute("data-now");
 			nowWord = null;
+		}
+		// Countdown dots: how many are lit in the current gap.
+		const gapItem = !items[active]?.line ? items[active] : undefined;
+		if (gapItem && gapItem.end > gapItem.start) {
+			const n = String(Math.min(3, 1 + Math.floor(((t - gapItem.start) / (gapItem.end - gapItem.start)) * 3)));
+			if (gapItem.el.dataset.n !== n) gapItem.el.dataset.n = n;
 		}
 		if (Date.now() > manualUntil) {
 			manualOffset = 0;
@@ -332,7 +344,7 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 
 		if (synced && result?.lines) {
 			// Line-synced lyrics fill word by word too, with timing estimated from syllables.
-			lines = fill ? result.lines.map(withEstimatedWords) : result.lines;
+			lines = fill ? withEstimatedTiming(result.lines) : result.lines;
 			let prevEnd = 0;
 			lines.forEach((line, i) => {
 				if (line.timeMs - prevEnd >= GAP_MS) {

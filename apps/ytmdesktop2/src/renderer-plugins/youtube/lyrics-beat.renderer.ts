@@ -8,7 +8,7 @@ import type { RendererPluginRegistration } from "./world0/types";
 // 30 fps; `lyrics.glowBeat` off (or no analyser yet) leaves the CSS default, a steady glow.
 
 const SETTING = "lyrics.glowBeat";
-const ROOTS = ".ytmd-al.glow";
+const ROOTS = ".ytmd-al.glow, #ytmd-karaoke";
 const FRAME_MS = 1000 / 30;
 const LOW_HZ = 40;
 const HIGH_HZ = 200;
@@ -71,7 +71,7 @@ const lyricsBeatRenderer: RendererPluginRegistration = {
 
 		/** Starts or stops as the setting, the lyrics view and the window change. */
 		const check = () => {
-			const want = enabled && !document.hidden && [...roots()].some((r) => r.isConnected && r.offsetParent !== null);
+			const want = enabled && !document.hidden && [...roots()].some((r) => r.isConnected && r.getClientRects().length > 0);
 			if (!want) return stop();
 			if (!wanted) engine.setRuntime({ analyserWanted: true });
 			wanted = true;

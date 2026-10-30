@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { estimateWords, syllables, withEstimatedWords } from "./estimate";
+import { estimateWords, songPace, syllables, withEstimatedWords } from "./estimate";
 
 describe("estimateWords", () => {
 	it("splits a line by syllables and keeps the spaces", () => {
@@ -22,5 +22,12 @@ describe("estimateWords", () => {
 	it("counts syllables", () => {
 		expect(syllables("chevauché")).toBe(3);
 		expect(syllables("Mmm")).toBe(1);
+	});
+	it("measures a fast song faster than a slow one", () => {
+		const line = (timeMs: number, durationMs: number) => ({ timeMs, durationMs, text: "la la la la la la" });
+		const fast = songPace([0, 1, 2, 3, 4].map((i) => line(i * 1200, 1200)));
+		const slow = songPace([0, 1, 2, 3, 4].map((i) => line(i * 3600, 3600)));
+		expect(fast).toBeLessThan(slow);
+		expect(fast).toBe(200);
 	});
 });
