@@ -20,6 +20,7 @@ import { FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSettingsState } from "@/hooks/use-settings";
 import { trpc } from "@/lib/trpc";
 
@@ -262,50 +263,69 @@ function EqualizerCard({ audio, update }: { audio: AudioSettings; update: (p: Pa
 						]}
 						onChange={(mode) => update((a) => (a.eq.mode = mode))}
 					/>
-					<EqCurve filters={filters} preamp={preamp} />
-
 					{eq.mode === "graphic" ? (
 						<>
-							<div className="flex flex-wrap gap-1">
-								{EQ_PRESETS.map((p) => (
-									<Button
-										key={p.id}
-										size="xs"
-										variant={eq.preset === p.id ? "default" : "outline"}
-										onClick={() => update((a) => ((a.eq.bands = [...p.bands]), (a.eq.preset = p.id)))}
-									>
-										{p.label}
-									</Button>
-								))}
-								{eq.userPresets.map((p) => (
-									<span key={p.name} className="inline-flex items-center">
-										<Button size="xs" variant={eq.preset === `user:${p.name}` ? "default" : "secondary"} onClick={() => update((a) => ((a.eq.bands = [...p.bands]), (a.eq.preset = `user:${p.name}`)))}>
-											{p.name}
-										</Button>
-										<Button size="xs" variant="ghost" aria-label={`Delete preset ${p.name}`} onClick={() => update((a) => (a.eq.userPresets = a.eq.userPresets.filter((u) => u.name !== p.name)))}>
-											×
-										</Button>
-									</span>
-								))}
+							<div className="flex flex-wrap items-center gap-2">
+								<span className="text-sm font-medium">Preset</span>
+								<select
+									aria-label="Equalizer preset"
+									className="border-input bg-background h-8 rounded-md border px-2 text-sm"
+									value={eq.preset}
+									onChange={(e) => {
+										const id = e.target.value;
+										const preset = id.startsWith("user:")
+											? eq.userPresets.find((p) => `user:${p.name}` === id)?.bands
+											: EQ_PRESETS.find((p) => p.id === id)?.bands;
+										if (preset) update((x) => ((x.eq.bands = [...preset]), (x.eq.preset = id)));
+									}}
+								>
+									{eq.preset === "custom" ? <option value="custom">Custom</option> : null}
+									<optgroup label="Presets">
+										{EQ_PRESETS.map((p) => (
+											<option key={p.id} value={p.id}>
+												{p.label}
+											</option>
+										))}
+									</optgroup>
+									{eq.userPresets.length ? (
+										<optgroup label="Your presets">
+											{eq.userPresets.map((p) => (
+												<option key={p.name} value={`user:${p.name}`}>
+													{p.name}
+												</option>
+											))}
+										</optgroup>
+									) : null}
+								</select>
+								<Button size="xs" variant="ghost" onClick={() => update((x) => ((x.eq.bands = GRAPHIC_BANDS.map(() => 0)), (x.eq.preset = "flat")))}>
+									Flat
+								</Button>
 							</div>
-							<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+							{/* The bands side by side, like a hardware equalizer. */}
+							<div className="flex items-end justify-between gap-1 overflow-x-auto rounded-md border p-3">
 								{GRAPHIC_BANDS.map((f, i) => (
-									<div key={f} className="flex items-center gap-2">
-										<span className="text-muted-foreground w-10 text-xs tabular-nums">{hz(f)}</span>
-										<Range
-											label={`${hz(f)} Hz`}
-											value={eq.bands[i]}
-											min={-EQ_GAIN_LIMIT}
-											max={EQ_GAIN_LIMIT}
-											step={0.5}
-											format={db}
-											className="w-40"
-											onChange={(v) => update((a) => ((a.eq.bands[i] = v), (a.eq.preset = "custom")))}
-										/>
+									<div key={f} className="flex min-w-9 flex-col items-center gap-1">
+										<span className="text-muted-foreground text-[10px] tabular-nums">{eq.bands[i] > 0 ? `+${eq.bands[i]}` : eq.bands[i]}</span>
+										<div className="h-40">
+											<Slider
+												orientation="vertical"
+												value={[eq.bands[i]]}
+												min={-EQ_GAIN_LIMIT}
+												max={EQ_GAIN_LIMIT}
+												step={0.5}
+												aria-label={`${hz(f)} Hz`}
+												onValueChange={(v) => {
+													const val = Array.isArray(v) ? (v[0] as number) : (v as number);
+													update((x) => ((x.eq.bands[i] = val), (x.eq.preset = "custom")));
+												}}
+											/>
+										</div>
+										<span className="text-muted-foreground text-[10px] tabular-nums">{hz(f)}</span>
 									</div>
 								))}
 							</div>
-							<div className="flex items-center gap-2">
+							<div className="flex flex-wrap items-center gap-2">
+								<span className="text-sm font-medium">Save as</span>
 								<Input className="w-48" placeholder="Preset name" value={presetName} onChange={(e) => setPresetName(e.target.value)} aria-label="Preset name" />
 								<Button
 									size="sm"
@@ -313,15 +333,24 @@ function EqualizerCard({ audio, update }: { audio: AudioSettings; update: (p: Pa
 									disabled={!presetName.trim()}
 									onClick={() => {
 										const name = presetName.trim();
-										update((a) => {
-											a.eq.userPresets = [...a.eq.userPresets.filter((p) => p.name !== name), { name, bands: [...a.eq.bands] }];
-											a.eq.preset = `user:${name}`;
+										update((x) => {
+											x.eq.userPresets = [...x.eq.userPresets.filter((p) => p.name !== name), { name, bands: [...x.eq.bands] }];
+											x.eq.preset = `user:${name}`;
 										});
 										setPresetName("");
 									}}
 								>
 									Save preset
 								</Button>
+								{eq.preset.startsWith("user:") ? (
+									<Button
+										size="sm"
+										variant="ghost"
+										onClick={() => update((x) => ((x.eq.userPresets = x.eq.userPresets.filter((p) => `user:${p.name}` !== x.eq.preset)), (x.eq.preset = "custom")))}
+									>
+										Delete this preset
+									</Button>
+								) : null}
 							</div>
 						</>
 					) : null}
@@ -363,10 +392,12 @@ function EqualizerCard({ audio, update }: { audio: AudioSettings; update: (p: Pa
 						</div>
 					) : null}
 
+					<EqCurve filters={filters} preamp={preamp} />
 					<Row label="Preamp" description={`Total level change, including the clipping guard: ${db(preamp)}`}>
 						<Range label="Preamp" value={eq.preamp} min={-12} max={6} step={0.5} format={db} onChange={(v) => update((a) => (a.eq.preamp = v))} />
 					</Row>
 					<div className="flex flex-wrap items-center gap-2">
+						<span className="text-sm font-medium">Share</span>
 						<Button size="sm" variant="outline" onClick={() => void exportEq()}>
 							Export
 						</Button>
@@ -466,8 +497,17 @@ function AudioSettingsPage() {
 				</CardContent>
 			</Card>
 
-			<EqualizerCard audio={audio} update={update} />
-
+			<Tabs defaultValue="eq">
+				<TabsList>
+					<TabsTrigger value="eq">Equalizer</TabsTrigger>
+					<TabsTrigger value="effects">Effects</TabsTrigger>
+					<TabsTrigger value="playback">Playback</TabsTrigger>
+					<TabsTrigger value="visual">Visualizer</TabsTrigger>
+				</TabsList>
+				<TabsContent value="eq" className="flex flex-col gap-4">
+				<EqualizerCard audio={audio} update={update} />
+				</TabsContent>
+				<TabsContent value="effects" className="flex flex-col gap-4">
 			<Card>
 				<CardHeader>
 					<CardTitle>Spatial</CardTitle>
@@ -514,6 +554,51 @@ function AudioSettingsPage() {
 				</CardContent>
 			</Card>
 
+			<Card>
+				<CardHeader>
+					<CardTitle>Karaoke and pitch</CardTitle>
+					<CardDescription>Turn the vocals down, or move the key without changing the speed.</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<FieldGroup>
+						<Row label="Vocal reduction" description="Lowers the centre of the mix, where the lead voice usually is.">
+							<Toggle label="Vocal reduction" checked={audio.karaoke.enabled} onChange={(v) => update((a) => (a.karaoke.enabled = v))} />
+						</Row>
+						{audio.karaoke.enabled ? (
+							<Row label="Amount">
+								<Range
+									label="Vocal reduction amount"
+									value={audio.karaoke.amount}
+									min={0}
+									max={1}
+									step={0.05}
+									format={(v) => `${Math.round(v * 100)}%`}
+									onChange={(v) => update((a) => (a.karaoke.amount = v))}
+								/>
+							</Row>
+						) : null}
+						<Row label="Pitch" description="Semitones up or down. It colours the sound and adds a short delay, so keep it Off unless you need it.">
+							{audio.pitch.semitones !== 0 ? (
+								<Button size="xs" variant="outline" onClick={() => update((a) => (a.pitch.semitones = 0))}>
+									Off
+								</Button>
+							) : null}
+							<Range
+								label="Pitch"
+								value={audio.pitch.semitones}
+								min={-PITCH_LIMIT}
+								max={PITCH_LIMIT}
+								step={1}
+								format={(v) => (v ? `${v > 0 ? "+" : ""}${v} st` : "Off")}
+								onChange={(v) => update((a) => (a.pitch.semitones = v))}
+							/>
+						</Row>
+					</FieldGroup>
+				</CardContent>
+			</Card>
+
+				</TabsContent>
+				<TabsContent value="playback" className="flex flex-col gap-4">
 			<Card>
 				<CardHeader>
 					<CardTitle>Loudness and dynamics</CardTitle>
@@ -568,49 +653,8 @@ function AudioSettingsPage() {
 				</CardContent>
 			</Card>
 
-			<Card>
-				<CardHeader>
-					<CardTitle>Karaoke and pitch</CardTitle>
-					<CardDescription>Turn the vocals down, or move the key without changing the speed.</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<FieldGroup>
-						<Row label="Vocal reduction" description="Lowers the centre of the mix, where the lead voice usually is.">
-							<Toggle label="Vocal reduction" checked={audio.karaoke.enabled} onChange={(v) => update((a) => (a.karaoke.enabled = v))} />
-						</Row>
-						{audio.karaoke.enabled ? (
-							<Row label="Amount">
-								<Range
-									label="Vocal reduction amount"
-									value={audio.karaoke.amount}
-									min={0}
-									max={1}
-									step={0.05}
-									format={(v) => `${Math.round(v * 100)}%`}
-									onChange={(v) => update((a) => (a.karaoke.amount = v))}
-								/>
-							</Row>
-						) : null}
-						<Row label="Pitch" description="Semitones up or down. It colours the sound and adds a short delay, so keep it Off unless you need it.">
-							{audio.pitch.semitones !== 0 ? (
-								<Button size="xs" variant="outline" onClick={() => update((a) => (a.pitch.semitones = 0))}>
-									Off
-								</Button>
-							) : null}
-							<Range
-								label="Pitch"
-								value={audio.pitch.semitones}
-								min={-PITCH_LIMIT}
-								max={PITCH_LIMIT}
-								step={1}
-								format={(v) => (v ? `${v > 0 ? "+" : ""}${v} st` : "Off")}
-								onChange={(v) => update((a) => (a.pitch.semitones = v))}
-							/>
-						</Row>
-					</FieldGroup>
-				</CardContent>
-			</Card>
-
+				</TabsContent>
+				<TabsContent value="visual" className="flex flex-col gap-4">
 			<Card>
 				<CardHeader>
 					<CardTitle>Visualizer</CardTitle>
@@ -635,6 +679,8 @@ function AudioSettingsPage() {
 					</FieldGroup>
 				</CardContent>
 			</Card>
+				</TabsContent>
+			</Tabs>
 			<ResetDefaults keys={["audio"]} label="Turn every audio effect off (defaults)" />
 		</>
 	);

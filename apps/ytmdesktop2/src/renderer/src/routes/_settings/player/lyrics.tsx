@@ -6,6 +6,7 @@ import { SettingsInput } from "@/components/settings-input";
 import { SettingsSelect, type SettingsSelectOption } from "@/components/settings-select";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { FieldGroup } from "@/components/ui/field";
+import { Slider } from "@/components/ui/slider";
 import { useSettingsState } from "@/hooks/use-settings";
 
 export const Route = createFileRoute("/_settings/player/lyrics")({
@@ -23,7 +24,63 @@ const LINE_STYLE_OPTIONS: SettingsSelectOption[] = [
 		label: "Text fill",
 		description: "The current line fills as it's sung: word by word with word timing, across the line with line timing.",
 	},
-]
+];
+
+const GLOW_OPTIONS: SettingsSelectOption[] = [
+	{ value: "off", label: "Off", description: "No light around the current line." },
+	{ value: "song", label: "Song color", description: "A light in the artwork's main color circles the current line." },
+	{ value: "accent", label: "Theme accent", description: "Uses the accent color of the active theme." },
+	{ value: "custom", label: "Custom color", description: "Pick the color below." },
+];
+
+/** Text size and glow; the size also changes with the A− / A+ buttons in the Lyrics tab. */
+function LyricsLook({ disabled }: { disabled: boolean }) {
+	const [scale, setScale] = useSettingsState<number>("lyrics.fontScale", 1, { debounce: 150 });
+	const [glow] = useSettingsState<string>("lyrics.glow", "song");
+	const [color, setColor] = useSettingsState<string>("lyrics.glowColor", "#ffffff", { debounce: 150 });
+	const value = typeof scale === "number" ? scale : 1;
+	return (
+		<FieldGroup>
+			<div className="flex flex-col gap-2">
+				<div className="flex items-center justify-between">
+					<span className="text-sm font-medium">Text size</span>
+					<span className="text-muted-foreground text-xs tabular-nums">{Math.round(value * 100)}%</span>
+				</div>
+				<Slider
+					value={[value]}
+					min={0.7}
+					max={2}
+					step={0.05}
+					disabled={disabled}
+					aria-label="Lyrics text size"
+					onValueChange={(v) => setScale(Array.isArray(v) ? (v[0] as number) : (v as number))}
+				/>
+				<p className="text-muted-foreground text-xs">Also in the Lyrics tab: the A− and A+ buttons.</p>
+			</div>
+			<SettingsSelect
+				configKey="lyrics.glow"
+				defaultValue="song"
+				disabled={disabled}
+				label="Glow around the current line"
+				description="A soft light that circles the line being sung."
+				options={GLOW_OPTIONS}
+			/>
+			{glow === "custom" ? (
+				<label className="flex items-center gap-3 text-sm">
+					<input
+						type="color"
+						className="h-8 w-12 cursor-pointer rounded border"
+						value={color || "#ffffff"}
+						disabled={disabled}
+						onChange={(e) => setColor(e.target.value)}
+						aria-label="Glow color"
+					/>
+					Glow color
+				</label>
+			) : null}
+		</FieldGroup>
+	);
+}
 
 function LyricsSettingsPage() {
 	const [lyricsEnabled] = useSettingsState<boolean>("lyrics.enabled", false);
@@ -86,6 +143,15 @@ function LyricsSettingsPage() {
 							options={LINE_STYLE_OPTIONS}
 						/>
 					</FieldGroup>
+				</CardContent>
+			</Card>
+			<Card>
+				<CardHeader>
+					<CardTitle>Look</CardTitle>
+					<CardDescription>Size of the lyrics and the light around the current line, in the Lyrics tab and in karaoke.</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<LyricsLook disabled={!lyricsEnabled} />
 				</CardContent>
 			</Card>
 			<Card>
