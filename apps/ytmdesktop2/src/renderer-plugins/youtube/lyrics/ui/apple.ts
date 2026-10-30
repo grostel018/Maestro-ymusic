@@ -26,12 +26,24 @@ export interface LyricsRenderApi {
 	destroy(): void;
 }
 
+export type LyricsGlow = "off" | "song" | "accent" | "custom";
+
 export interface LyricsUiOptions {
 	showTimeCodes: () => boolean;
 	lineStyle: () => LyricsLineStyle;
 	onSeek: (timeMs: number) => void;
 	variant?: "tab" | "stage";
+	/** Text size multiplier (lyrics.fontScale). */
+	fontScale?: () => number;
+	/** Light circling the current line (lyrics.glow / lyrics.glowColor). */
+	glow?: () => { mode: LyricsGlow; color: string };
+	/** A−/A+ in the view: asks to change lyrics.fontScale by `delta`. */
+	onScale?: (delta: number) => void;
 }
+
+/** Where the current line sits in the view (from the top); before the first line, the first line sits higher. */
+const ANCHOR = 0.32;
+const ANCHOR_BEFORE_START = 0.12;
 
 /** The page clock trails what you hear a little. */
 const LEAD_MS = 80;
@@ -50,12 +62,12 @@ const CSS = `
 .ytmd-al-scroller { padding: 45vh 0; will-change: transform; transition: transform 700ms cubic-bezier(.22, 1, .36, 1); }
 .ytmd-al-viewport.plain .ytmd-al-scroller { padding: 12px 0 48px; transition: none; will-change: auto; }
 .ytmd-al-line { position: relative; box-sizing: border-box; padding: 8px 12px; margin: 2px 0; border-radius: 12px; cursor: pointer;
-	font-size: 26px; font-weight: 700; line-height: 1.3; color: rgba(255,255,255,.3); transform-origin: left center; transform: scale(.95);
+	font-size: calc(26px * var(--ytmd-al-scale, 1)); font-weight: 700; line-height: 1.3; color: rgba(255,255,255,.3); transform-origin: left center; transform: scale(.95);
 	filter: blur(1.4px); transition: transform 450ms cubic-bezier(.22, 1, .36, 1), color 300ms ease, filter 300ms ease; }
 .ytmd-al-line[data-d="1"], .ytmd-al-line[data-d="2"] { filter: blur(.6px); color: rgba(255,255,255,.42); }
 .ytmd-al-line[data-d="0"] { color: #fff; filter: none; transform: scale(1); }
 .ytmd-al-line:hover { filter: none; background: rgba(255,255,255,.06); }
-.ytmd-al-viewport.plain .ytmd-al-line { filter: none; transform: none; color: rgba(255,255,255,.85); cursor: default; font-size: 20px; }
+.ytmd-al-viewport.plain .ytmd-al-line { filter: none; transform: none; color: rgba(255,255,255,.85); cursor: default; font-size: calc(20px * var(--ytmd-al-scale, 1)); }
 .ytmd-al-line.fill[data-d="0"] .ytmd-al-w, .ytmd-al-line.fill.lines[data-d="0"] .ytmd-al-text {
 	background: linear-gradient(90deg, #fff var(--p, 0%), rgba(255,255,255,.38) var(--p, 0%)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .ytmd-al-part { display: block; }
@@ -69,10 +81,25 @@ const CSS = `
 .ytmd-al-dots[data-d="0"] span:nth-child(3) { animation-delay: .4s; }
 @keyframes ytmd-al-breathe { 0%, 100% { transform: scale(.7); opacity: .5; } 50% { transform: scale(1.15); opacity: 1; } }
 .ytmd-al-footer { padding: 6px 12px; font-size: 11px; color: rgba(255,255,255,.4); }
-.ytmd-al.stage .ytmd-al-line { font-size: clamp(32px, 4.6vw, 64px); text-align: center; transform-origin: center; padding: 14px 24px; }
+.ytmd-al.stage .ytmd-al-line { font-size: calc(clamp(32px, 4.6vw, 64px) * var(--ytmd-al-scale, 1)); text-align: center; transform-origin: center; padding: 14px 24px; }
 .ytmd-al.stage .ytmd-al-dots { justify-content: center; }
 .ytmd-al.stage .ytmd-al-footer { text-align: center; }
-@media (prefers-reduced-motion: reduce) { .ytmd-al-scroller, .ytmd-al-line { transition: none; } .ytmd-al-dots[data-d="0"] span { animation: none; } }
+/* Glow: a soft light in the song's (or theme's) color behind the current line, with a bright arc circling its edge. */
+@property --ytmd-al-angle { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.ytmd-al.glow .ytmd-al-line[data-d="0"] { background: color-mix(in srgb, var(--ytmd-al-glow) 12%, transparent);
+	text-shadow: 0 0 22px color-mix(in srgb, var(--ytmd-al-glow) 60%, transparent); }
+.ytmd-al.glow .ytmd-al-line[data-d="0"]::before { content: ""; position: absolute; inset: -2px; border-radius: 14px; padding: 2px; pointer-events: none;
+	background: conic-gradient(from var(--ytmd-al-angle), transparent 0deg, var(--ytmd-al-glow) 60deg, transparent 130deg, transparent 360deg);
+	-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+	filter: drop-shadow(0 0 6px var(--ytmd-al-glow)); animation: ytmd-al-orbit 3.2s linear infinite; }
+@keyframes ytmd-al-orbit { to { --ytmd-al-angle: 360deg; } }
+.ytmd-al-size { position: absolute; top: 6px; right: 6px; z-index: 2; display: flex; gap: 4px; opacity: 0; transition: opacity 200ms ease; }
+.ytmd-al:hover .ytmd-al-size, .ytmd-al-size:focus-within { opacity: 1; }
+.ytmd-al-size button { all: unset; cursor: pointer; min-width: 28px; height: 26px; padding: 0 6px; box-sizing: border-box; text-align: center; border-radius: 8px;
+	font: 600 12px/26px "YouTube Sans", Roboto, sans-serif; color: #fff; background: rgba(0,0,0,.45); }
+.ytmd-al-size button:hover { background: rgba(255,255,255,.18); }
+.ytmd-al-size button:focus-visible { outline: 2px solid #fff; }
+@media (prefers-reduced-motion: reduce) { .ytmd-al-scroller, .ytmd-al-line { transition: none; } .ytmd-al-dots[data-d="0"] span, .ytmd-al.glow .ytmd-al-line[data-d="0"]::before { animation: none; } }
 `;
 
 type Item = { el: HTMLElement; start: number; end: number; line: LyricLine | null; words: HTMLElement[] };
@@ -138,7 +165,7 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 
 	const scrollTo = (active: number) => {
 		if (!scroller || !centers.length) return;
-		const target = Math.round(viewH * 0.4 - (centers[Math.max(0, active)] ?? 0)) + manualOffset;
+		const target = Math.round(viewH * (active < 0 ? ANCHOR_BEFORE_START : ANCHOR) - (centers[Math.max(0, active)] ?? 0)) + manualOffset;
 		if (target === lastY) return;
 		lastY = target;
 		scroller.style.transform = `translate3d(0, ${target}px, 0)`;
@@ -212,6 +239,34 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 		lastY = Number.NaN;
 		const root = document.createElement("div");
 		root.className = `ytmd-al${options.variant === "stage" ? " stage" : ""}`;
+		root.style.setProperty("--ytmd-al-scale", String(options.fontScale?.() ?? 1));
+		const glow = options.glow?.() ?? { mode: "off", color: "#ffffff" };
+		if (glow.mode !== "off") {
+			root.classList.add("glow");
+			const color =
+				glow.mode === "song" ? "var(--ytmd-thumbnail-accent, #ffffff)" : glow.mode === "accent" ? "var(--ytmd-accent, #ffffff)" : glow.color;
+			root.style.setProperty("--ytmd-al-glow", color);
+		}
+		if (options.onScale) {
+			const size = document.createElement("div");
+			size.className = "ytmd-al-size";
+			for (const [label, delta, title] of [
+				["A−", -0.1, "Smaller lyrics"],
+				["A+", 0.1, "Bigger lyrics"],
+			] as const) {
+				const b = document.createElement("button");
+				b.type = "button";
+				b.textContent = label;
+				b.title = title;
+				b.setAttribute("aria-label", title);
+				b.addEventListener("click", (e) => {
+					e.stopPropagation();
+					options.onScale?.(delta);
+				});
+				size.appendChild(b);
+			}
+			root.appendChild(size);
+		}
 		const result = snap.result;
 		const synced = !!result?.lines?.length && result.syncLevel !== "plain";
 		const hasText = synced || !!result?.plain;
@@ -331,7 +386,8 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 		if (result) {
 			const footer = document.createElement("div");
 			footer.className = "ytmd-al-footer";
-			footer.textContent = `Lyrics from ${lyricsProviderLabel(result.provider)}${result.inexact ? " (closest match)" : ""}`;
+			const from = result.provider === "youtube-music" ? "YouTube Music (not synced)" : lyricsProviderLabel(result.provider);
+			footer.textContent = `Lyrics from ${from}${result.inexact ? " (closest match)" : ""}`;
 			root.appendChild(footer);
 		}
 		host.replaceChildren(root);
@@ -345,7 +401,8 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 	};
 
 	const rebuildIfNeeded = () => {
-		const key: unknown[] = [snap.status, snap.result, snap.videoId, getHost(), options.lineStyle(), options.showTimeCodes()];
+		const g = options.glow?.();
+		const key: unknown[] = [snap.status, snap.result, snap.videoId, getHost(), options.lineStyle(), options.showTimeCodes(), options.fontScale?.(), g?.mode, g?.color];
 		if (builtFor && builtFor.length === key.length && builtFor.every((v, i) => v === key[i]) && host?.isConnected) return;
 		builtFor = key;
 		build();

@@ -265,6 +265,15 @@ const migrations: Omit<Migration<SettingsStore>, "version">[] = [
 			if (typeof (store.store as SettingsStore)?.player?.sponsorBlock !== "boolean") store.set("player.sponsorBlock", true);
 		},
 	},
+	{
+		hook(store) {
+			// Lyrics text size and glow (owner request 2026-10-30).
+			const lyrics = (store.store as { lyrics?: Record<string, unknown> })?.lyrics ?? {};
+			if (typeof lyrics.fontScale !== "number") store.set("lyrics.fontScale", 1);
+			if (!["off", "song", "accent", "custom"].includes(lyrics.glow as string)) store.set("lyrics.glow", "song");
+			if (typeof lyrics.glowColor !== "string") store.set("lyrics.glowColor", "#ffffff");
+		},
+	},
 ];
 
 export default migrations;

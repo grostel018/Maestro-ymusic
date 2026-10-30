@@ -24,7 +24,8 @@ export interface LyricResult {
 	lines?: LyricLine[];
 	plain?: string;
 	inexact?: boolean;
-	provider: "lrclib" | "better-lyrics" | "unison" | "youtube-captions";
+	/** "youtube-music": YouTube Music's own (plain) lyrics, shown in our view when no provider had any. */
+	provider: "lrclib" | "better-lyrics" | "unison" | "youtube-captions" | "youtube-music";
 	/** True when result includes real word/syllable cues. */
 	hasWordSync?: boolean;
 	syncLevel?: LyricsSyncLevel;

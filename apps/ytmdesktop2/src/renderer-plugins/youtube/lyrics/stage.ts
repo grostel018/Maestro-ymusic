@@ -5,7 +5,7 @@ import { normalizeAudio } from "@shared/audio/settings";
 import { setIcon } from "../video-controls.menu";
 import type { LyricsLineStyle } from "./line-style";
 import type { LyricsStoreSnapshot } from "./store";
-import { createLyricsRenderer, type LyricsRenderApi } from "./ui/apple";
+import { createLyricsRenderer, type LyricsGlow, type LyricsRenderApi } from "./ui/apple";
 
 const ROOT_ID = "ytmd-karaoke";
 const BUTTON_ID = "ytmd-sing-button";
@@ -38,10 +38,17 @@ type Settings = { get(key: string): Promise<unknown> | unknown; set(key: string,
 
 export interface KaraokeStage {
 	setSnapshot(snap: LyricsStoreSnapshot): void;
+	repaint(): void;
 	destroy(): void;
 }
 
-export function createKaraokeStage(opts: { settings: Settings | null; lineStyle: () => LyricsLineStyle; onSeek: (ms: number) => void }): KaraokeStage {
+export function createKaraokeStage(opts: {
+	settings: Settings | null;
+	lineStyle: () => LyricsLineStyle;
+	onSeek: (ms: number) => void;
+	fontScale?: () => number;
+	glow?: () => { mode: LyricsGlow; color: string };
+}): KaraokeStage {
 	let snap: LyricsStoreSnapshot = { status: "idle", result: null, videoId: null };
 	let renderer: LyricsRenderApi | null = null;
 	let idleTimer = 0;
@@ -125,7 +132,14 @@ export function createKaraokeStage(opts: { settings: Settings | null; lineStyle:
 		r.append(host, bar);
 		document.body.appendChild(r);
 		r.addEventListener("mousemove", wake);
-		renderer = createLyricsRenderer(() => host, { showTimeCodes: () => false, lineStyle: opts.lineStyle, onSeek: opts.onSeek, variant: "stage" });
+		renderer = createLyricsRenderer(() => host, {
+			showTimeCodes: () => false,
+			lineStyle: opts.lineStyle,
+			onSeek: opts.onSeek,
+			variant: "stage",
+			fontScale: opts.fontScale,
+			glow: opts.glow,
+		});
 		renderer.setSnapshot(snap);
 		renderer.setRunning(true);
 		void renderVocals();
@@ -194,6 +208,9 @@ export function createKaraokeStage(opts: { settings: Settings | null; lineStyle:
 		setSnapshot(next) {
 			snap = next;
 			renderer?.setSnapshot(next);
+		},
+		repaint() {
+			renderer?.repaint();
 		},
 		destroy() {
 			close();

@@ -1,5 +1,5 @@
 import { searchLyricsDetailed } from "./providers/search";
-import { resolveLyricsDisplay, setLyricsTabDisplayMode, ytmHasStockLyrics } from "./stock";
+import { resolveLyricsDisplay, setLyricsTabDisplayMode, ytmHasStockLyrics, ytmStockText } from "./stock";
 import type { LyricResult, LyricsMissReason, LyricsStatus, TrackSearchInfo } from "./types";
 
 export interface LyricsStoreSnapshot {
@@ -32,10 +32,23 @@ function applyDisplay(snap: LyricsStoreSnapshot): LyricsStoreSnapshot {
 		hasTimedLines,
 		hasStock: ytmHasStockLyrics(),
 	});
-	setLyricsTabDisplayMode(resolved.mode);
 	if (resolved.status === "stock") {
+		// YTM has plain lyrics we don't: show its text in our view (same look and size) rather than its own panel.
+		const stock = ytmStockText();
+		if (stock) {
+			setLyricsTabDisplayMode("overlay");
+			return {
+				...snap,
+				status: "ready",
+				errorMessage: undefined,
+				betterLyricsMiss: undefined,
+				result: { title: "", artists: [], plain: stock.text, provider: "youtube-music", syncLevel: "plain", inexact: false },
+			};
+		}
+		setLyricsTabDisplayMode(resolved.mode);
 		return { ...snap, status: "stock", errorMessage: undefined, betterLyricsMiss: undefined };
 	}
+	setLyricsTabDisplayMode(resolved.mode);
 	return snap;
 }
 

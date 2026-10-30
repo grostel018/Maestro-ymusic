@@ -6,7 +6,7 @@ import { createLyricsStore } from "./lyrics/store";
 import { createTabMount, selectLyricsTab, type TabMountHandle } from "./lyrics/tab-mount";
 import { seekPlayer, shouldSkipTrack, trackInfoFromMainWorld } from "./lyrics/track";
 import type { TrackSearchInfo } from "./lyrics/types";
-import { createLyricsRenderer, type LyricsRenderApi } from "./lyrics/ui/apple";
+import { createLyricsRenderer, type LyricsGlow, type LyricsRenderApi } from "./lyrics/ui/apple";
 import { lyricsPage } from "./lyrics.page";
 import lyricsRenderer from "./lyrics.renderer";
 
@@ -51,6 +51,8 @@ const runtime: LyricsRuntime = {
 	autoOpenedFor: null,
 };
 
+const clampScale = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? Math.min(2, Math.max(0.7, v)) : 1);
+
 function readLyricsSettings(settings?: Record<string, any>) {
 	const s = settings ?? window.__ytd_settings ?? {};
 	return {
@@ -63,6 +65,9 @@ function readLyricsSettings(settings?: Record<string, any>) {
 		betterLyricsApiKey: typeof s?.lyrics?.betterLyricsApiKey === "string" ? s.lyrics.betterLyricsApiKey : "",
 		autoOpenTab: s?.lyrics?.autoOpenTab !== false,
 		preferWordSync: s?.lyrics?.preferWordSync !== false,
+		fontScale: clampScale(s?.lyrics?.fontScale),
+		glow: (["off", "song", "accent", "custom"].includes(s?.lyrics?.glow) ? s.lyrics.glow : "song") as LyricsGlow,
+		glowColor: typeof s?.lyrics?.glowColor === "string" && /^#[0-9a-f]{6}$/i.test(s.lyrics.glowColor) ? s.lyrics.glowColor : "#ffffff",
 	};
 }
 
@@ -192,18 +197,27 @@ async function startLyrics() {
 			if (!ok) runtime.log?.debug("lyrics: seek failed");
 		});
 	};
-	runtime.renderer = createLyricsRenderer(() => runtime.mount?.getHost() ?? null, {
-		showTimeCodes: () => readLyricsSettings().showTimeCodes,
-		lineStyle: () => readLyricsSettings().lineStyle,
-		onSeek,
-	});
 	let settings: { get(key: string): unknown; set(key: string, value: unknown): void } | null = null;
 	try {
 		settings = getYtmd().settings;
 	} catch {
 		settings = null;
 	}
-	runtime.stage = createKaraokeStage({ settings, lineStyle: () => readLyricsSettings().lineStyle, onSeek });
+	const look = {
+		fontScale: () => readLyricsSettings().fontScale,
+		glow: () => ({ mode: readLyricsSettings().glow, color: readLyricsSettings().glowColor }),
+		onScale: (delta: number) => {
+			const next = Math.round(clampScale(readLyricsSettings().fontScale + delta) * 10) / 10;
+			settings?.set("lyrics.fontScale", next);
+		},
+	};
+	runtime.renderer = createLyricsRenderer(() => runtime.mount?.getHost() ?? null, {
+		showTimeCodes: () => readLyricsSettings().showTimeCodes,
+		lineStyle: () => readLyricsSettings().lineStyle,
+		onSeek,
+		...look,
+	});
+	runtime.stage = createKaraokeStage({ settings, lineStyle: () => readLyricsSettings().lineStyle, onSeek, fontScale: look.fontScale, glow: look.glow });
 
 	runtime.unsubStore = runtime.store.subscribe((snap) => {
 		runtime.renderer?.setSnapshot(snap);
@@ -212,8 +226,9 @@ async function startLyrics() {
 	});
 	runtime.unsubSettings =
 		runtime.onSettingsChange?.((key) => {
-			if (key === "lyrics.showTimeCodes" || key === "lyrics.lineBackground" || key === "lyrics.lineStyle") {
+			if (["lyrics", "lyrics.showTimeCodes", "lyrics.lineStyle", "lyrics.fontScale", "lyrics.glow", "lyrics.glowColor"].includes(key)) {
 				runtime.renderer?.repaint();
+				runtime.stage?.repaint();
 			}
 			if (
 				key === "lyrics.showEvenIfInexact" ||

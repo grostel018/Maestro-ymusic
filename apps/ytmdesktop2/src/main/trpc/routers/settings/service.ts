@@ -68,6 +68,11 @@ const defaultSettings = {
 		autoOpenTab: true,
 		/** Keep trying later providers for word/syllable cues before settling for line sync. */
 		preferWordSync: true,
+		/** Lyrics text size multiplier (0.7–2); A−/A+ in the lyrics view change it too. */
+		fontScale: 1,
+		/** Light circling the current line: off, the song's color, the theme accent, or glowColor. */
+		glow: "song" as "off" | "song" | "accent" | "custom",
+		glowColor: "#ffffff",
 	},
 	player: {
 		skipDisliked: false,

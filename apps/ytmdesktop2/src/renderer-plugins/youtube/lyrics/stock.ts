@@ -22,6 +22,21 @@ export function ytmHasStockLyrics(body: HTMLElement | null = findLyricsBody()): 
 	return false;
 }
 
+/**
+ * YouTube Music's own lyrics as plain text (its footer, "Source: …", left out), or null when it has none. Shown in our
+ * view instead of YTM's, so the look and the text size stay the same.
+ */
+export function ytmStockText(body: HTMLElement | null = findLyricsBody()): { text: string; source: string } | null {
+	const shelf = body?.querySelector<HTMLElement>("ytmusic-description-shelf-renderer");
+	if (!shelf) return null;
+	const desc = shelf.querySelector<HTMLElement>(".description, yt-formatted-string.description") ?? shelf;
+	const footer = shelf.querySelector<HTMLElement>(".footer, yt-formatted-string.footer")?.innerText.trim() ?? "";
+	let text = (desc.innerText || desc.textContent || "").trim();
+	if (footer && text.endsWith(footer)) text = text.slice(0, -footer.length).trim();
+	if (text.replace(/\s+/g, " ").length < STOCK_MIN_CHARS) return null;
+	return { text, source: footer.replace(/^Source:\s*/i, "") };
+}
+
 /** Overlay = our UI; stock = show native YTM lyrics, hide `#ytmd-lyrics-root`. */
 export function setLyricsTabDisplayMode(mode: LyricsTabDisplayMode): void {
 	findLyricsBody()?.setAttribute("data-ytmd-lyrics", mode);

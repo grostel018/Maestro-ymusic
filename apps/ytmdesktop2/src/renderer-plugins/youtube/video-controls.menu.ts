@@ -9,6 +9,8 @@ const MENU_ID = "ytmd-vc-menu";
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 let closeCurrent: (() => void) | null = null;
+/** The button whose menu is open, so a second click on it closes the menu instead of reopening it. */
+let openFor: HTMLElement | null = null;
 
 export function isMenuOpen(): boolean {
 	return !!document.getElementById(MENU_ID);
@@ -20,6 +22,10 @@ export function closeMenu(): void {
 
 /** Opens `items` above `anchor` (or below when there's no room). Clicking an item or outside closes it. */
 export function openMenu(anchor: HTMLElement, title: string, items: MenuItem[]): void {
+	if (openFor === anchor && isMenuOpen()) {
+		closeMenu();
+		return;
+	}
 	closeMenu();
 	const menu = document.createElement("div");
 	menu.id = MENU_ID;
@@ -71,6 +77,8 @@ export function openMenu(anchor: HTMLElement, title: string, items: MenuItem[]):
 	};
 	function close() {
 		menu.remove();
+		if (openFor === anchor) openFor = null;
+		anchor.setAttribute("aria-expanded", "false");
 		document.removeEventListener("pointerdown", onDown, true);
 		document.removeEventListener("keydown", onKey, true);
 		if (closeCurrent === close) closeCurrent = null;
@@ -78,6 +86,8 @@ export function openMenu(anchor: HTMLElement, title: string, items: MenuItem[]):
 	document.addEventListener("pointerdown", onDown, true);
 	document.addEventListener("keydown", onKey, true);
 	closeCurrent = close;
+	openFor = anchor;
+	anchor.setAttribute("aria-expanded", "true");
 }
 
 export function setIcon(button: HTMLElement, d: string): void {
