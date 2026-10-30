@@ -1,23 +1,16 @@
 import definePlugin from "@plugins/utils";
 import { getYtmd } from "@preload/preload-local";
 import { readLineStyle } from "./lyrics/line-style";
+import { createKaraokeStage, type KaraokeStage } from "./lyrics/stage";
 import { createLyricsStore } from "./lyrics/store";
 import { createTabMount, selectLyricsTab, type TabMountHandle } from "./lyrics/tab-mount";
-import {
-	seekPlayer,
-	shouldSkipTrack,
-	startLyricsClock,
-	stopLyricsClock,
-	trackInfoFromMainWorld,
-} from "./lyrics/track";
+import { seekPlayer, shouldSkipTrack, trackInfoFromMainWorld } from "./lyrics/track";
 import type { TrackSearchInfo } from "./lyrics/types";
-import { createLyricsRenderer, type LyricsRenderApi } from "./lyrics/ui/render";
-import { lyricsPage, subscribeLyricsTime } from "./lyrics.page";
+import { createLyricsRenderer, type LyricsRenderApi } from "./lyrics/ui/apple";
+import { lyricsPage } from "./lyrics.page";
 import lyricsRenderer from "./lyrics.renderer";
 
 const SEEK_OFFSET_MS = 10;
-/** Nudge UI ahead of getCurrentTime - YTM clock often trails audible audio. */
-const DISPLAY_LEAD_MS = 80;
 
 type LyricsLogger = { debug: (...args: unknown[]) => void; error: (...args: unknown[]) => void };
 
@@ -25,10 +18,10 @@ interface LyricsRuntime {
 	store: ReturnType<typeof createLyricsStore>;
 	mount: TabMountHandle | null;
 	renderer: LyricsRenderApi | null;
+	stage: KaraokeStage | null;
 	unsubStore: (() => void) | null;
 	unsubSettings: (() => void) | null;
 	unsubTrackId: (() => void) | null;
-	unsubTime: (() => void) | null;
 	domUtils: Window["domUtils"] | null;
 	log: LyricsLogger | null;
 	onSettingsChange: ((fn: (key: string, value: any) => void) => () => void) | null;
@@ -44,10 +37,10 @@ const runtime: LyricsRuntime = {
 	store: createLyricsStore(),
 	mount: null,
 	renderer: null,
+	stage: null,
 	unsubStore: null,
 	unsubSettings: null,
 	unsubTrackId: null,
-	unsubTime: null,
 	domUtils: null,
 	log: null,
 	onSettingsChange: null,
@@ -141,26 +134,13 @@ function maybeAutoOpenTab(snap: { status: string; videoId: string | null }) {
 	if (!selectLyricsTab()) runtime.log?.debug("lyrics: auto-open tab skipped (header missing/disabled)");
 }
 
-function applyTickTime(timeSec: number) {
-	if (!runtime.renderer || !runtime.active || !runtime.tabSelected) return;
-	runtime.renderer.setTime(timeSec * 1000 + DISPLAY_LEAD_MS);
-}
-
-async function startTimePoll() {
-	if (runtime.unsubTime) return;
-	runtime.unsubTime = subscribeLyricsTime(applyTickTime);
-	const ok = await startLyricsClock();
-	if (!ok) {
-		runtime.unsubTime();
-		runtime.unsubTime = null;
-		runtime.log?.debug("lyrics: startClock failed (page listen not ready?)");
-	}
+// The view keeps its own clock (it reads the video's time each frame); it only runs while the Lyrics tab is shown.
+function startTimePoll() {
+	runtime.renderer?.setRunning(true);
 }
 
 function stopTimePoll() {
-	stopLyricsClock();
-	runtime.unsubTime?.();
-	runtime.unsubTime = null;
+	runtime.renderer?.setRunning(false);
 }
 
 function unbindTrackWatch() {
@@ -199,7 +179,7 @@ async function startLyrics() {
 		onTabSelectedChange: (selected) => {
 			runtime.tabSelected = selected;
 			if (selected) {
-				void startTimePoll();
+				startTimePoll();
 			} else {
 				stopTimePoll();
 			}
@@ -207,19 +187,27 @@ async function startLyrics() {
 	});
 	runtime.tabSelected = runtime.mount.isLyricsTabSelected();
 
+	const onSeek = (timeMs: number) => {
+		void seekPlayer((timeMs + SEEK_OFFSET_MS) / 1000).then((ok) => {
+			if (!ok) runtime.log?.debug("lyrics: seek failed");
+		});
+	};
 	runtime.renderer = createLyricsRenderer(() => runtime.mount?.getHost() ?? null, {
 		showTimeCodes: () => readLyricsSettings().showTimeCodes,
-		lineBackground: () => readLyricsSettings().lineBackground,
 		lineStyle: () => readLyricsSettings().lineStyle,
-		onSeek: (timeMs) => {
-			void seekPlayer((timeMs + SEEK_OFFSET_MS) / 1000).then((ok) => {
-				if (!ok) runtime.log?.debug("lyrics: seek failed");
-			});
-		},
+		onSeek,
 	});
+	let settings: { get(key: string): unknown; set(key: string, value: unknown): void } | null = null;
+	try {
+		settings = getYtmd().settings;
+	} catch {
+		settings = null;
+	}
+	runtime.stage = createKaraokeStage({ settings, lineStyle: () => readLyricsSettings().lineStyle, onSeek });
 
 	runtime.unsubStore = runtime.store.subscribe((snap) => {
 		runtime.renderer?.setSnapshot(snap);
+		runtime.stage?.setSnapshot(snap);
 		maybeAutoOpenTab(snap);
 	});
 	runtime.unsubSettings =
@@ -239,7 +227,7 @@ async function startLyrics() {
 		}) ?? null;
 
 	bindTrackWatch();
-	if (runtime.tabSelected) await startTimePoll();
+	if (runtime.tabSelected) startTimePoll();
 	await refreshTrack();
 	runtime.renderer.repaint();
 }
@@ -259,6 +247,8 @@ function stopLyrics() {
 	runtime.unsubSettings = null;
 	runtime.renderer?.destroy();
 	runtime.renderer = null;
+	runtime.stage?.destroy();
+	runtime.stage = null;
 	runtime.mount?.destroy();
 	runtime.mount = null;
 	runtime.store.clear();

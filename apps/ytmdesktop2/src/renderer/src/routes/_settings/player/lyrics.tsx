@@ -15,20 +15,14 @@ const LINE_STYLE_OPTIONS: SettingsSelectOption[] = [
 	{
 		value: "highlight",
 		label: "Highlight only",
-		description: "Light the current line up. Word-synced lyrics still step word by word; no extra indicator.",
+		description: "The current line is large and bright; no fill.",
 	},
 	{
 		value: "fill",
 		label: "Text fill",
-		description:
-			"Word-synced lyrics: each word sweeps to white as it's sung. Songs with line timing only fall back to Highlight only.",
+		description: "The current line fills as it's sung: word by word with word timing, across the line with line timing.",
 	},
-	{
-		value: "bar",
-		label: "Progress bar",
-		description: "Songs with line timing only: a row background advances across the line at a constant rate.",
-	},
-];
+]
 
 function LyricsSettingsPage() {
 	const [lyricsEnabled] = useSettingsState<boolean>("lyrics.enabled", false);
@@ -82,20 +76,12 @@ function LyricsSettingsPage() {
 						>
 							Show time codes
 						</SettingsCheckbox>
-						<SettingsCheckbox
-							configKey="lyrics.lineBackground"
-							defaultValue={true}
-							disabled={!lyricsEnabled}
-							description="Tint the row behind the current line. Turn off to brighten the text only. The Progress bar style still draws its bar."
-						>
-							Active line background
-						</SettingsCheckbox>
 						<SettingsSelect
 							configKey="lyrics.lineStyle"
 							defaultValue="fill"
 							disabled={!lyricsEnabled}
 							label="Highlight style"
-							description="How the current line shows progress. Text fill needs word/syllable timing from the provider; line timing only says when a line starts, not how fast it's sung, so those songs get a plain highlight or the constant-rate bar."
+							description="How the current line shows progress. Shift+K or the microphone button in the player bar opens full-screen karaoke."
 							options={LINE_STYLE_OPTIONS}
 						/>
 					</FieldGroup>

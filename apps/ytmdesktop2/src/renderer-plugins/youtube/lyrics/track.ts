@@ -1,5 +1,5 @@
-import type { TrackSearchInfo } from "./types";
 import { lyricsPage } from "../lyrics.page";
+import type { TrackSearchInfo } from "./types";
 
 const AD_OR_NON_MUSIC = new Set([
 	"MUSIC_VIDEO_TYPE_OMV", // still music - keep

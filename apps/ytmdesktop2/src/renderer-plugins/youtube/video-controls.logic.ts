@@ -33,8 +33,8 @@ function mapKey(e: KeyLike, target: EventTarget | null): ControlAction | null {
 	// Space on a focused button or menu item presses it.
 	if (e.key === " " && closest("button, a, [role='menu'], [role='menuitemradio']")) return null;
 	switch (e.key) {
+		// Capital K (Shift+K) opens full-screen karaoke (lyrics/stage.ts).
 		case "k":
-		case "K":
 		case " ":
 			return { kind: "play-pause" };
 		case "j":
