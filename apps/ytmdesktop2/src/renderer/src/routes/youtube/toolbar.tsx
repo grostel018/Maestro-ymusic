@@ -24,13 +24,13 @@ function YoutubeToolbarPage() {
 	const { updateInfo, downloaded, progress, isPending: updatePending, status, runUpdate } = useUpdater();
 	const { minimize, maximize, quit } = useWindowControls();
 	const { goback, goforward, playerPage, search } = useNavigation();
-	const progress = useTrackProgress();
+	const playback = useTrackProgress();
 	const surface = useSurfaceBackground();
 
 	const title = useMemo(() => track?.video?.title ?? null, [track]);
 	const artist = track?.video?.author ?? "";
 	const artwork = resolveArtworkUrl(track);
-	const percent = progress.duration > 0 ? Math.min(100, (progress.progress / progress.duration) * 100) : 0;
+	const percent = playback.duration > 0 ? Math.min(100, (playback.progress / playback.duration) * 100) : 0;
 	const canGoForward = (state?.navigation as { canGoForward?: boolean } | null | undefined)?.canGoForward ?? false;
 	const canGoBack = useMemo(() => {
 		const nav = state?.navigation;
