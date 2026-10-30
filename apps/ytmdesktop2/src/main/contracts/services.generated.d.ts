@@ -9,6 +9,8 @@ import type chromecastProvider from "@routers/chromecast/service";
 import type deeplinkProvider from "@routers/deeplink/service";
 import type discordProvider from "@routers/discord/service";
 import type eventProvider from "@routers/event/service";
+import type gameModeProvider from "@routers/gameMode/service";
+import type gameModeProvider from "@routers/gameMode/service";
 import type lastfmProvider from "@routers/lastfm/service";
 import type lyricsProvider from "@routers/lyrics/service";
 import type mediaControlProvider from "@routers/mediaControl/service";
@@ -37,6 +39,8 @@ export interface ServiceTypeMap {
   "deeplink": deeplinkProvider;
   "discord": discordProvider;
   "event": eventProvider;
+  "gameMode": gameModeProvider;
+  "gameMode": gameModeProvider;
   "lastfm": lastfmProvider;
   "lyrics": lyricsProvider;
   "mediaControl": mediaControlProvider;

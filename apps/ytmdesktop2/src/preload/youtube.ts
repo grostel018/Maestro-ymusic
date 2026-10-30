@@ -1,7 +1,7 @@
 import { adblockFromArgv } from "@shared/adblock/flag";
 import { isChromecastEnabledFromArgv } from "@shared/chromecast/flag";
 import { logger } from "@shared/utils/console";
-import { contextBridge, webFrame } from "electron";
+import { contextBridge, ipcRenderer, webFrame } from "electron";
 import pkg from "../../package.json";
 import { ADBLOCK_PRUNE_SOURCE } from "./adblock-prune";
 import exposeData, { assignPreload, exposeToPage, settingsProvider } from "./base";
@@ -22,6 +22,10 @@ preloadLocal.ytmd = ytmd;
 preloadLocal.api = exposeData.api;
 preloadLocal.domUtils = exposeData.domUtils;
 preloadLocal.ipcRenderer = exposeData.ipcRenderer;
+
+// Game mode (main/trpc/routers/gameMode/service.ts): while the window is hidden, drop Blink's in-memory image and
+// resource caches; they refill as the page is used again.
+ipcRenderer.on("ytmd:game-mode-hidden", () => webFrame.clearCache());
 
 // Preload-local globals for plugin host (never bridged when isolated).
 assignPreload("appVersion", appVersion);

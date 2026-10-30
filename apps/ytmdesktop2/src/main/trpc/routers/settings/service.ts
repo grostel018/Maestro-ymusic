@@ -36,6 +36,8 @@ const defaultSettings = {
 		/** Ignore Chromium's GPU blocklist. Off: blocklisted drivers fall back to software. Restart to apply. */
 		forceGpu: false,
 		enableTaskbarProgress: true,
+		/** Step back while another app (a game) is in front: lower priority, 144p video while hidden. */
+		gameMode: true,
 		zoomFactor: 1,
 	},
 	trayView: {

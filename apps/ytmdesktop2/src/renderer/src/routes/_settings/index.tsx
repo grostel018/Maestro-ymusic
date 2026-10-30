@@ -49,6 +49,13 @@ function GenericSettingsPage() {
 						<SettingsCheckbox configKey="app.minimizeTrayOverride" description="Close window to tray instead of quitting.">
 							Minimize to tray on close
 						</SettingsCheckbox>
+						<SettingsCheckbox
+							configKey="app.gameMode"
+							defaultValue={true}
+							description="While another app or a game is in front, the app runs at lower priority; minimized, the video drops to 144p and caches are freed. The music keeps its priority."
+						>
+							Game mode
+						</SettingsCheckbox>
 						<SettingsCheckbox configKey="app.disableHardwareAccel" description="Requires an app restart to apply.">
 							Disable Hardware Acceleration
 						</SettingsCheckbox>

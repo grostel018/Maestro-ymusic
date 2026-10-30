@@ -246,6 +246,12 @@ const migrations: Omit<Migration<SettingsStore>, "version">[] = [
 			store.set("audio", normalizeAudio((store.store as { audio?: unknown })?.audio));
 		},
 	},
+	{
+		hook(store) {
+			// Game mode, on by default.
+			if (typeof (store.store as SettingsStore)?.app?.gameMode !== "boolean") store.set("app.gameMode", true);
+		},
+	},
 ];
 
 export default migrations;
