@@ -27,8 +27,8 @@ const LINE_STYLE_OPTIONS: SettingsSelectOption[] = [
 ];
 
 const GLOW_OPTIONS: SettingsSelectOption[] = [
-	{ value: "off", label: "Off", description: "No light around the current line." },
-	{ value: "song", label: "Song color", description: "A light in the artwork's main color circles the current line." },
+	{ value: "off", label: "Off", description: "No light on the current line." },
+	{ value: "song", label: "Song color", description: "Light in the artwork's main color flows through the current line." },
 	{ value: "accent", label: "Theme accent", description: "Uses the accent color of the active theme." },
 	{ value: "custom", label: "Custom color", description: "Pick the color below." },
 ];
@@ -61,10 +61,18 @@ function LyricsLook({ disabled }: { disabled: boolean }) {
 				configKey="lyrics.glow"
 				defaultValue="song"
 				disabled={disabled}
-				label="Glow around the current line"
-				description="A soft light that circles the line being sung."
+				label="Glow on the current line"
+				description="Streaks of light flow through the letters; the word being sung shines most."
 				options={GLOW_OPTIONS}
 			/>
+			<SettingsCheckbox
+				configKey="lyrics.glowBeat"
+				defaultValue={true}
+				disabled={disabled || glow === "off"}
+				description="The light gets brighter on the bass. Uses the audio engine; the sound does not change."
+			>
+				Pulse with the beat
+			</SettingsCheckbox>
 			{glow === "custom" ? (
 				<label className="flex items-center gap-3 text-sm">
 					<input

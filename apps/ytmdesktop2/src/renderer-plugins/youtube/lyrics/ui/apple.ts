@@ -69,7 +69,8 @@ const CSS = `
 .ytmd-al-line:hover { filter: none; background: rgba(255,255,255,.06); }
 .ytmd-al-viewport.plain .ytmd-al-line { filter: none; transform: none; color: rgba(255,255,255,.85); cursor: default; font-size: calc(20px * var(--ytmd-al-scale, 1)); }
 .ytmd-al-line.fill[data-d="0"] .ytmd-al-w, .ytmd-al-line.fill.lines[data-d="0"] .ytmd-al-text {
-	background: linear-gradient(90deg, #fff var(--p, 0%), rgba(255,255,255,.38) var(--p, 0%)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+	--ytmd-al-base: linear-gradient(90deg, #fff var(--p, 0%), rgba(255,255,255,.38) var(--p, 0%));
+	background: var(--ytmd-al-base); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .ytmd-al-part { display: block; }
 .ytmd-al-part.alt { text-align: right; font-size: .82em; }
 .ytmd-al-time { display: inline-block; min-width: 3.2em; margin-right: 10px; font-size: 12px; font-weight: 400; color: rgba(255,255,255,.45); vertical-align: middle; }
@@ -84,22 +85,37 @@ const CSS = `
 .ytmd-al.stage .ytmd-al-line { font-size: calc(clamp(32px, 4.6vw, 64px) * var(--ytmd-al-scale, 1)); text-align: center; transform-origin: center; padding: 14px 24px; }
 .ytmd-al.stage .ytmd-al-dots { justify-content: center; }
 .ytmd-al.stage .ytmd-al-footer { text-align: center; }
-/* Glow: a soft light in the song's (or theme's) color behind the current line, with a bright arc circling its edge. */
-@property --ytmd-al-angle { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
-.ytmd-al.glow .ytmd-al-line[data-d="0"] { background: color-mix(in srgb, var(--ytmd-al-glow) 12%, transparent);
-	text-shadow: 0 0 22px color-mix(in srgb, var(--ytmd-al-glow) 60%, transparent); }
-.ytmd-al.glow .ytmd-al-line[data-d="0"]::before { content: ""; position: absolute; inset: -2px; border-radius: 14px; padding: 2px; pointer-events: none;
-	background: conic-gradient(from var(--ytmd-al-angle), transparent 0deg, var(--ytmd-al-glow) 60deg, transparent 130deg, transparent 360deg);
-	-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
-	filter: drop-shadow(0 0 6px var(--ytmd-al-glow)); animation: ytmd-al-orbit 3.2s linear infinite; }
-@keyframes ytmd-al-orbit { to { --ytmd-al-angle: 360deg; } }
+/* Glow: streaks of light in the song's (or theme's) color flow through the letters of the current line, above the
+   fill, with a halo that follows the letter shapes. The sung word shines most; --ytmd-al-beat (0-1, set from the bass
+   by lyrics-beat.renderer.ts) makes it pulse. */
+@property --ytmd-al-fx1 { syntax: "<percentage>"; inherits: true; initial-value: 0%; }
+@property --ytmd-al-fx2 { syntax: "<percentage>"; inherits: true; initial-value: 0%; }
+@property --ytmd-al-fx3 { syntax: "<percentage>"; inherits: true; initial-value: 0%; }
+.ytmd-al.glow .ytmd-al-line[data-d="0"] { background: color-mix(in srgb, var(--ytmd-al-glow) 10%, transparent);
+	animation: ytmd-al-fx1 2.4s linear infinite, ytmd-al-fx2 3.1s linear infinite, ytmd-al-fx3 4.3s ease-in-out infinite alternate; }
+.ytmd-al.glow .ytmd-al-line[data-d="0"] :is(.ytmd-al-w, .ytmd-al-text, .ytmd-al-part) {
+	--k: .45;
+	--b: var(--ytmd-al-beat, .3);
+	--hi: color-mix(in srgb, color-mix(in srgb, var(--ytmd-al-glow) 60%, #fff) calc(30% + 70% * var(--k) * (.4 + .6 * var(--b))), transparent);
+	background-image:
+		linear-gradient(115deg, transparent calc(var(--ytmd-al-fx1) - 14%), var(--hi) var(--ytmd-al-fx1), transparent calc(var(--ytmd-al-fx1) + 14%)),
+		linear-gradient(245deg, transparent calc(var(--ytmd-al-fx2) - 10%), var(--hi) var(--ytmd-al-fx2), transparent calc(var(--ytmd-al-fx2) + 10%)),
+		linear-gradient(180deg, transparent calc(var(--ytmd-al-fx3) - 22%), var(--hi) var(--ytmd-al-fx3), transparent calc(var(--ytmd-al-fx3) + 22%)),
+		var(--ytmd-al-base, linear-gradient(#fff, #fff));
+	-webkit-background-clip: text; background-clip: text; color: transparent;
+	filter: drop-shadow(0 0 calc(2px + 12px * var(--k) * var(--b)) color-mix(in srgb, var(--ytmd-al-glow) calc(25% + 60% * var(--k)), transparent));
+	transition: filter 120ms linear; }
+.ytmd-al.glow .ytmd-al-line[data-d="0"] .ytmd-al-text, .ytmd-al.glow .ytmd-al-line[data-d="0"] .ytmd-al-w[data-now] { --k: 1; }
+@keyframes ytmd-al-fx1 { from { --ytmd-al-fx1: -20%; } to { --ytmd-al-fx1: 120%; } }
+@keyframes ytmd-al-fx2 { from { --ytmd-al-fx2: 120%; } to { --ytmd-al-fx2: -20%; } }
+@keyframes ytmd-al-fx3 { from { --ytmd-al-fx3: -25%; } to { --ytmd-al-fx3: 125%; } }
 .ytmd-al-size { position: absolute; top: 6px; right: 6px; z-index: 2; display: flex; gap: 4px; opacity: 0; transition: opacity 200ms ease; }
 .ytmd-al:hover .ytmd-al-size, .ytmd-al-size:focus-within { opacity: 1; }
 .ytmd-al-size button { all: unset; cursor: pointer; min-width: 28px; height: 26px; padding: 0 6px; box-sizing: border-box; text-align: center; border-radius: 8px;
 	font: 600 12px/26px "YouTube Sans", Roboto, sans-serif; color: #fff; background: rgba(0,0,0,.45); }
 .ytmd-al-size button:hover { background: rgba(255,255,255,.18); }
 .ytmd-al-size button:focus-visible { outline: 2px solid #fff; }
-@media (prefers-reduced-motion: reduce) { .ytmd-al-scroller, .ytmd-al-line { transition: none; } .ytmd-al-dots[data-d="0"] span, .ytmd-al.glow .ytmd-al-line[data-d="0"]::before { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .ytmd-al-scroller, .ytmd-al-line { transition: none; } .ytmd-al-dots[data-d="0"] span, .ytmd-al.glow .ytmd-al-line[data-d="0"] { animation: none; } }
 `;
 
 type Item = { el: HTMLElement; start: number; end: number; line: LyricLine | null; words: HTMLElement[] };
@@ -130,6 +146,8 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 	let viewH = 0;
 	let current = -2;
 	let raf = 0;
+	/** The word being sung on the current line (the glow's brightest part). */
+	let nowWord: HTMLElement | null = null;
 	let running = false;
 	let manualUntil = 0;
 	let manualOffset = 0;
@@ -184,6 +202,8 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 		if (active !== current) {
 			setDistances(active);
 			current = active;
+			nowWord?.removeAttribute("data-now");
+			nowWord = null;
 		}
 		if (Date.now() > manualUntil) {
 			manualOffset = 0;
@@ -194,13 +214,20 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 		if (it?.line) {
 			if (it.words.length) {
 				const words = it.line.words ?? [];
+				let now: HTMLElement | null = null;
 				for (let i = 0; i < it.words.length; i++) {
 					const p = Math.round(wordProgress(words[i], t) * 100);
 					const el = it.words[i];
+					if (p > 0 && p < 100) now = el;
 					if (el.dataset.p !== String(p)) {
 						el.dataset.p = String(p);
 						el.style.setProperty("--p", `${p}%`);
 					}
+				}
+				if (now !== nowWord) {
+					nowWord?.removeAttribute("data-now");
+					now?.setAttribute("data-now", "");
+					nowWord = now;
 				}
 			} else if (Number.isFinite(it.line.durationMs) && it.line.durationMs > 0) {
 				const p = Math.round(Math.min(1, Math.max(0, (t - it.line.timeMs) / it.line.durationMs)) * 100);
@@ -236,6 +263,7 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 		lines = [];
 		lineItem = [];
 		current = -2;
+		nowWord = null;
 		lastY = Number.NaN;
 		const root = document.createElement("div");
 		root.className = `ytmd-al${options.variant === "stage" ? " stage" : ""}`;

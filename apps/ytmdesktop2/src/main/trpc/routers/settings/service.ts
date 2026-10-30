@@ -70,9 +70,11 @@ const defaultSettings = {
 		preferWordSync: true,
 		/** Lyrics text size multiplier (0.7–2); A−/A+ in the lyrics view change it too. */
 		fontScale: 1,
-		/** Light circling the current line: off, the song's color, the theme accent, or glowColor. */
+		/** Light flowing through the current line's letters: off, the song's color, the theme accent, or glowColor. */
 		glow: "song" as "off" | "song" | "accent" | "custom",
 		glowColor: "#ffffff",
+		/** The glow pulses with the bass (audio engine analyser). */
+		glowBeat: true,
 	},
 	player: {
 		skipDisliked: false,

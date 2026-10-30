@@ -15,11 +15,20 @@
 |---|---|---|
 | `lyrics.lineStyle` | `fill` | `fill` or `highlight` |
 | `lyrics.showTimeCodes` | `false` | Times next to lines |
+| `lyrics.fontScale` | `1` | Text size, 0.7–2 (also the A− / A+ buttons in the view) |
+| `lyrics.glow` | `song` | Light on the current line: `off`, `song` (artwork color), `accent` (theme), `custom` |
+| `lyrics.glowColor` | `#ffffff` | Color for `custom` |
+| `lyrics.glowBeat` | `true` | The glow pulses with the bass |
 
 ## How it works
 - `lyrics/ui/apple.ts` replaces the React view: plain DOM built once per result, its own frame clock (it reads the
   video's `currentTime` each frame, so nothing crosses worlds per frame), one GPU transform for the scroll,
   positions measured on build and resize only, the fill driven by a CSS variable.
+- Glow: three streaks (registered `@property` percentages, animated in CSS) are background layers clipped to the
+  letters of the current line, above the fill layer (`--ytmd-al-base`), plus a `drop-shadow` halo that follows the
+  glyphs. The sung word (`data-now`) shines most. `lyrics-beat.renderer.ts` (page world) reads the engine analyser's
+  40–200 Hz bins at 30 fps while a glowing view is visible and writes `--ytmd-al-beat` (0–1) on the view; the CSS
+  default (.3) is a steady glow. The song color is the artwork's Vibrant swatch, with fallbacks, from main.
 - `lyrics/stage.ts` is the karaoke overlay; it uses the same view in a "stage" variant.
 - Lowercase `k` stays play/pause; capital `K` (Shift+K) is karaoke.
 

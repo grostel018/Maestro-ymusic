@@ -1113,7 +1113,9 @@ export class TrackService {
 
 	async getTrackAccent(track: TrackData | null = this.trackData): Promise<string | null> {
 		if (!track) return null;
-		const thumbnailUrl = track?.video?.thumbnail?.thumbnails?.[0]?.url;
+		// The cover art at full size: the first thumbnail is the smallest (and for videos, a letterboxed frame).
+		const thumbnails = track?.video?.thumbnail?.thumbnails ?? [];
+		const thumbnailUrl = resolveArtworkUrl(track) ?? thumbnails[thumbnails.length - 1]?.url;
 		if (!thumbnailUrl) return null;
 
 		const videoId = track.video.videoId;
@@ -1123,7 +1125,8 @@ export class TrackService {
 			.getBuffer(thumbnailUrl)
 			.then((file) => (file ? Vibrant.from(file) : null))
 			.then((clr) => clr?.getPalette() ?? null)
-			.then((clr) => clr?.Vibrant?.hex ?? null)
+			// Vibrant is missing on dull or grey artwork; fall back to the next most colorful swatch.
+			.then((p) => (p ? (p.Vibrant ?? p.LightVibrant ?? p.DarkVibrant ?? p.Muted ?? p.LightMuted)?.hex : null) ?? null)
 			.catch((err) => {
 				this.logger.error("Error extracting accent color:", err);
 				return null;
@@ -1181,12 +1184,15 @@ export class TrackService {
 		}
 		this.onTrackChange(async (track) => {
 			const trackAccent = await this.getTrackAccent(track);
+			// A slow extraction for the previous song must not paint over the current one.
+			if (this.trackData?.video?.videoId !== track.video.videoId) return;
 			this.setTrackState((state) => {
 				if (state.id !== track.video.videoId) return;
 				if (state.accent === trackAccent) return;
 				state.accent = trackAccent;
 			});
-			YtmClient.push("css.thumbnail-accent", trackAccent ?? "transparent");
+			// No color: clear it, so the CSS fallbacks apply (the lyrics glow would be invisible on "transparent").
+			YtmClient.push("css.thumbnail-accent", trackAccent ?? "");
 			this.logger.debug("track:accent", trackAccent, track.video.thumbnail.thumbnails?.[0]?.url);
 		});
 		this.onTrackChange(async (track) => {

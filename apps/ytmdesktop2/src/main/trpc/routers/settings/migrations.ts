@@ -274,6 +274,13 @@ const migrations: Omit<Migration<SettingsStore>, "version">[] = [
 			if (typeof lyrics.glowColor !== "string") store.set("lyrics.glowColor", "#ffffff");
 		},
 	},
+	{
+		hook(store) {
+			// The lyrics glow pulses with the beat, on by default.
+			const lyrics = (store.store as { lyrics?: Record<string, unknown> })?.lyrics ?? {};
+			if (typeof lyrics.glowBeat !== "boolean") store.set("lyrics.glowBeat", true);
+		},
+	},
 ];
 
 export default migrations;
