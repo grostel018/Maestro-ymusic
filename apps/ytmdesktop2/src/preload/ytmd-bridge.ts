@@ -13,6 +13,8 @@ const EMIT_ALLOWLIST = new Set<string>([
 	"adblock:skipped",
 	"audio:graph",
 	"audio:gesture-needed",
+	"facts:request",
+	"facts:open",
 ]);
 
 /** Channels page-world `ytmd.on` may subscribe to. */
@@ -21,6 +23,7 @@ const PUSH_ALLOWLIST = new Set<string>([
 	"trackId:change",
 	"css.thumbnail",
 	"css.thumbnail-accent",
+	"facts:result",
 ]);
 
 function assertEmitAllowed(event: string): void {
