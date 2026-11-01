@@ -64,7 +64,14 @@ Done: 26. Next free ID: 100.
 | 99 | Release | First-run welcome and plain-language errors (roadmap H4) | todo |
 | 100 | Video mode | Full-screen player bar stayed on screen with the mouse still | done: fades after 2.5 s, returns on a move; s33 (hide step failed 3 of 4 runs right after entering full screen, cause not found, 500 ms settle added and not rerun) |
 | 101 | Window | Narrow windows: Song/Video switch over the picture, close-player button pushed off the bar, track title over the Last.fm name | done: player moved below the switch under 936 px; speed and sleep hidden under 1100 px, facts and output under 900 px; name hidden under 1100 px; s33. Toolbar part not checked signed in |
-| 102 | Window | 936–1250 px with the sidebar expanded: the player is tiny (350x197 at 1000 px) | todo |
+| 102 | Window | 936–1250 px with the sidebar expanded: the player is tiny (350x197 at 1000 px) | done: sidebar steps aside while the player page is open; 554x312 at 1100 px |
+| 103 | Window | No Windows 11 Snap Layouts: custom caption buttons, wrong icons, no restore icon | done: native caption buttons (titleBarOverlay); maximize now hit-tests as the real button |
+| 104 | Window | Minimum width 800 blocked half-screen snap on scaled displays | done: 640 |
+| 105 | Window | A window saved snapped, or partly off screen, reset on the next launch; the reset and first launch went to the top-left corner | done: isReachableOnDisplays; centred on the main display |
+| 106 | Window | Only the middle of the toolbar dragged the window; white flash while growing; v0.0.0 shown | done |
+| 107 | Lyrics | Custom lyrics blank when Up next sits below the player: the view measured the whole list, lines ended below the window | done: fits above the player bar; s33 |
+| 108 | Lyrics | Fixed 26 px lines in a narrow panel, heavy blur, sync and size buttons on top of the text | done: size follows the panel, blur halved, buttons backed |
+| 109 | Video mode | Song/Video switch over the cover, cover into the tabs, switch far from the picture, unreadable over artwork, YTM picture buttons stuck after a click, volume slider over the title, facts panel squeezed | done; s33 |
 
 ## Tier 0 - Make the core experience work
 

@@ -275,8 +275,8 @@ export const scenarios: Scenario[] = [
 	},
 	{
 		id: "s33",
-		title: "Full screen hides the player bar while the mouse is still and shows it on a move; at 800 px the switch clears the picture and the close-player button stays in the window",
-		launch: { settings: { player: { videoMode: "video", videoControls: true } } },
+		title: "Full screen hides the player bar while the mouse is still and shows it on a move; at 800 px the switch clears the picture, the close-player button stays in the window, lyrics fit above the player bar and the cover clears the tabs",
+		launch: { settings: { player: { videoMode: "video", videoControls: true }, lyrics: { enabled: true } } },
 		run: async (t) => {
 			await t.mainEval(`(() => { const win = __YTMD_TEST__.getMainWindow().main; if (win.isMaximized()) win.unmaximize(); win.setBounds({ x: 1, y: 0, width: 1500, height: 900 }); })()`);
 			await play(t);
@@ -314,6 +314,54 @@ export const scenarios: Scenario[] = [
 				if (m.playerH < 150) throw new Error(`at ${width} px the player is ${m.playerH} px tall`);
 				if (m.close > m.inner) throw new Error(`at ${width} px the close-player button ends at ${m.close} in a ${m.inner} px window`);
 				await yt.screenshot(path.join(import.meta.dirname, "..", "results", `s33-w${width}.png`));
+			}
+			// The smallest window: the track title stays between the toolbar's buttons.
+			await t.mainEval(`__YTMD_TEST__.getMainWindow().main.setBounds({ x: 1, y: 0, width: 640, height: 900 })`);
+			await sleep(800);
+			const tb = await t.view("toolbar");
+			const crowd = await tb.eval<{ pillLeft: number; pillRight: number; leftEnd: number; rightStart: number }>(`(() => {
+				const pill = document.querySelector('button[title="Open the player"]')?.getBoundingClientRect();
+				const buttons = [...document.querySelectorAll("button")].filter((b) => b.title !== "Open the player").map((b) => b.getBoundingClientRect()).filter((b) => b.width);
+				return { pillLeft: pill?.left ?? 0, pillRight: pill?.right ?? 0, leftEnd: Math.max(...buttons.filter((b) => b.left < innerWidth / 3).map((b) => b.right)), rightStart: Math.min(...buttons.filter((b) => b.left >= innerWidth / 3).map((b) => b.left)) };
+			})()`);
+			console.log(`  s33 toolbar 640: ${JSON.stringify(crowd)}`);
+			if (crowd.pillRight > crowd.rightStart || crowd.pillLeft < crowd.leftEnd) throw new Error(`the track title overlaps the toolbar's buttons: ${JSON.stringify(crowd)}`);
+			await tb.screenshot(path.join(import.meta.dirname, "..", "results", "s33-toolbar-640.png"));
+			// Lyrics with Up next's tabs below the player: the view fits above the player bar, or the lines end up under it.
+			await t.mainEval(`__YTMD_TEST__.getMainWindow().main.setBounds({ x: 1, y: 0, width: 800, height: 1000 })`);
+			await sleep(1000);
+			await yt.eval(`[...document.querySelectorAll("ytmusic-player-page tp-yt-paper-tab")].find((e) => e.textContent.trim().toLowerCase() === "lyrics")?.click()`);
+			const fit = await waitFor(
+				async () => {
+					const l = await yt.eval<{ bottom: number; barTop: number; line: number } | null>(`(() => {
+						const root = document.querySelector("#ytmd-lyrics-root"); if (!root || !root.getBoundingClientRect().height) return null;
+						const line = document.querySelector('.ytmd-al-line[data-d="0"], .ytmd-al-dots[data-d="0"]');
+						return line ? { bottom: root.getBoundingClientRect().bottom, barTop: document.querySelector("ytmusic-player-bar").getBoundingClientRect().top, line: line.getBoundingClientRect().bottom } : null;
+					})()`);
+					return l ?? false;
+				},
+				15000,
+				"the lyrics view with a current line",
+			);
+			console.log(`  s33 lyrics: ${JSON.stringify(fit)}`);
+			if (fit.bottom > fit.barTop + 1) throw new Error(`the lyrics view ends at ${fit.bottom}, under the player bar at ${fit.barTop}`);
+			if (fit.line > fit.barTop) throw new Error(`the current line ends at ${fit.line}, under the player bar at ${fit.barTop}`);
+			await yt.screenshot(path.join(import.meta.dirname, "..", "results", "s33-lyrics-800.png"));
+			await yt.eval(`[...document.querySelectorAll("ytmusic-player-page tp-yt-paper-tab")].find((e) => e.textContent.trim().toLowerCase() === "up next")?.click()`);
+			// Song mode beside and above Up next: the cover clears the switch and the tabs.
+			await key(yt, "v");
+			await sleep(3000);
+			for (const width of [1100, 800]) {
+				await t.mainEval(`__YTMD_TEST__.getMainWindow().main.setBounds({ x: 1, y: 0, width: ${width}, height: 1000 })`);
+				await sleep(1500);
+				const c = await yt.eval<{ coverTop: number; coverBottom: number; switchBottom: number; tabsTop: number }>(`(() => {
+					const r = (s) => document.querySelector(s).getBoundingClientRect();
+					return { coverTop: r("ytmusic-player").top, coverBottom: r("ytmusic-player").bottom, switchBottom: r("#ytmd-av-switch").bottom, tabsTop: r("ytmusic-player-page tp-yt-paper-tabs").top };
+				})()`);
+				console.log(`  s33 song ${width}: ${JSON.stringify(c)}`);
+				if (width === 800 && c.coverBottom > c.tabsTop) throw new Error(`the cover (to ${c.coverBottom}) runs into the tabs (from ${c.tabsTop})`);
+				if (width === 800 && c.switchBottom > c.coverTop) throw new Error(`the switch (to ${c.switchBottom}) covers the cover (from ${c.coverTop})`);
+				await yt.screenshot(path.join(import.meta.dirname, "..", "results", `s33-song-${width}.png`));
 			}
 		},
 	},

@@ -368,6 +368,17 @@ ytmusic-tab-renderer[page-type="MUSIC_PAGE_TYPE_TRACK_LYRICS"]:not([data-ytmd-ly
 	display: none !important;
 }
 
+/* Up next below the player (YTM's narrow layout): the tab has no height of its own, so 100% measured the whole list and
+ * the scrolling view put the lines far below the window. Fit what's left under the player panel (56.25vw, plus 257 px
+ * of top bar, gaps, tabs and player bar); a very short window scrolls the page to the rest. */
+@media (max-width: 935px) {
+	#tab-renderer[page-type="MUSIC_PAGE_TYPE_TRACK_LYRICS"]:not([data-ytmd-lyrics="stock"]) > #ytmd-lyrics-root,
+	ytmusic-tab-renderer[page-type="MUSIC_PAGE_TYPE_TRACK_LYRICS"]:not([data-ytmd-lyrics="stock"]) > #ytmd-lyrics-root {
+		height: calc(100vh - 56.25vw - 257px);
+		min-height: 240px;
+	}
+}
+
 /* Plain provider + YTM already has lyrics → leave stock visible. */
 #tab-renderer[page-type="MUSIC_PAGE_TYPE_TRACK_LYRICS"][data-ytmd-lyrics="stock"] > #ytmd-lyrics-root,
 ytmusic-tab-renderer[page-type="MUSIC_PAGE_TYPE_TRACK_LYRICS"][data-ytmd-lyrics="stock"] > #ytmd-lyrics-root {

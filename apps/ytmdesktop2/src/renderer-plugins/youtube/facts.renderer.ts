@@ -20,7 +20,7 @@ const CSS = `
 #${BUTTON_ID}:hover, #${BUTTON_ID}[aria-pressed="true"] { color: #fff; background: rgba(255, 255, 255, 0.08); }
 #${BUTTON_ID}:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 #${BUTTON_ID} svg { width: 20px; height: 20px; fill: currentColor; }
-#${PANEL_ID} { position: fixed; top: 72px; right: 16px; bottom: 88px; width: min(380px, 40vw); z-index: 2147481000; display: flex; flex-direction: column;
+#${PANEL_ID} { position: fixed; top: 72px; right: 16px; bottom: 88px; width: min(380px, calc(100vw - 32px)); z-index: 2147481000; display: flex; flex-direction: column;
 	border-radius: 14px; background: color-mix(in srgb, var(--ytmd-surface, #212121) 92%, transparent); color: var(--ytmd-text, #fff);
 	box-shadow: 0 12px 40px rgba(0,0,0,.45); font: 400 14px/1.45 "YouTube Sans", Roboto, sans-serif; overflow: hidden; }
 #${PANEL_ID} header { display: flex; align-items: center; gap: 8px; padding: 14px 16px 10px; }

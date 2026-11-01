@@ -85,7 +85,9 @@ export class WindowManager {
 		};
 		this.mainWindow = new BrowserWindow({
 			...bounds,
-			minWidth: 800,
+			// 640: half of a 1920 px screen at 150 % scale, so Windows can snap the window there. Below about 620 px
+			// YouTube Music switches to a phone layout that doesn't fit this app.
+			minWidth: 640,
 			minHeight: 480,
 			autoHideMenuBar: true,
 			icon: appIconPath,
@@ -94,7 +96,10 @@ export class WindowManager {
 			closable: true,
 			skipTaskbar: false,
 			resizable: true,
-			frame: false,
+			// Windows' own caption buttons: only they bring the Snap Layouts menu on the maximize button.
+			...(process.platform === "win32"
+				? { titleBarOverlay: { color: "#00000000", symbolColor: "#ffffff", height: TOOLBAR_HEIGHT } }
+				: { frame: false }),
 			title: translations.appName,
 			darkTheme: true,
 			titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "hidden",
@@ -176,6 +181,8 @@ export class WindowManager {
 				if (!this.mainWindow) return;
 
 				this.applyChromeUserAgent(view);
+				// Growing the window shows this until YouTube paints, instead of white.
+				view.setBackgroundColor("#030404");
 				this.mainWindow.contentView.addChildView(view);
 				view.setBounds(this.computeBounds().youtube);
 				bindYoutubeWebContents(view.webContents);

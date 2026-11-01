@@ -36,9 +36,22 @@ const CSS = `
 ytmusic-av-toggle { display: none !important; }
 /* YTM's own slot for its switch, hidden when the switch is unavailable; ours lives there. */
 ytmusic-player-page #main-panel { position: relative; }
-/* Up next below the player (YTM's narrow layout): keep the switch above the picture instead of over it. */
-@media (max-width: 935px) { ytmusic-player-page #player { margin-top: 44px !important; } }
 ytmusic-player-page #av-id { display: flex !important; flex-direction: column; align-items: center; gap: 6px; position: absolute; top: 12px; left: 0; right: 0; z-index: 2; pointer-events: none; }
+/* Beside Up next: the switch sits just above the picture, however much room the panel has around it. The picture is
+   16:9 of the panel's width, or a square in Song mode; a picture as tall as the panel keeps the switch on top of it.
+   Only with the player page open: containment would trap the full-screen and mini players' position: fixed. */
+@media (min-width: 936px) {
+	ytmusic-player-page[player-page-open]:not([player-fullscreened]) #main-panel { container-type: size; }
+	ytmusic-player-page[player-page-open]:not([player-fullscreened]) #av-id { top: max(12px, calc(50cqh - 28.125cqw - 44px)); }
+	ytmusic-player-page[player-page-open]:not([player-fullscreened]):not([video-mode]) #av-id, html.${AUDIO_VIEW} ytmusic-player-page[player-page-open]:not([player-fullscreened]) #av-id { top: max(12px, calc(50cqh - 50cqw - 44px)); }
+}
+/* Up next below the player (YTM's narrow layout, panel height 56.25vw): the switch keeps its own row above the picture,
+   and a square cover fits under it instead of running into the tabs. */
+@media (max-width: 935px) {
+	ytmusic-player-page:not([player-fullscreened]) #player { margin-top: 44px !important; }
+	/* :not([video-mode]) is a real song; the class is a music video showing only its cover. */
+	ytmusic-player-page:not([player-fullscreened]):not([video-mode]) #player, html.${AUDIO_VIEW} ytmusic-player-page:not([player-fullscreened]) #player { width: calc(56.25vw - 52px) !important; height: calc(56.25vw - 52px) !important; flex: 0 0 auto !important; margin: 48px auto 0 !important; }
+}
 html.${AUDIO_VIEW} ytmusic-player #song-video { display: none !important; }
 html.${AUDIO_VIEW} ytmusic-player #song-image { display: block !important; }
 /* No song version: the video's thumbnail as a square, centre-cropped (no 16:9 frame with bands). */
@@ -46,7 +59,7 @@ html.${AUDIO_VIEW}.${NO_MATCH} ytmusic-player #song-image img { object-fit: cove
 #${HINT_ID} { font: 400 12px/1.2 "YouTube Sans", Roboto, sans-serif; color: rgba(255, 255, 255, 0.6); pointer-events: none; }
 #${HINT_ID}[hidden] { display: none; }
 #${SWITCH_ID} { display: flex; justify-content: center; margin: 0 auto; width: max-content; pointer-events: auto; padding: 3px; gap: 2px;
-	border-radius: 999px; background: rgba(255, 255, 255, 0.08); position: relative; z-index: 2; }
+	border-radius: 999px; background: rgba(0, 0, 0, 0.55); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); position: relative; z-index: 2; }
 #${SWITCH_ID} button { all: unset; cursor: pointer; padding: 6px 18px; border-radius: 999px; font: 500 13px/1 "YouTube Sans", Roboto, sans-serif;
 	color: rgba(255, 255, 255, 0.7); transition: background-color 160ms ease, color 160ms ease; }
 #${SWITCH_ID} button:hover { color: #fff; }

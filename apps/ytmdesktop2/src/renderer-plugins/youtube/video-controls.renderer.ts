@@ -75,9 +75,22 @@ ytmusic-player[player-ui-state="FULLSCREEN"] #${BAR_ID} { bottom: 88px; }
    reliably bring it back, so this follows our own timer. */
 ytmusic-app-layout[player-fullscreened] ytmusic-player-bar, ytmusic-app-layout[player-fullscreened] > #player-bar-background { transition: opacity 300ms ease; }
 html.${FS_STILL} ytmusic-app-layout[player-fullscreened] ytmusic-player-bar, html.${FS_STILL} ytmusic-app-layout[player-fullscreened] > #player-bar-background { opacity: 0 !important; }
+/* YTM's picture buttons (mini player, full screen) repeat this bar's and stayed on after any click in the player. */
+html.${ON}:not(.${AUDIO_VIEW}) ytmusic-player[video-mode] .song-media-controls { display: none !important; }
+ytmusic-player[focus-within]:not(:hover) .song-media-controls { opacity: 0 !important; }
 /* Narrow windows: the player bar's extras pushed YTM's own buttons, including close player, off the edge. */
-@media (max-width: 1100px) { #ytmd-speed-button, #ytmd-sleep-button { display: none !important; } }
+@media (max-width: 1100px) {
+	#ytmd-speed-button, #ytmd-sleep-button { display: none !important; }
+	/* The volume slider opens over the track title: give it a backing so the two don't read as one. */
+	ytmusic-player-bar #volume-slider { background: #1c1c1e; border-radius: 999px; z-index: 5; }
+}
 @media (max-width: 900px) { #ytmd-facts-button, #ytmd-output-button { display: none !important; } }
+/* Sidebar open beside the player, in a window too small for three columns: the player shrank to 350 px at 1000 px.
+   The sidebar steps aside while the player page is open and comes back with it. */
+@media (min-width: 936px) and (max-width: 1250px) {
+	ytmusic-app-layout[player-page-open]:has(ytmusic-guide-renderer:not([is-collapsed])) { --ytmusic-guide-width: 0px; }
+	ytmusic-app-layout[player-page-open]:has(ytmusic-guide-renderer:not([is-collapsed])) > tp-yt-app-drawer#guide { visibility: hidden; }
+}
 `;
 
 type Player = PlayerApi & {

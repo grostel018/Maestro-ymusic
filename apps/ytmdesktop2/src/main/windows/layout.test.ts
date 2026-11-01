@@ -1,5 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { computeViewBounds, createFullscreenRestore, nextSavedWindowState } from "./layout";
+import { computeViewBounds, createFullscreenRestore, isReachableOnDisplays, nextSavedWindowState } from "./layout";
+
+describe("isReachableOnDisplays", () => {
+	const screen1 = { x: 0, y: 0, width: 1920, height: 1080 };
+	it("keeps a window snapped to the left half, past the screen edge by its invisible border", () => {
+		expect(isReachableOnDisplays({ x: -7, y: 0, width: 974, height: 1047 }, [screen1])).toBe(true);
+	});
+	it("rejects a window left on a monitor that's gone", () => {
+		expect(isReachableOnDisplays({ x: 2500, y: 100, width: 1200, height: 800 }, [screen1])).toBe(false);
+	});
+	it("rejects a window with only a sliver left on screen", () => {
+		expect(isReachableOnDisplays({ x: 1900, y: 100, width: 1200, height: 800 }, [screen1])).toBe(false);
+	});
+	it("accepts a window on the second display", () => {
+		expect(isReachableOnDisplays({ x: 2500, y: 100, width: 1200, height: 800 }, [screen1, { x: 1920, y: 0, width: 1920, height: 1080 }])).toBe(true);
+	});
+});
 
 describe("computeViewBounds", () => {
 	it("puts the toolbar on top and YouTube below it", () => {

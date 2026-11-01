@@ -8,7 +8,7 @@ import { BrowserWindow, screen, shell, WebContentsView } from "electron";
 import { join } from "path";
 import appIconPath from "~/build/favicon.ico?asset";
 import { registerWindowDialogResponse } from "./dialogResponse";
-import { nextSavedWindowState } from "./layout";
+import { isReachableOnDisplays, nextSavedWindowState } from "./layout";
 import { loadUrlOfWindow, syncWindowStateToWebContents } from "./webContentUtils";
 
 export type WindowOptions = {
@@ -394,34 +394,28 @@ export async function wrapWindowHandler(
 	const raw = restore();
 	const restored = typeof raw?.x === "number" && typeof raw?.y === "number";
 
-	const windowWithinBounds = (windowState, bounds) => {
-		return (
-			windowState.x >= bounds.x &&
-			windowState.y >= bounds.y &&
-			windowState.x + windowState.width <= bounds.x + bounds.width &&
-			windowState.y + windowState.height <= bounds.y + bounds.height
-		);
-	};
-
+	/** Centred on the main display and no bigger than its work area. */
 	const resetToDefaults = () => {
-		const bounds = win.getBounds();
-		const { width, height } = getSizeOfWindowNative(win);
-		return Object.assign(
-			{},
-			{
-				x: (bounds.width - width) / 2,
-				y: (bounds.height - height) / 2,
-				width,
-				height,
-			},
-		);
+		const area = screen.getPrimaryDisplay().workArea;
+		const size = getSizeOfWindowNative(win);
+		const width = Math.min(size.width, area.width);
+		const height = Math.min(size.height, area.height);
+		return {
+			x: Math.round(area.x + (area.width - width) / 2),
+			y: Math.round(area.y + (area.height - height) / 2),
+			width,
+			height,
+		};
 	};
 
 	const ensureVisibleOnSomeDisplay = (windowState) => {
-		const visible = screen.getAllDisplays().some((display) => {
-			return windowWithinBounds(windowState, display.bounds);
-		});
-		if (!visible) {
+		const reachable =
+			restored &&
+			isReachableOnDisplays(
+				windowState,
+				screen.getAllDisplays().map((display) => display.workArea),
+			);
+		if (!reachable) {
 			// Window is partially or fully not visible now.
 			// Reset it to safe defaults.
 			return resetToDefaults();

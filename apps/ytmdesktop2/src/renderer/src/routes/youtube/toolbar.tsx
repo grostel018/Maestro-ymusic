@@ -19,6 +19,8 @@ export const Route = createFileRoute("/youtube/toolbar")({
 function YoutubeToolbarPage() {
 	const appVersion = useMemo(() => window.api.version, []);
 	const isDarwin = useMemo(() => window.app.platform === "darwin", []);
+	// Windows draws its own caption buttons over this bar (see createRootWindow).
+	const isWindows = useMemo(() => window.app.platform === "win32", []);
 	const [state] = useMainWindowState();
 	const track = useTrack();
 	const { updateInfo, downloaded, progress, isPending: updatePending, status, runUpdate } = useUpdater();
@@ -39,7 +41,7 @@ function YoutubeToolbarPage() {
 
 	return (
 		<div className="h-full overflow-hidden">
-			<div style={surface} className={`relative flex h-10 items-stretch justify-between gap-2 px-2 select-none ${isDarwin ? "pl-20" : ""}`}>
+			<div style={surface} className={`drag relative flex h-10 items-stretch justify-between gap-2 px-2 select-none ${isDarwin ? "pl-20" : ""} ${isWindows ? "pr-[146px]" : ""}`}>
 				<div className="flex items-center gap-0.5 self-center">
 					<button
 						type="button"
@@ -63,11 +65,11 @@ function YoutubeToolbarPage() {
 						<SearchIcon />
 					</button>
 				</div>
-				<div className="drag flex flex-1 items-center gap-2">
+				<div className="flex min-w-0 flex-1 items-center gap-2">
 					{!isDarwin && (
-						<div className="flex items-center gap-1">
+						<div className="flex items-center gap-1 max-[860px]:hidden">
 							<div className="-mt-px flex-none text-xs">Maestro</div>
-							{appVersion !== undefined && <div className="text-xs text-white opacity-30">v{appVersion}</div>}
+							{appVersion && appVersion !== "0.0.0" && <div className="text-xs text-white opacity-30">v{appVersion}</div>}
 						</div>
 					)}
 				</div>
@@ -77,7 +79,7 @@ function YoutubeToolbarPage() {
 						type="button"
 						title="Open the player"
 						onClick={() => void playerPage()}
-						className="no-drag absolute top-1/2 left-1/2 flex h-7 max-w-[40%] max-[1000px]:max-w-[30%] -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center gap-2 overflow-hidden rounded-md bg-white/10 pr-3 text-xs hover:bg-white/15"
+						className="no-drag absolute top-1/2 left-1/2 flex h-7 max-w-[40%] max-[1000px]:max-w-[30%] max-[860px]:left-[calc(50%-89px)] -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center gap-2 overflow-hidden rounded-md bg-white/10 pr-3 text-xs hover:bg-white/15"
 					>
 						{artwork ? <img src={artwork} alt="" className="h-7 w-7 flex-none object-cover" /> : null}
 						<span className="flex min-w-0 flex-col items-start leading-tight">
@@ -121,7 +123,7 @@ function YoutubeToolbarPage() {
 						</button>
 					)}
 					<ToolbarOptions />
-					{!isDarwin && (
+					{!isDarwin && !isWindows && (
 						<>
 							<div className="h-6 w-px bg-gray-600" />
 							<div className="flex items-center gap-1">

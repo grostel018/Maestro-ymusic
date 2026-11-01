@@ -34,6 +34,18 @@ export function createFullscreenRestore(): { enter(state: WindowState): void; le
 	};
 }
 
+/**
+ * Whether a saved window can still be reached: enough of it overlaps some display. Not "fully inside": a snapped or
+ * edge-dragged window on Windows reaches past its display by its invisible 7 px border.
+ */
+export function isReachableOnDisplays(win: Rect, displays: Rect[], min = { width: 200, height: 100 }): boolean {
+	return displays.some((d) => {
+		const width = Math.min(win.x + win.width, d.x + d.width) - Math.max(win.x, d.x);
+		const height = Math.min(win.y + win.height, d.y + d.height) - Math.max(win.y, d.y);
+		return width >= min.width && height >= min.height;
+	});
+}
+
 /** What the window-state store keeps: the last normal (not maximized, minimized or fullscreen) bounds plus maximized. */
 export type SavedWindowState = Rect & { maximized?: boolean };
 

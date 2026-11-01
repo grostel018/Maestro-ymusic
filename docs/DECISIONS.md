@@ -229,3 +229,6 @@ in `docs/superpowers/plans/2026-10-25-phase0-1-ledger.md`.
 ## 2026-10-30: Karaoke on Shift+K
 - **Decision:** capital K (Shift+K) and a microphone button open karaoke; lowercase k stays play/pause.
 - **Why:** YouTube's k is play/pause, and the video controls already use it.
+
+## 2026-11-01: Native caption buttons on Windows
+The main window uses titleBarOverlay on Windows instead of custom minimize, maximize and close buttons. Only the native maximize button brings Windows 11's Snap Layouts menu. The toolbar reserves 146 px on the right for them. Minimum width dropped to 640 so half-screen snap works at 150 % scale; below about 620 px YouTube Music switches to a phone layout.
