@@ -329,6 +329,7 @@ to reorder), see DECISIONS. Not done: romanization and translation lines.
 
 **Owner decision 2026-11-01:** every remaining G item is built before release, plus the missing gaps from E and F
 (light mode, romanization and translation lines). G6 keeps its own condition: only with a ≥ 1.5k★ open solution.
+The order is in `docs/superpowers/plans/2026-11-01-road-to-release.md`.
 
 | # | Feature | Inspired by | Reuse | Notes |
 |---|---|---|---|---|
