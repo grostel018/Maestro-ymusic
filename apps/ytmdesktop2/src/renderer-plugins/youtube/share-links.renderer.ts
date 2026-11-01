@@ -61,12 +61,11 @@ const replaceShareLinksRenderer: RendererPluginRegistration = {
 	id: "share-links",
 	enabled: true,
 	async start(ctx) {
-		let enabled = true;
+		let enabled = false;
 		try {
-			const v = await ctx.ytmd?.settings.get(SETTING_KEY);
-			if (v === false) enabled = false;
+			enabled = (await ctx.ytmd?.settings.get(SETTING_KEY)) === true;
 		} catch {
-			/* default on */
+			/* default off: a maestro:// link opens nothing for anyone without the app */
 		}
 		const isEnabled = () => enabled;
 
@@ -80,12 +79,12 @@ const replaceShareLinksRenderer: RendererPluginRegistration = {
 		observer.observe(root, { childList: true, subtree: true });
 
 		const clipboard = navigator.clipboard;
-		if (clipboard && typeof clipboard.writeText === "function") {
-			const originalWriteText = clipboard.writeText.bind(clipboard);
+		const originalWriteText = clipboard && typeof clipboard.writeText === "function" ? clipboard.writeText : null;
+		if (originalWriteText) {
 			clipboard.writeText = async (data: string) => {
 				const raw = String(data ?? "");
 				const next = enabled ? rewriteUrl(raw) : raw;
-				return originalWriteText(next);
+				return originalWriteText.call(clipboard, next);
 			};
 		}
 
@@ -104,6 +103,7 @@ const replaceShareLinksRenderer: RendererPluginRegistration = {
 		return () => {
 			observer.disconnect();
 			off?.();
+			if (originalWriteText) clipboard.writeText = originalWriteText;
 		};
 	},
 };

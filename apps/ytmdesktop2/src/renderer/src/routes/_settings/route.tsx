@@ -16,7 +16,6 @@ import {
 	RiLiveLine,
 	RiMusic2Line,
 	RiPaletteLine,
-	RiQrCodeLine,
 	RiServerLine,
 	RiSettings3Line,
 	RiShieldCheckLine,
@@ -55,7 +54,7 @@ export const Route = createFileRoute("/_settings")({
 });
 
 const tabs = {
-	generic: { to: "/", label: "Generic", icon: RiSettings3Line },
+	generic: { to: "/", label: "General", icon: RiSettings3Line },
 	discord: { to: "/discord", label: "Discord", icon: RiDiscordLine },
 	lastfm: { to: "/lastfm", label: "Last.fm", icon: RiAlbumLine },
 	about: { to: "/about", label: "About", icon: RiInformationLine },
@@ -76,7 +75,6 @@ const apiCoreSubs = [
 ] as const;
 
 const apiIntegrationSubs = [
-	{ to: "/api-integrations/remote", label: "Remote", icon: RiQrCodeLine },
 	{ to: "/api-integrations/streamdeck", label: "Stream Deck", icon: RiDashboardLine },
 	{ to: "/api-integrations/obs", label: "OBS", icon: RiLiveLine },
 ] as const;
@@ -260,7 +258,7 @@ const AppearanceNav = memo(function AppearanceNav() {
 
 function SettingsLayout() {
 	useEffect(() => {
-		document.title = "YouTube Music - Settings";
+		document.title = "Maestro - Settings";
 	}, []);
 
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -274,8 +272,8 @@ function SettingsLayout() {
 						<div className="flex items-center gap-2 px-1">
 							<LogoIcon className="size-5 shrink-0" />
 							<div className="flex min-w-0 flex-col">
-								<span className="truncate text-xs font-medium text-sidebar-foreground">YouTube Music</span>
-								<span className="truncate text-[10px] text-muted-foreground">Desktop Settings</span>
+								<span className="truncate text-xs font-medium text-sidebar-foreground">Maestro</span>
+								<span className="truncate text-[10px] text-muted-foreground">Settings</span>
 							</div>
 						</div>
 					</SidebarHeader>
@@ -298,9 +296,8 @@ function SettingsLayout() {
 					<SidebarFooter className="gap-y-2 border-t border-sidebar-border py-3 px-0">
 						<div className="flex flex-col gap-1 px-3 text-[10px] text-muted-foreground">
 							<span>
-								v{window.api.version} ({window.app.environment})
+								v{window.api.version}
 							</span>
-							<span>{window.app.platform}</span>
 						</div>
 						<SidebarSeparator className="p-0 m-0" />
 						<div className="flex items-center gap-1 px-3">

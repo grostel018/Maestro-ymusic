@@ -27,12 +27,12 @@ const defaultSettings = {
 	app: {
 		channel: "stable" as "stable" | "beta" | "alpha",
 		autoupdate: FORK.updatesEnabled as boolean,
-		autostart: true,
-		autostartMinimized: true,
+		autostart: false,
+		autostartMinimized: false,
 		getstarted: true,
 		enableDev: false,
 		minimizeTrayOverride: false,
-		enableStatisticsAndErrorTracing: true,
+		enableStatisticsAndErrorTracing: false,
 		disableHardwareAccel: false,
 		/** Ignore Chromium's GPU blocklist. Off: blocklisted drivers fall back to software. Restart to apply. */
 		forceGpu: false,
@@ -49,7 +49,7 @@ const defaultSettings = {
 		volume: 0.05,
 	},
 	lyrics: {
-		enabled: false,
+		enabled: true,
 		showTimeCodes: false,
 		showEvenIfInexact: true,
 		/** Tint the row behind the active line; off = text brightens only. */
@@ -82,8 +82,8 @@ const defaultSettings = {
 		queueContinue: true,
 		/** `ask` = confirm dialog; `play` = open watch immediately */
 		deepLinkOpen: "ask" as "ask" | "play",
-		/** Rewrite YTM “Copy link” clipboard URLs to `ytmd://` */
-		replaceShareLinks: true,
+		/** Rewrite YTM “Copy link” clipboard URLs to the app's own scheme; only people with the app can open those. */
+		replaceShareLinks: false,
 		/** Song (audio) or music video; flipped by the Song/Video switch, the player-bar button or `V`. */
 		videoMode: "video" as "video" | "audio",
 		/** YouTube-style control bar and shortcuts over the video (speed, captions, quality, loop, PiP, theater, fullscreen). */
@@ -102,7 +102,8 @@ const defaultSettings = {
 		} as VideoResSetting,
 	},
 	discord: {
-		enabled: true,
+		// Off until asked for: it shows friends what you listen to, and retries for minutes without Discord running.
+		enabled: false,
 		buttons: false,
 	},
 	themes: {

@@ -1,9 +1,9 @@
+import { createElement, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createEmbedHttpClient } from "../client/http";
 import { parseEmbedFlags, parseEmbedToken } from "../flags";
-import { NowPlayingWidget } from "../widgets/now-playing";
 import type { NowPlayingViewModel } from "../types";
-import { createElement, useEffect, useState } from "react";
+import { NowPlayingWidget } from "../widgets/now-playing";
 
 function App() {
 	const params = new URLSearchParams(window.location.search);

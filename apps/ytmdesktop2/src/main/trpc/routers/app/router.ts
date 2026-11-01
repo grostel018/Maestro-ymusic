@@ -1,8 +1,8 @@
-import { fromIpcEvent } from "@main/trpc/fromIpcEvent";
 import { serverMain } from "@main/ipc/serverEvents";
+import { fromIpcEvent } from "@main/trpc/fromIpcEvent";
 import { provider } from "@main/trpc/provider";
-import { publicProcedure, router } from "@shared/trpc/trpc";
 import IPC_EVENT_NAMES from "@shared/constants/eventNames";
+import { publicProcedure, router } from "@shared/trpc/trpc";
 import { BrowserWindow } from "electron";
 import { z } from "zod";
 

@@ -1,4 +1,4 @@
-import { BleedArt, C, Shell, emptyLabel, formatTime, type LayoutProps } from "../chrome";
+import { BleedArt, C, emptyLabel, formatTime, type LayoutProps, Shell } from "../chrome";
 
 export function FullscreenLayout({ track, flags, accent, src, className, status }: LayoutProps) {
 	const idle = !track;

@@ -1,8 +1,8 @@
+import { disableVolumeRatio, enableVolumeRatio } from "./resources/volume-ratio/patch";
 import {
 	forceUpdateVolume,
 	volumeRatioPage,
 } from "./volume-ratio.page";
-import { disableVolumeRatio, enableVolumeRatio } from "./resources/volume-ratio/patch";
 import type { RendererPluginRegistration } from "./world0/types";
 
 const SETTING_KEY = "volumeRatio.enabled";

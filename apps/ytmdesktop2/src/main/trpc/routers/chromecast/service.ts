@@ -1,6 +1,6 @@
-import { startCastDiscovery, type DiscoveredReceiver } from "@main/chromecast/discovery";
+import { type DiscoveredReceiver, startCastDiscovery } from "@main/chromecast/discovery";
 import { CastDeviceSession } from "@main/chromecast/session";
-import { BaseProvider, AfterInit, BeforeStart, OnDestroy } from "@main/core/baseProvider";
+import { AfterInit, BaseProvider, BeforeStart, OnDestroy } from "@main/core/baseProvider";
 import { serverMain } from "@main/ipc/serverEvents";
 import { getAppWindows } from "@main/lifecycle";
 import { createAppDialogWindow } from "@main/windows/windowUtils";
@@ -8,16 +8,16 @@ import { createChooserLock } from "@shared/chromecast/chooser";
 import { isSafeCastAppId, isSafeCastHandle, isSafeCastHost, isSafeCastPort } from "@shared/chromecast/endpoint";
 import { CHROMECAST_SETTING_KEY } from "@shared/chromecast/flag";
 import {
+	type CastSessionEvent,
+	type CastSessionSnapshot,
 	CHROMECAST_DISCOVERY_START_CHANNEL,
 	CHROMECAST_SELECT_CHANNEL,
 	CHROMECAST_SESSION_CHANNEL,
 	CHROMECAST_SESSION_EVENT_CHANNEL,
-	type CastSessionEvent,
-	type CastSessionSnapshot,
 	type ChromecastSelectResult,
 	type ChromecastSessionRequest,
 } from "@shared/chromecast/ipc";
-import { findReceiverById, isValidReceiverId, sanitizeReceiverList, sanitizeReceiverName, type ChromecastReceiverDescriptor } from "@shared/chromecast/receivers";
+import { type ChromecastReceiverDescriptor, findReceiverById, isValidReceiverId, sanitizeReceiverList, sanitizeReceiverName } from "@shared/chromecast/receivers";
 import { App, BrowserWindow, type IpcMainInvokeEvent, type WebContents } from "electron";
 
 const PICKER_WIDTH = 380;

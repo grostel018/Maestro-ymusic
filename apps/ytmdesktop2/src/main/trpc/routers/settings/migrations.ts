@@ -281,6 +281,12 @@ const migrations: Omit<Migration<SettingsStore>, "version">[] = [
 			if (typeof lyrics.glowBeat !== "boolean") store.set("lyrics.glowBeat", true);
 		},
 	},
+	{
+		hook(store) {
+			// The old default turned every copied link into one only people with the app can open.
+			store.set("player.replaceShareLinks", false);
+		},
+	},
 ];
 
 export default migrations;

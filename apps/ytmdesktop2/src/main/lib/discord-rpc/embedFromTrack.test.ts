@@ -1,5 +1,5 @@
-import { describe, expect, test } from "vitest";
 import type { TrackData } from "@shared/track/trackData";
+import { describe, expect, test } from "vitest";
 import { discordEmbedFromTrack } from "./embedFromTrack";
 
 function makeTrack(): TrackData {

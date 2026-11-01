@@ -28,7 +28,7 @@ function ApiSettingsPage() {
 					Local API
 					<Badge variant="outline">Experimental</Badge>
 				</CardTitle>
-				<CardDescription>HTTP API for Stream Deck, Remote, and other local integrations.</CardDescription>
+				<CardDescription>HTTP API for Stream Deck, OBS and other apps on this computer.</CardDescription>
 			</CardHeader>
 			<CardContent>
 				<FieldGroup>

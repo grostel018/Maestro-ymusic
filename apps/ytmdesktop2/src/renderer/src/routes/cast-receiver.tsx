@@ -1,8 +1,8 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { CastIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { trpc } from "@/lib/trpc";
-import { createFileRoute } from "@tanstack/react-router";
-import { CastIcon, XIcon } from "lucide-react";
 
 export const Route = createFileRoute("/cast-receiver")({
 	component: CastReceiverPage,

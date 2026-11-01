@@ -7,11 +7,11 @@ import { adblockArgvFor } from "@shared/adblock/flag";
 import { CHROMECAST_SETTING_KEY, chromecastArgvFor } from "@shared/chromecast/flag";
 import { logger } from "@shared/utils/console";
 import translations from "@translations/index";
-import { app, BrowserWindow, BrowserWindowConstructorOptions, WebContentsView } from "electron";
+import { app, BrowserWindow, BrowserWindowConstructorOptions, shell, WebContentsView } from "electron";
 import { debounce } from "lodash-es";
 import { join } from "path";
 import appIconPath from "~/build/favicon.ico?asset";
-import { computeViewBounds, createFullscreenRestore } from "./layout";
+import { computeViewBounds, createFullscreenRestore, isGoogleSignInUrl, isYoutubeViewUrl } from "./layout";
 import { createWindowContext } from "./mappedWindow";
 import { createApiView, createView, googleLoginPopup } from "./view";
 import { pushWindowStates } from "./webContentUtils";
@@ -106,7 +106,7 @@ export class WindowManager {
 			maximizable: true,
 			show: false,
 			webPreferences: {
-				nodeIntegration: true,
+				nodeIntegration: false,
 				contextIsolation: true,
 				sandbox: false,
 				webSecurity: isProduction,
@@ -233,10 +233,20 @@ export class WindowManager {
 			if (!lastLocation || new URL(lastLocation).origin !== new URL(location).origin) {
 				logger.info(`will-navigate: ${location}`);
 			}
-			if (location?.match(/^https?\:\/\/(accounts)?.google.([a-z]+)/)) {
+			if (isGoogleSignInUrl(location)) {
 				ev.preventDefault();
 				this.handleGoogleLogin(location, view);
+				return;
 			}
+			// Links out of YouTube open in the browser: this view has the app's bridge and must stay on YouTube.
+			if (!isYoutubeViewUrl(location)) {
+				ev.preventDefault();
+				if (/^https?:\/\//i.test(location)) void shell.openExternal(location);
+			}
+		});
+		view.webContents.setWindowOpenHandler(({ url }) => {
+			if (/^https?:\/\//i.test(url)) void shell.openExternal(url);
+			return { action: "deny" };
 		});
 
 		// Handle YouTube Music View navigation, restart internal app service cycle if needed
@@ -298,7 +308,11 @@ export class WindowManager {
 			if (isAuthenticated) {
 				view.webContents.reload();
 				serverMain.emit("app.loadStart");
-				await new Promise<void>((resolve) => view.webContents.once("did-finish-load", () => resolve()));
+				// did-stop-loading also fires on a failed load; navigation stays blocked until this ends.
+				await Promise.race([
+					new Promise<void>((resolve) => view.webContents.once("did-stop-loading", () => resolve())),
+					new Promise<void>((resolve) => setTimeout(resolve, 30_000)),
+				]);
 			}
 		} catch (error) {
 			logger.error("Error handling Google login", error);

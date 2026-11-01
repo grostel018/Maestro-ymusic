@@ -74,7 +74,8 @@ class ThumbnailCache {
 				// Leave protocol stack before session network I/O (avoids nested-fetch stalls).
 				await tick();
 				const entry = await this.get(remote);
-				const buf = readFileSync(entry.filePath);
+				// Not readFileSync: this runs on the main thread for every thumbnail on the page.
+				const buf = await fs.readFile(entry.filePath);
 				return new Response(new Uint8Array(buf), {
 					status: 200,
 					headers: {

@@ -274,6 +274,26 @@ export const scenarios: Scenario[] = [
 		},
 	},
 	{
+		id: "s34",
+		smoke: true,
+		title: "Reloading the page keeps the app's controls: the Song/Video switch, speed and facts buttons come back and stay",
+		launch: { settings: { player: { videoMode: "video", videoControls: true } } },
+		run: async (t) => {
+			await play(t);
+			const yt = await t.view("youtube");
+			const controls = `["ytmd-av-switch", "ytmd-av-bar-button", "ytmd-speed-button", "ytmd-facts-button", "ytmd-vc-style"].filter((id) => !document.getElementById(id))`;
+			await waitFor(async () => (await yt.eval<string[]>(controls)).length === 0 || false, 15000, "the controls on first load");
+			await yt.eval("location.reload()");
+			await sleep(3000);
+			await waitFor(async () => (await yt.eval<string[]>(controls)).length === 0 || false, 25000, "the controls after a reload");
+			// A cancelled navigation fires beforeunload on a page that goes on living: the plugins must survive that too.
+			await yt.eval(`window.dispatchEvent(new Event("beforeunload"))`);
+			await sleep(2500);
+			const missing = await yt.eval<string[]>(controls);
+			if (missing.length) throw new Error(`gone after a cancelled navigation: ${missing.join(", ")}`);
+		},
+	},
+	{
 		id: "s33",
 		title: "Full screen hides the player bar while the mouse is still and shows it on a move; at 800 px the switch clears the picture, the close-player button stays in the window, lyrics fit above the player bar and the cover clears the tabs",
 		launch: { settings: { player: { videoMode: "video", videoControls: true }, lyrics: { enabled: true } } },

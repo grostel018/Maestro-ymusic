@@ -34,6 +34,26 @@ export function createFullscreenRestore(): { enter(state: WindowState): void; le
 	};
 }
 
+const hostOf = (url: string): string | null => {
+	try {
+		return new URL(url).hostname.toLowerCase();
+	} catch {
+		return null;
+	}
+};
+
+/** A Google account page: accounts.google.com or a country version of it. */
+export function isGoogleSignInUrl(url: string): boolean {
+	return /^accounts\.google\.(com|[a-z]{2}|com?\.[a-z]{2})$/.test(hostOf(url) ?? "");
+}
+
+/** Pages the YouTube view may show itself: YouTube and Google's own sign-in and consent hops. Anything else opens in the browser. */
+export function isYoutubeViewUrl(url: string): boolean {
+	const host = hostOf(url);
+	if (!host) return false;
+	return /(^|\.)(youtube\.com|google\.com|youtube-nocookie\.com)$/.test(host) || /^(accounts|consent)\.google\.(com|[a-z]{2}|com?\.[a-z]{2})$/.test(host);
+}
+
 /**
  * Whether a saved window can still be reached: enough of it overlaps some display. Not "fully inside": a snapped or
  * edge-dragged window on Windows reaches past its display by its invisible 7 px border.

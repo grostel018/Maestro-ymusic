@@ -1,3 +1,4 @@
+import { FORK } from "@shared/fork";
 import { AlertCircleIcon, CheckIcon, DownloadIcon } from "lucide-react";
 import DevIcon from "@/assets/icons/chip.svg?react";
 import RPCIcon from "@/assets/icons/discord-rpc.svg?react";
@@ -24,7 +25,8 @@ export function ToolbarOptions() {
 		<div className="flex flex-row items-center gap-2">
 			<button
 				type="button"
-				className={`control-button relative h-4 ${lastFMLoading ? "opacity-70" : ""} ${lastFM?.name ? "!w-auto flex gap-2.5 items-center px-1.5" : "w-4"}`}
+				title="Last.fm"
+				className={`control-button relative h-4 ${import.meta.env.VITE_LASTFM_API ? "" : "!hidden"} ${lastFMLoading ? "opacity-70" : ""} ${lastFM?.name ? "!w-auto flex gap-2.5 items-center px-1.5" : "w-4"}`}
 				onClick={authorizeLastFM}
 			>
 				{lastFM?.connected && !lastFM?.error && lastFMState !== null ? (
@@ -42,11 +44,11 @@ export function ToolbarOptions() {
 				{lastFM?.name && <span className="text-sm text-gray-100 max-[1100px]:hidden">{lastFM.name}</span>}
 			</button>
 			{!isHome && (
-				<button type="button" className="control-button relative size-4" onClick={() => void home()}>
+				<button type="button" title="Home" className="control-button relative size-4" onClick={() => void home()}>
 					<HomeIcon />
 				</button>
 			)}
-			<button type="button" className="control-button relative size-4" disabled={!!updateChecking} onClick={() => void check()}>
+			<button type="button" title="Check for updates" className={`control-button relative size-4 ${FORK.updatesEnabled ? "" : "!hidden"}`} disabled={!!updateChecking} onClick={() => void check()}>
 				{status === "checking" && !updateInfo ? (
 					<Spinner className="size-3" />
 				) : updateInfo ? (
@@ -60,7 +62,7 @@ export function ToolbarOptions() {
 					<DevIcon />
 				</button>
 			)}
-			<button type="button" className="control-button relative" onClick={toggleDiscord}>
+			<button type="button" title="Discord status" className={`control-button relative ${import.meta.env.VITE_DISCORD_CLIENT_ID ? "" : "!hidden"}`} onClick={toggleDiscord}>
 				<RPCIcon
 					className={
 						discordConnectionError && discordEnabled
@@ -83,7 +85,7 @@ export function ToolbarOptions() {
 					</div>
 				)}
 			</button>
-			<button type="button" className="control-button" onClick={() => void openWindow("settingsWindow")}>
+			<button type="button" title="Settings" className="control-button" onClick={() => void openWindow("settingsWindow")}>
 				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
 					<path
 						fillRule="evenodd"

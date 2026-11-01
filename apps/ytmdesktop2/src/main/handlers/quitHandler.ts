@@ -15,15 +15,25 @@ let services: ServiceCollection | null = null;
 
 export { isAppQuitting } from "./quitPolicy";
 
+/** A provider that never finishes cleaning up must not leave an invisible app running. */
+const CLEANUP_TIMEOUT_MS = 5000;
+
 async function ensureCleanup() {
 	if (!cleanupPromise) {
-		cleanupPromise = (async () => {
+		const cleanup = (async () => {
 			services?.getTypedProvider("settings")?.saveToDrive();
 			if (services) {
 				await services.exec("OnDestroy");
 				await runLifecycle("destroy");
 			}
-		})().catch((error) => {
+		})();
+		const timeout = new Promise<void>((resolve) => {
+			setTimeout(() => {
+				logger.error(`App cleanup still running after ${CLEANUP_TIMEOUT_MS} ms, quitting anyway`);
+				resolve();
+			}, CLEANUP_TIMEOUT_MS);
+		});
+		cleanupPromise = Promise.race([cleanup, timeout]).catch((error) => {
 			logger.error("Error while running app cleanup during quit", error);
 		});
 	}
@@ -90,13 +100,9 @@ export function attachQuitHandler(mainWindow: BrowserWindowViews<any, any>, serv
 		void requestQuit(true);
 	});
 
+	// A real quit (tray menu, Windows shutting down, an installer): the close-to-tray setting is only about the window's X.
 	app.on("before-quit", (ev) => {
-		if (!shouldCancelWindowClose({ quitting: isAppQuitting(), hideToTray: shouldHideToTray(false) })) return;
-		if (shouldHideToTray(false)) {
-			ev.preventDefault();
-			hideToTray(mainWindow);
-			return;
-		}
+		if (isAppQuitting()) return;
 		ev.preventDefault();
 		void requestQuit(true);
 	});

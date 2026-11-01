@@ -1,10 +1,10 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { AlertTriangleIcon, CheckCircleIcon, InfoIcon, RefreshCwIcon, XCircleIcon } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useWindowControls } from "@/hooks/use-window-controls";
 import { cn } from "@/lib/utils";
-import { createFileRoute } from "@tanstack/react-router";
-import { AlertTriangleIcon, CheckCircleIcon, InfoIcon, RefreshCwIcon, XCircleIcon } from "lucide-react";
-import { useState } from "react";
 
 export const Route = createFileRoute("/restart")({
 	component: RestartPage,

@@ -1,9 +1,9 @@
-import { resetSync } from "@logtape/logtape";
-import { logger } from "@shared/utils/console";
-import { app } from "electron";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { resetSync } from "@logtape/logtape";
+import { logger } from "@shared/utils/console";
+import { app } from "electron";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { attachAppLogging, getAppLogFile } from "./logging";
 

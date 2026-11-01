@@ -12,12 +12,12 @@ function DiscordSettingsPage() {
 		<Card>
 			<CardHeader>
 				<CardTitle>Discord</CardTitle>
-				<CardDescription>Manage Discord Rich Presence for what you are listening to.</CardDescription>
+				<CardDescription>Show friends on Discord what you are listening to. Needs the Discord app running on this computer.</CardDescription>
 			</CardHeader>
 			<CardContent>
 				<FieldGroup>
-					<SettingsCheckbox configKey="discord.enabled">Enable Discord</SettingsCheckbox>
-					<SettingsCheckbox configKey="discord.buttons">Show Discord Buttons</SettingsCheckbox>
+					<SettingsCheckbox configKey="discord.enabled">Show what I'm listening to</SettingsCheckbox>
+					<SettingsCheckbox configKey="discord.buttons" description="Adds a Listen button to your Discord status.">Show buttons</SettingsCheckbox>
 				</FieldGroup>
 			</CardContent>
 			<CardFooter>

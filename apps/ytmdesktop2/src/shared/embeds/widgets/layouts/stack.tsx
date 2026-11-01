@@ -2,12 +2,12 @@ import {
 	C,
 	CardFrame,
 	CoverArt,
+	emptyLabel,
+	type LayoutProps,
 	ProgressRow,
 	Shell,
-	emptyLabel,
 	showArt,
 	showProgress,
-	type LayoutProps,
 } from "../chrome";
 
 export function StackLayout({ track, flags, accent, src, className, status }: LayoutProps) {

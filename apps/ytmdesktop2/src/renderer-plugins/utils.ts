@@ -4,8 +4,6 @@ import { createPluginHandleName, pluginCommandKeySlug } from "@shared/ytm";
 import type { ServiceName } from "ytmd";
 import type { RendererPluginLifecycle } from "./youtube/world0/types";
 
-export { createPluginHandleName, pluginCommandKeySlug };
-export { defineBridge, definePageCmds } from "./define-bridge";
 export type {
 	BridgeHandler,
 	BridgeListenLog,
@@ -17,7 +15,9 @@ export type {
 	PageBridge,
 	PageCmds,
 } from "./define-bridge";
+export { defineBridge, definePageCmds } from "./define-bridge";
 export type { RendererPluginLifecycle };
+export { createPluginHandleName, pluginCommandKeySlug };
 
 export type PluginOptions = {
 	name: string;

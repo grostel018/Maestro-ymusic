@@ -3,14 +3,14 @@ import { useLayoutEffect, useRef, useState } from "react";
 import {
 	ART_DURATION,
 	ART_EASE,
-	CARD_RADIUS,
 	C,
+	CARD_RADIUS,
 	CardFrame,
 	CoverArt,
-	Shell,
 	emptyLabel,
-	showArt,
 	type LayoutProps,
+	Shell,
+	showArt,
 } from "../chrome";
 
 const BADGE_MAX_WIDTH = 360;

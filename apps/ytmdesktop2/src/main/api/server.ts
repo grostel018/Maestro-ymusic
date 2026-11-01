@@ -48,6 +48,16 @@ function extractBearerToken(header: string | undefined): string | null {
 	return value;
 }
 
+/** An http(s) page on another host. `null` and file:// origins (OBS, Stream Deck's inspector) and no origin at all aren't. */
+export function isForeignOrigin(origin: string | undefined): boolean {
+	if (!origin || !/^https?:\/\//i.test(origin)) return false;
+	try {
+		return !["localhost", "127.0.0.1", "[::1]"].includes(new URL(origin).hostname);
+	} catch {
+		return true;
+	}
+}
+
 /** Map known API failures to HTTP status. */
 function mapApiError(err: unknown): { status: 400 | 503; message: string } | null {
 	if (!err || typeof err !== "object") return null;
@@ -84,11 +94,20 @@ export async function startApiServer(options: {
 
 	const app = new Hono();
 
+	// A web page in the user's browser can reach this port (WebSockets aren't even limited by CORS): without a token,
+	// only this machine's own pages and non-browser clients (Stream Deck, scripts, OBS) get in.
+	app.use("*", async (c, next) => {
+		if (isForeignOrigin(c.req.header("Origin")) && !isAuthorized(extractRequestToken(c))) {
+			return c.json({ error: "forbidden origin" }, 403);
+		}
+		return next();
+	});
+
 	// Skip CORS on WS upgrade — Hono WS mutates headers and CORS can conflict
 	app.use("*", async (c, next) => {
 		if (c.req.header("upgrade")?.toLowerCase() === "websocket") return next();
 		return cors({
-			origin: "*",
+			origin: (origin) => origin || "*",
 			allowHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
 			allowMethods: ["GET", "POST", "OPTIONS"],
 		})(c, next);
@@ -122,7 +141,6 @@ export async function startApiServer(options: {
 		c.json({
 			name: "Maestro Api",
 			channel: config?.app?.channel ?? "stable",
-			player: config?.player,
 			authRequired,
 			routes,
 			embeds: embedsRoot ? ["/embed/now-playing"] : [],
@@ -321,6 +339,8 @@ export async function startApiServer(options: {
 				{
 					fetch: app.fetch,
 					port: serverPort,
+					// This computer only: nothing on the network should control playback.
+					hostname: "127.0.0.1",
 					websocket: { server: wss },
 				},
 				(info) => {

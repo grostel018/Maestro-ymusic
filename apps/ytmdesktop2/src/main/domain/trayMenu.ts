@@ -2,8 +2,9 @@ import { BaseProvider } from "@main/core/baseProvider";
 import { serverMain } from "@main/ipc/serverEvents";
 import AppProvider from "@main/trpc/routers/app/service";
 import SettingsProvider from "@main/trpc/routers/settings/service";
+import { FORK } from "@shared/fork";
 import translations from "@translations/index";
-import { Menu, shell } from "electron";
+import { Menu, type MenuItemConstructorOptions, shell } from "electron";
 
 export const createTrayMenu = (provider: BaseProvider) => {
 	const settings = provider.getProvider("settings") as SettingsProvider;
@@ -17,15 +18,20 @@ export const createTrayMenu = (provider: BaseProvider) => {
 			sublabel: `Version: ${app.getVersion()}`,
 			click: () => serverMain.emit("app.trayState", null, "visible"),
 		},
-		{
-			label: update.updateAvailable
-				? `Update Available - ${update.updateInfo?.version ? `Download v${update.updateInfo.version}` : "Download"}`
-				: "Check for Updates",
-			click: () => {
-				if (update.updateAvailable) void update.onAutoUpdateRun(null, false);
-				else void update.onCheckUpdate({ forceDialog: true });
-			},
-		},
+		// Updates aren't wired up yet in this fork: no menu entries that do nothing.
+		...(FORK.updatesEnabled
+			? ([
+					{
+						label: update.updateAvailable
+							? `Update Available - ${update.updateInfo?.version ? `Download v${update.updateInfo.version}` : "Download"}`
+							: "Check for Updates",
+						click: () => {
+							if (update.updateAvailable) void update.onAutoUpdateRun(null, false);
+							else void update.onCheckUpdate({ forceDialog: true });
+						},
+					},
+				] as MenuItemConstructorOptions[])
+			: []),
 		{
 			type: "separator",
 		},
@@ -37,16 +43,20 @@ export const createTrayMenu = (provider: BaseProvider) => {
 				settings.set("app.autostart", item.checked);
 			},
 		},
+		...(FORK.updatesEnabled
+			? ([
+					{
+						label: "Auto Update",
+						type: "checkbox",
+						checked: sp.app.autoupdate,
+						click: (item) => {
+							settings.set("app.autoupdate", item.checked);
+						},
+					},
+				] as MenuItemConstructorOptions[])
+			: []),
 		{
-			label: "Auto Update",
-			type: "checkbox",
-			checked: sp.app.autoupdate,
-			click: (item) => {
-				settings.set("app.autoupdate", item.checked);
-			},
-		},
-		{
-			label: "Enable Quit to Tray",
+			label: "Close to Tray",
 			type: "checkbox",
 			checked: sp.app.minimizeTrayOverride,
 			click: (item) => {

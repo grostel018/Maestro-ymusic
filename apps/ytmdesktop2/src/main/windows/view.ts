@@ -18,7 +18,7 @@ type CreateApiViewOptions = ViewSizeOptions & Pick<WebPreferences, "transparent"
 export const createApiView = async <T extends WebContentsView>(path: string, postFunc?: (ctx: T) => Promise<void> | void, options?: CreateApiViewOptions): Promise<T> => {
 	const view = new WebContentsView({
 		webPreferences: {
-			nodeIntegration: true,
+			nodeIntegration: false,
 			sandbox: false,
 			contextIsolation: true,
 			webSecurity: isProduction,
@@ -44,7 +44,7 @@ export const createView = async <T extends WebContentsView>(
 	const view = new WebContentsView({
 		webPreferences: {
 			disableHtmlFullscreenWindowResize: true,
-			nodeIntegration: true,
+			nodeIntegration: false,
 			sandbox: false,
 			webSecurity: isProduction,
 			allowRunningInsecureContent: !isProduction,
@@ -67,10 +67,10 @@ export const createPopup = async (options?: BrowserWindowConstructorOptions) => 
 		...(options ? options : {}),
 		webPreferences: {
 			disableHtmlFullscreenWindowResize: true,
-			nodeIntegration: true,
+			nodeIntegration: false,
 			sandbox: false,
 			webSecurity: isProduction,
-			contextIsolation: false, // window object is required to be rewritten for tracking current track
+			contextIsolation: true,
 			...(options?.webPreferences ? options.webPreferences : {}),
 		},
 	});

@@ -70,9 +70,15 @@ export default class FactsProvider extends BaseProvider {
 			.catch(() => false);
 		if (fresh) {
 			const cached = await readFile(file, "utf8").catch(() => null);
-			if (cached) return JSON.parse(cached) as FactCard[];
+			try {
+				if (cached) return JSON.parse(cached) as FactCard[];
+			} catch {
+				this.logger.warn("facts cache unreadable, fetching again", req.videoId);
+			}
 		}
 		const cards = await this.fetchAll(req);
+		// Nothing found is often a network problem: keep it out of the week-long cache.
+		if (!cards.length) return cards;
 		await mkdir(path.dirname(file), { recursive: true }).catch(() => undefined);
 		await writeFile(file, JSON.stringify(cards), "utf8").catch(() => undefined);
 		return cards;
@@ -93,11 +99,13 @@ export default class FactsProvider extends BaseProvider {
 
 	private async musicbrainz(title: string, artist: string): Promise<FactCard[]> {
 		const out: FactCard[] = [];
-		const q = encodeURIComponent(`recording:"${title}" AND artist:"${artist}"`);
+		// A quote in a title ended the search term early and the query failed.
+		const quoted = (s: string) => `"${s.replace(/(["\\])/g, "\\$1")}"`;
+		const q = encodeURIComponent(`recording:${quoted(title)} AND artist:${quoted(artist)}`);
 		const rec = musicbrainzCard(await this.json(`https://musicbrainz.org/ws/2/recording?query=${q}&fmt=json&limit=1`));
 		if (rec) out.push(rec);
 		await new Promise((r) => setTimeout(r, 1100));
-		const a = musicbrainzArtistCard(await this.json(`https://musicbrainz.org/ws/2/artist?query=${encodeURIComponent(`artist:"${artist}"`)}&fmt=json&limit=1`));
+		const a = musicbrainzArtistCard(await this.json(`https://musicbrainz.org/ws/2/artist?query=${encodeURIComponent(`artist:${quoted(artist)}`)}&fmt=json&limit=1`));
 		if (a) out.push(a);
 		return out;
 	}

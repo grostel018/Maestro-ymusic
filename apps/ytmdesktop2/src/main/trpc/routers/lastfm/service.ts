@@ -224,7 +224,7 @@ export default class LastFMProvider extends BaseProvider implements AfterInit, O
 		this.authMode = null;
 		await secureStore.set(LASTFM_KEYTAR_SESSION, sessionToken);
 		await secureStore.delete(LASTFM_KEYTAR_TOKEN);
-		this.logger.debug(`[Auth]> Authenticated: ${sessionToken.slice(0, 6)}…`);
+		this.logger.debug("[Auth]> Authenticated");
 		const settings = this.getProvider("settings");
 		settings.set("lastfm.enabled", true);
 		settings.set("lastfm.name", this.client.getName() || null);

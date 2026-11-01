@@ -81,6 +81,8 @@ export default class StartupProvider extends BaseProvider implements AfterInit, 
 		}
 	}
 	private async onAutoStartToggle(key: string, enabled: boolean) {
+		// A dev run would register the bare Electron binary at login.
+		if (!isProduction) return;
 		if (enabled) {
 			this.app.setLoginItemSettings({
 				openAtLogin: true,

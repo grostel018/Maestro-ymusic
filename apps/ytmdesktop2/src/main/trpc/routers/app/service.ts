@@ -92,7 +92,7 @@ export default class AppProvider extends BaseProvider implements AfterInit, Befo
       this.appLock = this._app.requestSingleInstanceLock();
       if (!this.appLock) {
         this.logger.error(
-          "single-instance lock failed — another ytmdesktop2 process holds it (installed build or stale electron). exiting.",
+          "single-instance lock failed — another Maestro process holds it (installed build or stale electron). exiting.",
         );
         this.app.exit(0);
         return;
@@ -161,6 +161,7 @@ export default class AppProvider extends BaseProvider implements AfterInit, Befo
   private windowBlur() {
     if (this.isPlaying) return;
     this._blurTimestamp = new Date();
+    clearTimeout(this._blurAfkHandle);
     this._blurAfkHandle = setTimeout(() => {
       if (this.isPlaying) {
         this._blurTimestamp = new Date();
@@ -174,12 +175,13 @@ export default class AppProvider extends BaseProvider implements AfterInit, Befo
   private windowFocus() {
     if (!this._blurTimestamp) return;
     const elapsedSinceBlur = Date.now() - this._blurTimestamp.getTime();
-    if (elapsedSinceBlur <= STATE_PAUSE_TIME) return;
     this._blurTimestamp = null;
+    // Back in time: the pending timer must not turn presence off while the window has focus.
     if (this._blurAfkHandle) {
       clearTimeout(this._blurAfkHandle);
       this._blurAfkHandle = null;
     }
+    if (elapsedSinceBlur <= STATE_PAUSE_TIME) return;
     if (this.discord.settingsEnabled && !this.discord.isConnected) void this.discord.enable();
   }
 
@@ -216,6 +218,8 @@ export default class AppProvider extends BaseProvider implements AfterInit, Befo
           }
      
         });
+        // Closed in the middle of recording a shortcut: the page can't end the capture, and shortcuts stay off.
+        win.on("closed", () => this.getProvider("shortcut").setCapturing(false));
         shortcutOnWindow(win, "Escape", () => {
           win.close();
         });
@@ -240,7 +244,7 @@ export default class AppProvider extends BaseProvider implements AfterInit, Befo
     }
     if (this._windowMap.has(windowName)) {
       const window = this._windowMap.get(windowName);
-      if (window) {
+      if (window && !window.isDestroyed()) {
         centerWindowOnParent(window, this.windowContext.main);
         if (window.isMinimized()) window.restore();
         if (!window.isVisible()) {
@@ -254,6 +258,7 @@ export default class AppProvider extends BaseProvider implements AfterInit, Befo
     }
     const window = await createAppWindow({ ...windowOptions, parent: this.windowContext.main, path: "/" + windowName });
     this._windowMap.set(windowName, window);
+    window.once("closed", () => this._windowMap.delete(windowName));
   }
 
   closeSubWindow(_ev?: IpcMainEvent | null, windowName?: string) {

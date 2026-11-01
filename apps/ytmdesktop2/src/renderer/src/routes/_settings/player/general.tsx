@@ -75,7 +75,7 @@ function PlayerGeneralSettingsPage() {
 			<Card>
 				<CardHeader>
 					<CardTitle>Shared links</CardTitle>
-					<CardDescription>How ytmd:// links open and how YouTube Music share URLs are rewritten.</CardDescription>
+					<CardDescription>How maestro:// links open, and whether copied links use them.</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<FieldGroup>
@@ -83,7 +83,7 @@ function PlayerGeneralSettingsPage() {
 							configKey="player.deepLinkOpen"
 							defaultValue="ask"
 							label="When opening a shared link"
-							description="How ytmd:// share links behave when the app receives them."
+							description="What happens when a maestro:// link opens this app."
 							options={[
 								{
 									value: "ask",
@@ -99,10 +99,10 @@ function PlayerGeneralSettingsPage() {
 						/>
 						<SettingsCheckbox
 							configKey="player.replaceShareLinks"
-							defaultValue={true}
-							description="Rewrite the share dialog URL to ytmd:// so Copy opens this app."
+							defaultValue={false}
+							description="Copied links open in Maestro, but only for people who have it. Leave this off to share normal YouTube Music links."
 						>
-							Replace share links with ytmd://
+							Copy maestro:// links
 						</SettingsCheckbox>
 					</FieldGroup>
 				</CardContent>

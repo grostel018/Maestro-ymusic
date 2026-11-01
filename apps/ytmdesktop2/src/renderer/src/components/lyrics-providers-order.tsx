@@ -1,18 +1,18 @@
 import {
 	DEFAULT_LYRICS_PROVIDERS,
 	LYRICS_PROVIDER_META,
+	type LyricsProviderEntry,
+	type LyricsProviderId,
 	moveLyricsProvider,
 	normalizeLyricsProviders,
 	setLyricsProviderEnabled,
-	type LyricsProviderEntry,
-	type LyricsProviderId,
 } from "@plugins/youtube/lyrics/providers/catalog";
+import { GripVertical } from "lucide-react";
+import { type DragEvent, type KeyboardEvent, useCallback, useId, useRef, useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { useSettingsState } from "@/hooks/use-settings";
 import { cn } from "@/lib/utils";
-import { GripVertical } from "lucide-react";
-import { type DragEvent, type KeyboardEvent, useCallback, useId, useRef, useState } from "react";
 
 export function LyricsProvidersOrder({ disabled = false }: { disabled?: boolean }) {
 	const listId = useId();

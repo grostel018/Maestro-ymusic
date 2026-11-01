@@ -1,4 +1,4 @@
-import { C, Shell, emptyLabel, type LayoutProps } from "../chrome";
+import { C, emptyLabel, type LayoutProps, Shell } from "../chrome";
 
 export function TextLayout({ track, flags, className, status }: LayoutProps) {
 	const idle = !track;

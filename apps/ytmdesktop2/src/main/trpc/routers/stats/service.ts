@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { BaseProvider, OnDestroy } from "@main/core/baseProvider";
 import { serverMain } from "@main/ipc/serverEvents";
@@ -53,14 +53,19 @@ export default class StatsProvider extends BaseProvider implements OnDestroy {
 
 	private async write(): Promise<void> {
 		await mkdir(path.dirname(this.file), { recursive: true }).catch(() => undefined);
-		await writeFile(this.file, JSON.stringify(this.data), "utf8").catch((err) => this.logger.warn("stats not saved", err));
+		// Via a temporary file: a crash or power cut mid-write must not lose the listening history.
+		const tmp = `${this.file}.tmp`;
+		await writeFile(tmp, JSON.stringify(this.data), "utf8")
+			.then(() => rename(tmp, this.file))
+			.catch((err) => this.logger.warn("stats not saved", err));
 	}
 
 	private add(l: Listen): void {
 		if (!l?.videoId || !l.title || !(l.seconds > 0) || l.seconds > 120) return;
-		const t = (this.data.tracks[l.videoId] ??= { title: l.title, artist: l.artist, sec: 0, plays: 0 });
+		const rawArtist = l.artist ?? "";
+		const t = (this.data.tracks[l.videoId] ??= { title: l.title, artist: rawArtist, sec: 0, plays: 0 });
 		t.title = l.title;
-		t.artist = l.artist;
+		t.artist = rawArtist;
 		t.sec += l.seconds;
 		if (this.current?.videoId !== l.videoId) this.current = { videoId: l.videoId, sec: 0, counted: false };
 		this.current.sec += l.seconds;
@@ -68,7 +73,7 @@ export default class StatsProvider extends BaseProvider implements OnDestroy {
 			this.current.counted = true;
 			t.plays += 1;
 		}
-		const artist = l.artist.replace(/\s+-\s+Topic$/i, "").trim() || "Unknown";
+		const artist = rawArtist.replace(/\s+-\s+Topic$/i, "").trim() || "Unknown";
 		this.data.artists[artist] = (this.data.artists[artist] ?? 0) + l.seconds;
 		const year = String(new Date().getFullYear());
 		this.data.years[year] = (this.data.years[year] ?? 0) + l.seconds;

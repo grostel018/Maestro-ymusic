@@ -98,6 +98,8 @@ export default class ShortcutService extends BaseProvider implements AfterInit, 
 		next[id] = checked.accelerator;
 		this.settings().set("shortcuts.binds", next);
 		this.settings().saveToDrive();
+		// The same keys again change no setting, so nothing else would bring back what the probe unregistered.
+		this.rebind();
 		return { ok: true };
 	}
 

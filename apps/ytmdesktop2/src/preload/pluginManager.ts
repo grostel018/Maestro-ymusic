@@ -6,10 +6,10 @@ import { debounce, get, merge, set } from "lodash-es";
 import { basename } from "path";
 import type { PlayerApi, PlayerUiService } from "ytm-client-api";
 import pkg from "../../package.json";
-import { getPreloadApi, getPreloadDomUtils, getYtmd } from "./preload-local";
-import type { PreloadYtmdHost } from "./ytmd-bridge";
-import { createPluginUtils, isYoutubeMusicHost } from "./utils";
 import world0HostSource from "./generated/ytmd-world0-host.js?raw";
+import { getPreloadApi, getPreloadDomUtils, getYtmd } from "./preload-local";
+import { createPluginUtils, isYoutubeMusicHost } from "./utils";
+import type { PreloadYtmdHost } from "./ytmd-bridge";
 export type PluginSettings = Record<string, any>;
 export interface PluginContext {
 	name: string;

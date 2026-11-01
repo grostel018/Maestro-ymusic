@@ -1,4 +1,4 @@
-import { C, CardFrame, CoverArt, Shell, emptyLabel, showArt, tickerLine, type LayoutProps } from "../chrome";
+import { C, CardFrame, CoverArt, emptyLabel, type LayoutProps, Shell, showArt, tickerLine } from "../chrome";
 
 export function TickerLayout({ track, flags, accent, src, className, status }: LayoutProps) {
 	const idle = !track;

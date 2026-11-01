@@ -1,5 +1,5 @@
-import { authorName, githubRepoFetch, repoName, repoUrl } from "./github";
 import type { GithubRelease } from "./github";
+import { authorName, githubRepoFetch, repoName, repoUrl } from "./github";
 
 /** Optional bake-time URL to the newest `.streamDeckPlugin` file. */
 export const streamDeckPluginFileEnv =

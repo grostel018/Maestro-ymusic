@@ -1,5 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { computeViewBounds, createFullscreenRestore, isReachableOnDisplays, nextSavedWindowState } from "./layout";
+import { computeViewBounds, createFullscreenRestore, isGoogleSignInUrl, isReachableOnDisplays, isYoutubeViewUrl, nextSavedWindowState } from "./layout";
+
+describe("YouTube view navigation", () => {
+	it("recognises Google sign-in hosts, not look-alikes", () => {
+		expect(isGoogleSignInUrl("https://accounts.google.com/ServiceLogin")).toBe(true);
+		expect(isGoogleSignInUrl("https://accounts.google.co.uk/x")).toBe(true);
+		expect(isGoogleSignInUrl("https://xgoogle.com/")).toBe(false);
+		expect(isGoogleSignInUrl("https://accounts.google.evil.example.com.attacker.net/")).toBe(false);
+	});
+	it("keeps YouTube inside and sends the rest out", () => {
+		expect(isYoutubeViewUrl("https://music.youtube.com/watch?v=x")).toBe(true);
+		expect(isYoutubeViewUrl("https://www.google.com/sorry")).toBe(true);
+		expect(isYoutubeViewUrl("https://example.com/")).toBe(false);
+		expect(isYoutubeViewUrl("https://youtube.com.attacker.net/")).toBe(false);
+		expect(isYoutubeViewUrl("not a url")).toBe(false);
+	});
+});
 
 describe("isReachableOnDisplays", () => {
 	const screen1 = { x: 0, y: 0, width: 1920, height: 1080 };

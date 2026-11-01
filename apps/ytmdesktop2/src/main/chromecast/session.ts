@@ -1,7 +1,7 @@
+import { EventEmitter } from "node:events";
 import type { CastSessionSnapshot } from "@shared/chromecast/session";
 import { createLogger } from "@shared/utils/console";
 import { Client } from "castv2";
-import { EventEmitter } from "node:events";
 
 const log = createLogger("chromecast:session");
 const HEARTBEAT_MS = 5000;

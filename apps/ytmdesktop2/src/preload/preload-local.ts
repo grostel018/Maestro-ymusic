@@ -1,5 +1,5 @@
-import type { PreloadYtmdHost } from "./ytmd-bridge";
 import type exposeData from "./base";
+import type { PreloadYtmdHost } from "./ytmd-bridge";
 
 type DomUtils = typeof exposeData.domUtils;
 type Api = typeof exposeData.api;

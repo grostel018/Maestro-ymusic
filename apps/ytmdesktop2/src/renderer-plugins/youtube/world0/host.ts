@@ -69,8 +69,10 @@ async function boot(): Promise<void> {
 		world0.log.warn("playerApi not ready, skipping onPlayerApiReady hooks");
 	}
 
+	// pagehide, not beforeunload: that also fires for a navigation that then gets cancelled (a redirect to Google
+	// sign-in, an external link), which left the page running with every plugin torn down.
 	window.addEventListener(
-		"beforeunload",
+		"pagehide",
 		() => {
 			offConfig();
 			for (const fn of destroyFns) {

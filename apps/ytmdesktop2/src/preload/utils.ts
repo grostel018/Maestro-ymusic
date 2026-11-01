@@ -4,8 +4,8 @@ import DOMPurify from "dompurify";
 import { ipcRenderer, webFrame } from "electron";
 import { debounce, get, merge, set } from "lodash-es";
 import { setContext } from "./base";
-import { getYtmd } from "./preload-local";
 import { PluginContext, PluginManager, PluginSettings } from "./pluginManager";
+import { getYtmd } from "./preload-local";
 
 // Types
 export interface SettingsManager {

@@ -1,10 +1,10 @@
 import {
+	type CastSessionEvent,
+	type CastSessionSnapshot,
 	CHROMECAST_DISCOVERY_START_CHANNEL,
 	CHROMECAST_SELECT_CHANNEL,
 	CHROMECAST_SESSION_CHANNEL,
 	CHROMECAST_SESSION_EVENT_CHANNEL,
-	type CastSessionEvent,
-	type CastSessionSnapshot,
 	type ChromecastSessionRequest,
 } from "@shared/chromecast/ipc";
 import { isValidReceiverId } from "@shared/chromecast/receivers";

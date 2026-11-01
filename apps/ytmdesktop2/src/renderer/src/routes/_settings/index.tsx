@@ -1,3 +1,4 @@
+import { FORK } from "@shared/fork";
 import { createFileRoute } from "@tanstack/react-router";
 import { ResetDefaults } from "@/components/reset-defaults";
 import { SettingsCheckbox } from "@/components/settings-checkbox";
@@ -26,7 +27,7 @@ function GenericSettingsPage() {
 						</CardDescription>
 					</CardHeader>
 					<CardFooter className="justify-between gap-2">
-						<a href="https://youtube-music.app/" target="_blank" rel="noreferrer" className="text-xs text-primary underline-offset-4 hover:underline">
+						<a href={FORK.repoUrl} target="_blank" rel="noreferrer" className="text-xs text-primary underline-offset-4 hover:underline">
 							Learn more
 						</a>
 						<Button variant="ghost" size="sm" disabled={getStartedPending} onClick={() => setGetStartedEnabled(false)}>
@@ -43,7 +44,7 @@ function GenericSettingsPage() {
 				</CardHeader>
 				<CardContent>
 					<FieldGroup>
-						<SettingsCheckbox configKey="app.autostart" description={appAutostartEnabled ? "Launch YouTube Music when you sign in." : undefined}>
+						<SettingsCheckbox configKey="app.autostart" description={appAutostartEnabled ? "Open Maestro when you sign in to Windows." : undefined}>
 							Enable Autostart
 						</SettingsCheckbox>
 						{appAutostartEnabled && !autostartPending && <SettingsCheckbox configKey="app.autostartMinimized">Start minimized</SettingsCheckbox>}
@@ -67,34 +68,38 @@ function GenericSettingsPage() {
 				</CardContent>
 			</Card>
 
-			<Card>
-				<CardHeader>
-					<CardTitle>Updater</CardTitle>
-					<CardDescription>Automatic update checks and installs.</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<FieldGroup>
-						<SettingsCheckbox configKey="app.autoupdate">Enable Autoupdate</SettingsCheckbox>
-					</FieldGroup>
-				</CardContent>
-			</Card>
+			{FORK.updatesEnabled && (
+				<Card>
+					<CardHeader>
+						<CardTitle>Updater</CardTitle>
+						<CardDescription>Automatic update checks and installs.</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<FieldGroup>
+							<SettingsCheckbox configKey="app.autoupdate">Enable Autoupdate</SettingsCheckbox>
+						</FieldGroup>
+					</CardContent>
+				</Card>
+			)}
 
-			<Card>
-				<CardHeader>
-					<CardTitle>Sentry / Error reporting</CardTitle>
-					<CardDescription>Help improve the app by sharing anonymized crash data.</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<FieldGroup>
-						<SettingsCheckbox
-							configKey="app.enableStatisticsAndErrorTracing"
-							description="Allows faster bug fixing via anonymized error reports."
-						>
-							Allow anonymized error reporting
-						</SettingsCheckbox>
-					</FieldGroup>
-				</CardContent>
-			</Card>
+			{!!import.meta.env.VITE_SENTRY_DSN && (
+				<Card>
+					<CardHeader>
+						<CardTitle>Error reporting</CardTitle>
+						<CardDescription>Help improve the app by sharing anonymized crash data.</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<FieldGroup>
+							<SettingsCheckbox
+								configKey="app.enableStatisticsAndErrorTracing"
+								description="Allows faster bug fixing via anonymized error reports."
+							>
+								Allow anonymized error reporting
+							</SettingsCheckbox>
+						</FieldGroup>
+					</CardContent>
+				</Card>
+			)}
 
 			<Card>
 				<CardHeader>
@@ -112,7 +117,7 @@ function GenericSettingsPage() {
 					</FieldGroup>
 				</CardContent>
 			</Card>
-			<ResetDefaults keys={["app"]} label="Restore Generic defaults" />
+			<ResetDefaults keys={["app"]} label="Restore General defaults" />
 			<ResetDefaults all />
 		</>
 	);

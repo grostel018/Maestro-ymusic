@@ -1,7 +1,7 @@
+import type { AppRouter } from "@main/trpc/router";
+import type { inferRouterOutputs } from "@trpc/server";
 import { debounce } from "lodash-es";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { inferRouterOutputs } from "@trpc/server";
-import type { AppRouter } from "@main/trpc/router";
 import { trpc } from "@/lib/trpc";
 
 export type WindowState = NonNullable<inferRouterOutputs<AppRouter>["window"]["state"]>;
