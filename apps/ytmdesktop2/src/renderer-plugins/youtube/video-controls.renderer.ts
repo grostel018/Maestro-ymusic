@@ -26,6 +26,8 @@ const SHOW = "ytmd-vc-show";
 /** On <html> while the controls are on. */
 const ON = "ytmd-vc-on";
 const THEATER = "ytmd-theater";
+/** On <html> in full screen after a while of no pointer movement: the player bar fades out. */
+const FS_STILL = "ytmd-fs-still";
 const AUDIO_VIEW = "ytmd-audio-view";
 const HIDE_AFTER_MS = 2500;
 
@@ -69,6 +71,13 @@ html.${ON}:not(.${AUDIO_VIEW}) #movie_player video { left: 0 !important; top: 0 
    and the video bar sits above the player bar, which YTM shows along the bottom here. */
 ytmusic-player[player-ui-state="FULLSCREEN"] #movie_player { background: #000 !important; }
 ytmusic-player[player-ui-state="FULLSCREEN"] #${BAR_ID} { bottom: 88px; }
+/* Full screen, mouse still: YTM's own rule doesn't hide the player bar and its show-fullscreen-controls flag doesn't
+   reliably bring it back, so this follows our own timer. */
+ytmusic-app-layout[player-fullscreened] ytmusic-player-bar, ytmusic-app-layout[player-fullscreened] > #player-bar-background { transition: opacity 300ms ease; }
+html.${FS_STILL} ytmusic-app-layout[player-fullscreened] ytmusic-player-bar, html.${FS_STILL} ytmusic-app-layout[player-fullscreened] > #player-bar-background { opacity: 0 !important; }
+/* Narrow windows: the player bar's extras pushed YTM's own buttons, including close player, off the edge. */
+@media (max-width: 1100px) { #ytmd-speed-button, #ytmd-sleep-button { display: none !important; } }
+@media (max-width: 900px) { #ytmd-facts-button, #ytmd-output-button { display: none !important; } }
 `;
 
 type Player = PlayerApi & {
@@ -106,6 +115,7 @@ const videoControlsRenderer: RendererPluginRegistration = {
 		let enabled = true;
 		let focused = false;
 		let hideTimer = 0;
+		let stillTimer = 0;
 		let lastCaption: CaptionTrack | null = null;
 		const offs: (() => void)[] = [];
 
@@ -304,7 +314,20 @@ const videoControlsRenderer: RendererPluginRegistration = {
 			}, HIDE_AFTER_MS);
 		}
 
+		/** Shows the full-screen player bar again and hides it after a while, unless paused or in use. Also in Song mode. */
+		const armFullscreenBar = () => {
+			window.clearTimeout(stillTimer);
+			document.documentElement.classList.remove(FS_STILL);
+			if (!document.fullscreenElement) return;
+			stillTimer = window.setTimeout(() => {
+				if (video()?.paused) return;
+				if (isMenuOpen() || document.querySelector("ytmusic-player-bar:hover")) armFullscreenBar();
+				else if (document.fullscreenElement) document.documentElement.classList.add(FS_STILL);
+			}, HIDE_AFTER_MS);
+		};
+
 		const onMove = (e: PointerEvent) => {
+			if (document.fullscreenElement) armFullscreenBar();
 			if ((e.target as Element | null)?.closest?.("#movie_player")) show();
 		};
 		const onLeave = (e: PointerEvent) => {
@@ -341,6 +364,7 @@ const videoControlsRenderer: RendererPluginRegistration = {
 		};
 		const onPlayerState = () => {
 			render();
+			armFullscreenBar();
 			if (moviePlayer()?.classList.contains(SHOW)) armHide();
 		};
 		const onVisibility = () => {
@@ -348,6 +372,7 @@ const videoControlsRenderer: RendererPluginRegistration = {
 		};
 		const onFullscreen = () => {
 			render();
+			armFullscreenBar();
 			window.dispatchEvent(new Event("resize"));
 		};
 
@@ -411,7 +436,8 @@ const videoControlsRenderer: RendererPluginRegistration = {
 			document.removeEventListener("fullscreenchange", onFullscreen);
 			document.removeEventListener("visibilitychange", onVisibility);
 			closeMenu();
-			document.documentElement.classList.remove(THEATER, ON);
+			window.clearTimeout(stillTimer);
+			document.documentElement.classList.remove(THEATER, ON, FS_STILL);
 			document.getElementById(BAR_ID)?.remove();
 			document.getElementById(STYLE_ID)?.remove();
 		};

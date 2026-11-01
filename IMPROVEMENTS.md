@@ -62,6 +62,9 @@ Done: 26. Next free ID: 100.
 | 97 | Release | Installing and using it must work for non-technical people: one-click installer, no terminal (roadmap H2) | todo |
 | 98 | Release | Users never enter API keys: Last.fm by login with Maestro's own key, Genius optional (roadmap H3) | todo |
 | 99 | Release | First-run welcome and plain-language errors (roadmap H4) | todo |
+| 100 | Video mode | Full-screen player bar stayed on screen with the mouse still | done: fades after 2.5 s, returns on a move; s33 (hide step failed 3 of 4 runs right after entering full screen, cause not found, 500 ms settle added and not rerun) |
+| 101 | Window | Narrow windows: Song/Video switch over the picture, close-player button pushed off the bar, track title over the Last.fm name | done: player moved below the switch under 936 px; speed and sleep hidden under 1100 px, facts and output under 900 px; name hidden under 1100 px; s33. Toolbar part not checked signed in |
+| 102 | Window | 936–1250 px with the sidebar expanded: the player is tiny (350x197 at 1000 px) | todo |
 
 ## Tier 0 - Make the core experience work
 

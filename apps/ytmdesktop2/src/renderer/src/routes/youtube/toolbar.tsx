@@ -77,7 +77,7 @@ function YoutubeToolbarPage() {
 						type="button"
 						title="Open the player"
 						onClick={() => void playerPage()}
-						className="no-drag absolute top-1/2 left-1/2 flex h-7 max-w-[40%] -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center gap-2 overflow-hidden rounded-md bg-white/10 pr-3 text-xs hover:bg-white/15"
+						className="no-drag absolute top-1/2 left-1/2 flex h-7 max-w-[40%] max-[1000px]:max-w-[30%] -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center gap-2 overflow-hidden rounded-md bg-white/10 pr-3 text-xs hover:bg-white/15"
 					>
 						{artwork ? <img src={artwork} alt="" className="h-7 w-7 flex-none object-cover" /> : null}
 						<span className="flex min-w-0 flex-col items-start leading-tight">

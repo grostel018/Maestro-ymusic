@@ -38,7 +38,8 @@ export function ToolbarOptions() {
 				) : (
 					<LastFMIcon className={lastFM?.connected && !lastFM?.error ? "text-green-500" : lastFM?.error ? "text-red-500" : undefined} />
 				)}
-				{lastFM?.name && <span className="text-sm text-gray-100">{lastFM.name}</span>}
+				{/* Below 1100 px the name would run under the centred track title. */}
+				{lastFM?.name && <span className="text-sm text-gray-100 max-[1100px]:hidden">{lastFM.name}</span>}
 			</button>
 			{!isHome && (
 				<button type="button" className="control-button relative size-4" onClick={() => void home()}>

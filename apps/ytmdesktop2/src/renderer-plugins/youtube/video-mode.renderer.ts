@@ -36,6 +36,8 @@ const CSS = `
 ytmusic-av-toggle { display: none !important; }
 /* YTM's own slot for its switch, hidden when the switch is unavailable; ours lives there. */
 ytmusic-player-page #main-panel { position: relative; }
+/* Up next below the player (YTM's narrow layout): keep the switch above the picture instead of over it. */
+@media (max-width: 935px) { ytmusic-player-page #player { margin-top: 44px !important; } }
 ytmusic-player-page #av-id { display: flex !important; flex-direction: column; align-items: center; gap: 6px; position: absolute; top: 12px; left: 0; right: 0; z-index: 2; pointer-events: none; }
 html.${AUDIO_VIEW} ytmusic-player #song-video { display: none !important; }
 html.${AUDIO_VIEW} ytmusic-player #song-image { display: block !important; }

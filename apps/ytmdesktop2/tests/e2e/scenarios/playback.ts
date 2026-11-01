@@ -274,6 +274,50 @@ export const scenarios: Scenario[] = [
 		},
 	},
 	{
+		id: "s33",
+		title: "Full screen hides the player bar while the mouse is still and shows it on a move; at 800 px the switch clears the picture and the close-player button stays in the window",
+		launch: { settings: { player: { videoMode: "video", videoControls: true } } },
+		run: async (t) => {
+			await t.mainEval(`(() => { const win = __YTMD_TEST__.getMainWindow().main; if (win.isMaximized()) win.unmaximize(); win.setBounds({ x: 1, y: 0, width: 1500, height: 900 }); })()`);
+			await play(t);
+			const yt = await t.view("youtube");
+			const barOpacity = () => yt.eval<number>(`Number(getComputedStyle(document.querySelector("ytmusic-player-bar")).opacity)`);
+			await mouse(yt, "mouseMoved", "#movie_player");
+			await key(yt, "f");
+			await until(yt, (m) => m.fs, 5000, "full screen");
+			await yt.call("Input.dispatchMouseEvent", { type: "mouseMoved", x: 960, y: 400 });
+			await sleep(500);
+			await waitFor(async () => (await barOpacity()) === 0 || false, 10000, "the player bar to hide with the mouse still");
+			await sleep(1000);
+			await yt.screenshot(path.join(import.meta.dirname, "..", "results", "s33-fullscreen-still.png"));
+			await yt.call("Input.dispatchMouseEvent", { type: "mouseMoved", x: 900, y: 500 });
+			await yt.call("Input.dispatchMouseEvent", { type: "mouseMoved", x: 940, y: 520 });
+			await waitFor(async () => (await barOpacity()) > 0.9 || false, 3000, "the player bar to show on a mouse move");
+			await key(yt, "f");
+			await until(yt, (m) => !m.fs && !m.paused, 5000, "leaving full screen, still playing");
+			if ((await barOpacity()) !== 1) throw new Error("the player bar stays hidden after full screen");
+			for (const width of [1000, 800]) {
+				await t.mainEval(`__YTMD_TEST__.getMainWindow().main.setBounds({ x: 1, y: 0, width: ${width}, height: 900 })`);
+				await sleep(1500);
+				const m = await yt.eval<{ inner: number; switchBottom: number; playerTop: number; playerH: number; close: number }>(`(() => {
+					const r = (s) => document.querySelector(s).getBoundingClientRect();
+					// One more button: the sing button joins the bar when a track has synced lyrics.
+					const extra = document.querySelector("#ytmd-av-bar-button").cloneNode(true);
+					extra.id = "s33-extra";
+					document.querySelector("#ytmd-av-bar-button").after(extra);
+					const close = r("ytmusic-player-bar .toggle-player-page-button").right;
+					extra.remove();
+					return { inner: innerWidth, switchBottom: r("#ytmd-av-switch").bottom, playerTop: r("ytmusic-player").top, playerH: r("ytmusic-player").height, close };
+				})()`);
+				console.log(`  s33 ${width}: ${JSON.stringify(m)}`);
+				if (m.switchBottom > m.playerTop) throw new Error(`at ${width} px the switch (to ${m.switchBottom}) covers the picture (from ${m.playerTop})`);
+				if (m.playerH < 150) throw new Error(`at ${width} px the player is ${m.playerH} px tall`);
+				if (m.close > m.inner) throw new Error(`at ${width} px the close-player button ends at ${m.close} in a ${m.inner} px window`);
+				await yt.screenshot(path.join(import.meta.dirname, "..", "results", `s33-w${width}.png`));
+			}
+		},
+	},
+	{
 		id: "s23",
 		title: "Video controls with a real mouse and keys: the bar shows on hover and nothing covers it; a click pauses and plays; quality changes the picture; theater enlarges it on screen; full screen fills the screen; YouTube's keys work",
 		launch: { settings: { player: { videoMode: "video", videoControls: true } } },
