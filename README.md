@@ -1,3 +1,7 @@
+<p align="center">
+<img src="./apps/ytmdesktop2/build/icon.svg" alt="" width="112" height="112" />
+</p>
+
 <h1 align="center">Maestro</h1>
 
 <p align="center">

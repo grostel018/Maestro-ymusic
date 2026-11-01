@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+	<title>Maestro</title>
+	<defs>
+		<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+			<stop offset="0" stop-color="#4b2fc9" />
+			<stop offset="1" stop-color="#170d45" />
+		</linearGradient>
+		<linearGradient id="head" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0" stop-color="#ffd27a" />
+			<stop offset="1" stop-color="#ff9d4d" />
+		</linearGradient>
+	</defs>
+	<rect width="1024" height="1024" rx="228" fill="url(#bg)" />
+	<!-- An M that is also a conductor: the valley holds the head, the strokes are the raised arms. -->
+	<path d="M236 780V300L512 640 788 300V780" fill="none" stroke="#fff" stroke-width="124" stroke-linecap="round" stroke-linejoin="round" />
+	<circle cx="512" cy="292" r="96" fill="url(#head)" />
+</svg>
