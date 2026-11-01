@@ -50,4 +50,5 @@ export const CHECKS: Check[] = [
 	{ area: "Audio", check: "A 4 s crossfade fades into the next track without a stall; the sleep timer fades and then pauses", evidence: ["s29"] },
 	{ area: "Audio", check: "The Audio settings page shows the live chain and saves a change; the visualizer draws over the open player and goes away when off", evidence: ["s30"] },
 	{ area: "Window layout", check: "At half-screen and narrow widths the video stays on screen at a usable size, the side panel stays inside the window and playback keeps advancing", evidence: ["s31"] },
+	{ area: "Playback", check: "In the normal view, theater and full screen the video box fills the player even from a stale size; in full screen the player is black behind the picture and the video bar clears the player bar", evidence: ["s32", "s32b"] },
 ];

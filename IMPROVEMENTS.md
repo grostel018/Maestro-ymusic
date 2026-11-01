@@ -54,7 +54,7 @@ Done: 26. Next free ID: 100.
 | 89 | Karaoke | No A−/A+ text size in karaoke | done |
 | 90 | Lyrics | Exact syllable timing for line-only lyrics would need speech alignment (Whisper-style); too heavy for now | backlog |
 | 91 | Video mode | Some music videos show a black picture (E. SIGNALER remix, 2026-10-30); not reproduced yet | todo |
-| 92 | Video mode | Theater mode has layout issues (reported 2026-10-30, details to collect) | todo |
+| 92 | Video mode | Picture stuck small in a corner of the player (reported with theater and after starting in Song mode); page and Up next visible beside a non-16:9 picture in full screen | done: video box always fills the player, black behind the picture and the video bar above the player bar in full screen; s32, s32b. The exact trigger of the stale size wasn't reproduced, owner to confirm |
 | 93 | Window | Snapping or splitting the window (half screen) breaks the app layout into pieces | done: inherited 300 px panel padding removed, artwork fades in tall windows; s31 |
 | 94 | Release | Launch from a desktop shortcut without running pnpm; pick up new commits automatically (rebuild on launch when the code changed) | done: scripts/launch.ps1 |
 | 95 | Brand | Rename the app to Maestro; link the original project in the app and README (2026-11-01) | done |

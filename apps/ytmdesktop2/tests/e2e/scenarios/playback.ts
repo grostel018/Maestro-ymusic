@@ -1,4 +1,5 @@
 // Phase C: playback freedom (audio ⇄ video, video controls, output device, speed).
+import path from "node:path";
 import type { Scenario, TestApp } from "../lib/app.ts";
 import type { CdpSession } from "../lib/cdp.ts";
 import { play } from "../lib/perf.ts";
@@ -192,6 +193,84 @@ export const scenarios: Scenario[] = [
 			}, 30000, "the song to switch to its video or the Video button to be disabled").catch((err: Error) => {
 				throw new Error(`${err.message}; last state ${JSON.stringify(seen)}`);
 			});
+		},
+	},
+	{
+		id: "s32",
+		title: "Theater and full screen with real clicks: the picture fills the player, centred; Up next isn't seen behind it",
+		launch: { settings: { player: { videoMode: "video", videoControls: true } } },
+		run: async (t) => {
+			await t.mainEval(`(() => { const win = __YTMD_TEST__.getMainWindow().main; if (win.isMaximized()) win.unmaximize(); win.setBounds({ x: 1, y: 0, width: 1870, height: 980 }); })()`);
+			await play(t);
+			const yt = await t.view("youtube");
+			const shot = (name: string) => yt.screenshot(path.join(import.meta.dirname, "..", "results", `s32-${name}.png`));
+			type Fit = { video: number[]; movie: number[]; bg: string; vc: number[] | null; bar: number[] | null };
+			const fit = () =>
+				yt.eval<Fit>(`(() => {
+					const box = (s) => { const b = document.querySelector(s)?.getBoundingClientRect(); return b ? [b.left, b.top, b.right, b.bottom] : null; };
+					return { video: box("video"), movie: box("#movie_player"), bg: getComputedStyle(document.querySelector("#movie_player")).backgroundColor, vc: box("#ytmd-vc"), bar: box("ytmusic-player-bar") };
+				})()`);
+			/** The picture's box fills the player even when YouTube left a stale size on <video> (587x330, as the owner saw). */
+			const expectFills = async (what: string) => {
+				await yt.eval(`Object.assign(document.querySelector("video").style, { width: "587px", height: "330px" })`);
+				const f = await fit();
+				if (f.video.some((v, i) => Math.abs(v - f.movie[i]) > 1)) throw new Error(`${what}: video ${f.video} doesn't fill the player ${f.movie}`);
+			};
+			const hover = async () => {
+				await mouse(yt, "mouseMoved", "ytmusic-player-page #side-panel");
+				await mouse(yt, "mouseMoved", "#movie_player");
+				await waitFor(async () => (await yt.eval<boolean>(`!!document.querySelector("#movie_player.ytmd-vc-show #ytmd-vc")`)) || false, 5000, "the control bar on a real hover");
+			};
+			await expectFills("normal view");
+			await hover();
+			await click(yt, '#ytmd-vc button[data-name="theater"]');
+			await until(yt, (m) => m.theater && !m.sidePanel, 3000, "theater to hide Up next");
+			await expectFills("theater");
+			await shot("theater");
+			await mouse(yt, "mouseMoved", "#movie_player");
+			await sleep(300);
+			await click(yt, '#ytmd-vc button[data-name="theater"]');
+			await until(yt, (m) => !m.theater && m.sidePanel, 3000, "theater to close");
+			await expectFills("after theater");
+			await hover();
+			await click(yt, '#ytmd-vc button[data-name="fullscreen"]');
+			await until(yt, (m) => m.fs, 5000, "full screen");
+			await sleep(1000);
+			await mouse(yt, "mouseMoved", "#movie_player");
+			await sleep(500);
+			await expectFills("full screen");
+			const f = await fit();
+			if (f.bg !== "rgb(0, 0, 0)") throw new Error(`the page shows through the bars beside the picture: player background ${f.bg}`);
+			if (f.vc && f.bar && f.vc[3] > f.bar[1] + 1) throw new Error(`the video bar (to ${f.vc[3]}) overlaps the player bar (from ${f.bar[1]})`);
+			// A picture narrower than the screen, like the owner's 4:3 video, for a look at the sides.
+			await yt.eval(`document.querySelector("video").style.objectFit = "none"`);
+			await sleep(300);
+			await shot("fullscreen-gap");
+			await yt.eval(`document.querySelector("video").style.objectFit = ""`);
+			await key(yt, "f");
+			await until(yt, (m) => !m.fs && !m.paused, 5000, "leaving full screen, still playing");
+		},
+	},
+	{
+		id: "s32b",
+		title: "A track started in Song mode and switched to Video with a real click shows its picture filling the player",
+		launch: { settings: { player: { videoMode: "audio", videoControls: true } } },
+		run: async (t) => {
+			await t.mainEval(`(() => { const win = __YTMD_TEST__.getMainWindow().main; if (win.isMaximized()) win.unmaximize(); win.setBounds({ x: 1, y: 0, width: 1870, height: 980 }); })()`);
+			await play(t);
+			const yt = await t.view("youtube");
+			await waitFor(async () => (await click(yt, '#ytmd-av-switch button[data-mode="video"]')) || false, 10000, "the Video button");
+			await until(yt, (m) => !m.paused, 10000, "playing after the switch");
+			await sleep(2000);
+			const seen = await yt.eval<{ inline: string | null; video: number[]; movie: number[]; audioView: boolean }>(`(() => {
+				const box = (s) => { const b = document.querySelector(s).getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom]; };
+				return { inline: document.querySelector("video").getAttribute("style"), video: box("video"), movie: box("#movie_player"), audioView: document.documentElement.classList.contains("ytmd-audio-view") };
+			})()`);
+			// The inline size is YouTube's own; it shows whether the player went stale (the CSS covers it either way).
+			console.log(`  s32b: inline "${seen.inline}", video ${seen.video}, player ${seen.movie}`);
+			if (seen.audioView) throw new Error("still in Song mode after clicking Video");
+			if (seen.video.some((v, i) => Math.abs(v - seen.movie[i]) > 1)) throw new Error(`video ${seen.video} doesn't fill the player ${seen.movie}`);
+			await yt.screenshot(path.join(import.meta.dirname, "..", "results", "s32b-switched.png"));
 		},
 	},
 	{

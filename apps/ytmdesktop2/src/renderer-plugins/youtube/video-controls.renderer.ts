@@ -60,6 +60,15 @@ html.${ON}:not(.${AUDIO_VIEW}) ytmusic-player :is(#song-media-window, #bezel) { 
    player is impossible: YTM's player page and player have transforms, which trap position: fixed.) */
 html.${THEATER} ytmusic-player-page #side-panel { display: none !important; }
 html.${THEATER} ytmusic-player-page #main-panel { flex: 1 1 auto !important; max-width: none !important; width: 100% !important; }
+/* The player can leave a stale inline size on <video> (seen after starting in Song mode and switching to Video), so
+   the picture stayed small in a corner. In Video mode the box always follows the player; object-fit keeps the
+   picture's shape, centred. */
+html.${ON}:not(.${AUDIO_VIEW}) #movie_player .html5-video-container { position: absolute; inset: 0; width: 100%; height: 100%; }
+html.${ON}:not(.${AUDIO_VIEW}) #movie_player video { left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; object-fit: contain; }
+/* Full screen: the page, with Up next, stays laid out under a transparent player. Black bars like YouTube's hide it,
+   and the video bar sits above the player bar, which YTM shows along the bottom here. */
+ytmusic-player[player-ui-state="FULLSCREEN"] #movie_player { background: #000 !important; }
+ytmusic-player[player-ui-state="FULLSCREEN"] #${BAR_ID} { bottom: 88px; }
 `;
 
 type Player = PlayerApi & {
