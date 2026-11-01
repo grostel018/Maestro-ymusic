@@ -326,7 +326,9 @@ to reorder), see DECISIONS. Not done: romanization and translation lines.
 ## 10. Phase G — Extras and the competitor-inspired list (≈ 6 h, pick-and-choose)
 
 **Picked 2026-10-30:** G5 SponsorBlock and G3 listening stats are done. Also added: game mode (owner request).
-The others stay in the backlog.
+
+**Owner decision 2026-11-01:** every remaining G item is built before release, plus the missing gaps from E and F
+(light mode, romanization and translation lines). G6 keeps its own condition: only with a ≥ 1.5k★ open solution.
 
 | # | Feature | Inspired by | Reuse | Notes |
 |---|---|---|---|---|
