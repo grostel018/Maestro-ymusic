@@ -24,7 +24,7 @@ The ordered list of improvements still to make. Work top to bottom unless someth
 | Tier 5 - Low value for now | 0 |
 | **Total open** | **41** |
 
-Done: 26. Next free ID: 82.
+Done: 26. Next free ID: 100.
 
 ## Owner requests (2026-10-30)
 
@@ -41,7 +41,7 @@ Done: 26. Next free ID: 82.
 | 76 | Playback | Song mode still misses the song version of some music videos (test on the owner's real account, allowed 2026-10-30) | done |
 | 77 | Release | Public repo for this fork: README, feature list, demo video or screenshots | todo |
 | 78 | Release | Post on Reddit and forums for free download | todo |
-| 79 | Security | Security audit of the app before publishing | todo |
+| 79 | Security | Security audit of the app before publishing; planned last, roadmap H6 | todo |
 | 80 | Docs | Easy user documentation | todo |
 | 81 | Release | In-app update button: offer the new version from the fork's own releases when the app opens | todo |
 | 82 | Lyrics | Estimated word fill sometimes runs ahead of or behind the singing (fixed pace for every song) | done: per-song pace |
@@ -57,6 +57,11 @@ Done: 26. Next free ID: 82.
 | 92 | Video mode | Theater mode has layout issues (reported 2026-10-30, details to collect) | todo |
 | 93 | Window | Snapping or splitting the window (half screen) breaks the app layout into pieces | todo |
 | 94 | Release | Launch from a desktop shortcut without running pnpm; pick up new commits automatically (rebuild on launch when the code changed) | done: scripts/launch.ps1 |
+| 95 | Brand | Rename the app to Maestro; link the original project in the app and README (2026-11-01) | done |
+| 96 | Brand | Our own SVG icon instead of the inherited play-button logo (2026-11-01) | done: build/icon.svg |
+| 97 | Release | Installing and using it must work for non-technical people: one-click installer, no terminal (roadmap H2) | todo |
+| 98 | Release | Users never enter API keys: Last.fm by login with Maestro's own key, Genius optional (roadmap H3) | todo |
+| 99 | Release | First-run welcome and plain-language errors (roadmap H4) | todo |
 
 ## Tier 0 - Make the core experience work
 

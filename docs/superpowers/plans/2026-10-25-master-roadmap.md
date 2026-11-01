@@ -342,6 +342,30 @@ The others stay in the backlog.
 
 ---
 
+## 10b. Phase H — Ready for other people (owner request 2026-11-01; last phase)
+
+**Goal:** someone who isn't technical downloads one file, double-clicks it, signs in and listens. No terminal, no
+pnpm, no API keys. The code stays unpushed until phases A–G and H1–H5 are finished; then H6 and H7 run in that order.
+
+| # | Task | Details | Done when |
+|---|---|---|---|
+| H1 | **Our own icon** (done 2026-11-01) | `build/icon.svg`, rendered by `scripts/generate-icons.mjs`; the conductor M | Every icon file comes from the SVG |
+| H2 | **One-click installer and updates** | • A one-click NSIS installer from CI, with a real version number instead of `0.0.0`.<br>• `release.yml` builds from this repo and takes keys from CI secrets.<br>• Update button from Maestro's own releases (item 81); set `FORK.updatesEnabled`.<br>• Uninstall keeps the user's data unless they choose otherwise (today `deleteAppDataOnUninstall: true`).<br>• Code signing so Windows doesn't warn about an unknown publisher: owner decision, see H-keys below. | On a clean Windows account: download, install, open, update, uninstall |
+| H3 | **No API keys for users** (proposed, see below) | • Official builds carry Maestro's own Last.fm key; users just approve in the in-app window.<br>• Genius stays optional: the About panel works from Wikipedia, MusicBrainz and Last.fm without it.<br>• An advanced "use my own key" field for when a shared limit is hit.<br>• Maestro's own Discord application, so Rich Presence says Maestro.<br>• A clear message when a service is unavailable, never a raw error. | A build made with no local `.env.local` connects Last.fm by login alone |
+| H4 | **First-run welcome** | A short, skippable welcome: sign in to Google (or continue signed out), optional Last.fm, what's on by default, where Settings is. Shown once. Errors in plain words with one obvious next step. | A new profile reaches music in under a minute without help |
+| H5 | **Easy user guide and demo** (items 77, 80) | A short guide with pictures: install, sign in, Windows warning, equalizer, lyrics, uninstall, getting help. README screenshots and a demo clip. | A non-technical reader can follow it alone |
+| H6 | **Security audit** (item 79), **last before publishing** | Whole-app review with fixes:<br>• keys and tokens in builds and in git history,<br>• the local API server and its auth,<br>• what the in-app windows and page-world code can reach (IPC, permissions, navigation),<br>• the Firefox cookie import and where sign-in data is stored,<br>• updates and downloads (HTTPS, signatures),<br>• dependency audit.<br>Findings are fixed or written down. | No open high-severity finding |
+| H7 | **Publish** (items 77, 78) | Push, make the repo public, first release, then the Reddit and forum posts. | People can download it |
+
+**H-keys, proposed answer (owner can overrule):** users never type keys. Sign-in is per person, keys are per app:
+Last.fm gives the app one key, and each user approves it on their own account. A key inside an installer can be
+extracted, so it is treated as replaceable: it grants no access to anyone's account by itself, and it can be swapped
+in an update if abused. The personal Genius token doesn't ship.
+
+**Open owner decision, code signing:** unsigned installers show "Windows protected your PC" to every new user. Check
+current prices and eligibility at phase start (paid certificates, Azure Trusted Signing, SignPath's free plan for open
+source). Without signing, the guide must show how to get past the warning.
+
 ## 11. Decisions only the owner can make (asked once, when the phase starts)
 
 Owner answers, 2026-10-26:
@@ -368,6 +392,7 @@ Owner answers, 2026-10-26:
 | 5 | E Look | 4 h | Themes and the blurred song/video background |
 | 6 | F Now Playing | 6–7 h | Lyrics like the phone, facts, comments |
 | 7 | G Extras | ~6 h | Pick from the list |
+| 8 | H Ready for other people | ~2 days | One-click install, no keys, audited, published |
 
 Each phase:
 - **Starts** by generating its 4–6 task plan from this file and asking the phase's D-questions.
