@@ -9,7 +9,7 @@ const unisonFetch = createFetch({
 	baseURL: "https://unison.boidu.dev",
 	throw: false as const,
 	headers: {
-		"User-Agent": "YTMDesktop2 (https://youtube-music.app)",
+		"User-Agent": "Maestro (https://github.com/grostel018/Maestro-ymusic)",
 	},
 });
 

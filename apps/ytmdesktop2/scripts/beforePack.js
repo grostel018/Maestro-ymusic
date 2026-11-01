@@ -42,16 +42,16 @@ exports.default = async function beforePack(context) {
 <!-- Copyright ${date.slice(0, 4)} Venipa -->
 <component type="desktop-application">
   <id>${APP_ID}</id>
-  <name>YouTube Music for Desktop</name>
+  <name>Maestro</name>
   <summary>Unofficial YouTube Music desktop client</summary>
   <developer id="net.venipa">
     <name translate="no">Venipa</name>
   </developer>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>CC0-1.0</project_license>
-  <url type="homepage">https://youtube-music.app</url>
-  <url type="bugtracker">https://github.com/Venipa/ytmdesktop2/issues</url>
-  <url type="vcs-browser">https://github.com/Venipa/ytmdesktop2</url>
+  <url type="homepage">https://github.com/grostel018/Maestro-ymusic</url>
+  <url type="bugtracker">https://github.com/grostel018/Maestro-ymusic/issues</url>
+  <url type="vcs-browser">https://github.com/grostel018/Maestro-ymusic</url>
   <description>
     <p>${DESCRIPTION}</p>
   </description>

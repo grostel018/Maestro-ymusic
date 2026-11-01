@@ -1,12 +1,12 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/electron-userland/electron-builder/refs/heads/master/packages/app-builder-lib/scheme.json
 
-appId: com.ytmdesktop2.plus
-productName: YTMDesktop2 Plus
+appId: com.maestro.ymusic
+productName: Maestro
 # Packaged package.json identity: Electron derives the default userData folder from it, so it must never match
 # the installed upstream app (%APPDATA%\YouTube Music for Desktop). Keep in sync with src/shared/fork.ts.
 extraMetadata:
-  name: ytmdesktop2-plus
-  productName: YTMDesktop2 Plus
+  name: maestro
+  productName: Maestro
 directories:
   buildResources: build
 files:
@@ -29,12 +29,12 @@ asarUnpack:
   - "**/*.icns"
   - "**/assets/**"
 protocols:
-  - name: YTMDesktop2 Plus
+  - name: Maestro
     schemes:
-      - ytmdplus
+      - maestro
 win:
   # Distinct from upstream (ytmdesktop.exe): NSIS closes running instances by image name.
-  executableName: ytmdesktop-plus
+  executableName: maestro
   artifactName: ${name}-${version}-setup.${ext}
   compression: maximum
   target:
@@ -97,7 +97,7 @@ linux:
   category: AudioVideo
   icon: build/icon.icns
   mimeTypes:
-    - x-scheme-handler/ytmdplus
+    - x-scheme-handler/maestro
 rpm:
   # RPM names cannot contain spaces.
   packageName: ytmdesktop2

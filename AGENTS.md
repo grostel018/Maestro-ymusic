@@ -1,6 +1,6 @@
 # Notes for AI agents and collaborators
 
-This repo is a **personal fork** of Venipa/ytmdesktop2, being turned into YTMDesktop2 Plus.
+This repo is a **personal fork** of Venipa/ytmdesktop2, being turned into Maestro.
 Before you change anything, read these in order:
 
 1. `docs/superpowers/plans/2026-10-25-master-roadmap.md`: what we're building and in which

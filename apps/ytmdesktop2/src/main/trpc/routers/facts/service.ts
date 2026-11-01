@@ -19,7 +19,7 @@ import { app, net, shell } from "electron";
 const CACHE_MS = 7 * 24 * 60 * 60 * 1000;
 const TIMEOUT_MS = 10_000;
 /** MusicBrainz asks for at most one request a second and a User-Agent that names the app. */
-const UA = "YTMDesktop2Plus/1.0 ( https://github.com/Venipa/ytmdesktop2 )";
+const UA = "Maestro/1.0 ( https://github.com/grostel018/Maestro-ymusic )";
 const SONG_HINT = /\b(song|single|track|ballad|anthem)\b/i;
 const ARTIST_HINT = /\b(singer|band|rapper|musician|group|duo|dj|producer|composer|songwriter|artist)\b/i;
 

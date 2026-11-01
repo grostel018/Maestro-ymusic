@@ -1,8 +1,9 @@
 import { RiFolderOpenLine } from "@remixicon/react";
+import { FORK } from "@shared/fork";
 import { UPDATE_CHANNEL_LABELS, type UpdateChannel } from "@shared/utils/updater";
 import { createFileRoute } from "@tanstack/react-router";
 import { SettingsSelect } from "@/components/settings-select";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FieldGroup } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
@@ -35,7 +36,7 @@ function AboutSettingsPage() {
 			<Card>
 				<CardHeader>
 					<CardTitle>About</CardTitle>
-					<CardDescription>Information about your YouTube Music Desktop instance.</CardDescription>
+					<CardDescription>Information about your {FORK.productName} instance.</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<div className="flex items-center justify-between gap-4">
@@ -69,6 +70,25 @@ function AboutSettingsPage() {
 								) : null}
 							</Button>
 						)}
+					</div>
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardHeader>
+					<CardTitle>Based on {FORK.upstreamName}</CardTitle>
+					<CardDescription>
+						{FORK.productName} is a fork of {FORK.upstreamName} by {FORK.upstreamAuthor}. Thanks to them and its contributors.
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<div className="flex flex-wrap gap-2">
+						<a className={buttonVariants({ variant: "outline" })} href={FORK.upstreamUrl} target="_blank" rel="noreferrer">
+							Original project
+						</a>
+						<a className={buttonVariants({ variant: "outline" })} href={FORK.repoUrl} target="_blank" rel="noreferrer">
+							{FORK.productName} source
+						</a>
 					</div>
 				</CardContent>
 			</Card>

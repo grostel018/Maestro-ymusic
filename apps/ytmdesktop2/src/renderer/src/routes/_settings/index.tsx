@@ -22,7 +22,7 @@ function GenericSettingsPage() {
 					<CardHeader>
 						<CardTitle>Get Started</CardTitle>
 						<CardDescription>
-							Welcome to YouTube Music for Desktop. Adjust settings and personalize your experience.
+							Welcome to Maestro. Adjust settings and personalize your experience.
 						</CardDescription>
 					</CardHeader>
 					<CardFooter className="justify-between gap-2">

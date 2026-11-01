@@ -1,4 +1,4 @@
-# YTMDesktop2 Plus - Verification Checklist
+# Maestro - Verification Checklist
 
 Checked on 2026-10-27. **43/43 verified.**
 

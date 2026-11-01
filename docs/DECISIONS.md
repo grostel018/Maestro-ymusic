@@ -4,6 +4,14 @@ Short records of decisions that shape the code, so collaborators know **why**. N
 Format: what we decided, why, what it costs if wrong. The full per-task record for phases 0–1 is
 in `docs/superpowers/plans/2026-10-25-phase0-1-ledger.md`.
 
+## 2026-11-01: The app is now Maestro
+- **Decision (owner):** product name, app id, executable and link scheme become Maestro. Settings → About and the
+  README link to the original project, Venipa/ytmdesktop2. Older entries below keep the old names as history.
+- **Kept on purpose:** the profile folders (`ytmdesktop2-plus`, dev `ytmdesktop2-dev`) and the workspace package name
+  (`ytmdesktop2`, used by `pnpm --filter`).
+- **Why:** moving the profile would lose the owner's settings and sign-ins, and users never see the folder name.
+- **Cost if wrong:** an odd folder name, which a migration can still change later.
+
 ## 2026-10-26: Our own video control bar; capture permissions refused
 - **Probe (C2's first choice):** YTM builds `#movie_player` without YouTube's control bar.
   `.ytp-chrome-bottom`, the settings menu and every `.ytp-*-button` are absent, not hidden, so

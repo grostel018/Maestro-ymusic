@@ -1,4 +1,4 @@
-# YTMDesktop2 Plus - Improvement Backlog
+# Maestro - Improvement Backlog
 
 The ordered list of improvements still to make. Work top to bottom unless something is urgent. Seeded from phases 2-6 of docs/superpowers/specs/2026-10-25-desktop-music-overhaul-design.md; phases 0-1 are finished and recorded in the Done table.
 

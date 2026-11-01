@@ -1,10 +1,10 @@
+import fs from "node:fs";
+import path from "node:path";
 import { getRotatingFileSink } from "@logtape/file";
 import { configureSync, getLogger, getTextFormatter, type LogLevel as LogTapeLevel } from "@logtape/logtape";
 import { isAppQuitting } from "@main/handlers/quitPolicy";
 import { formatLogArgs, Logger, LogLevel, type LogOutput, logger } from "@shared/utils/console";
 import { app, dialog } from "electron";
-import fs from "node:fs";
-import path from "node:path";
 
 /** Per-file soft cap before rotate. */
 const MAX_LOG_FILE_BYTES = 5 * 1024 * 1024;
@@ -141,7 +141,7 @@ function showFatalErrorDialog(kind: string, reason: unknown): void {
 	if (fatalErrorDialogShown) return;
 	fatalErrorDialogShown = true;
 	try {
-		dialog.showErrorBox(`YouTube Music for Desktop: ${kind}`, formatFatalReason(reason).slice(0, 4000));
+		dialog.showErrorBox(`Maestro: ${kind}`, formatFatalReason(reason).slice(0, 4000));
 	} catch {
 		/* dialog can fail if Electron is tearing down */
 	}

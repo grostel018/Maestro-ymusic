@@ -1,4 +1,4 @@
-# Starts YTMDesktop2 Plus from this checkout, like an installed app: no terminal, no pnpm by hand.
+# Starts Maestro from this checkout, like an installed app: no terminal, no pnpm by hand.
 # On each launch: install dependencies if the lockfile changed, rebuild if the code changed (scripts/build-if-changed.mjs),
 # then open the app. So whatever is committed or edited here is what opens next time.
 # Profile: %APPDATA%\ytmdesktop2-dev (the one `pnpm dev` uses), so settings and sign-in carry over. Never the upstream
@@ -11,7 +11,7 @@ $App = Split-Path -Parent $PSScriptRoot
 $Root = (Resolve-Path (Join-Path $App "..\..")).Path
 $Log = Join-Path $App "out\launch.log"
 $UserData = Join-Path $env:APPDATA "ytmdesktop2-dev"
-$Name = "YTMDesktop2 Plus"
+$Name = "Maestro"
 $Icon = Join-Path $App "build\icon.ico"
 
 if ($InstallShortcut) {

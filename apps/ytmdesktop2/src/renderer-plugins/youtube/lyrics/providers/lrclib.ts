@@ -7,7 +7,7 @@ const lrclibFetch = createFetch({
 	baseURL: "https://lrclib.net",
 	throw: false as const,
 	headers: {
-		"User-Agent": "YTMDesktop2 (https://youtube-music.app)",
+		"User-Agent": "Maestro (https://github.com/grostel018/Maestro-ymusic)",
 	},
 });
 

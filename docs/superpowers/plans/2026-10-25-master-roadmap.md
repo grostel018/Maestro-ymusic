@@ -1,4 +1,4 @@
-# YTMDesktop2 Plus — Master Roadmap (end to end)
+# Maestro (formerly YTMDesktop2 Plus) — Master Roadmap (end to end)
 
 Date: 2026-10-25 · Branch: `feature/desktop-overhaul` · Supersedes the roadmap in
 `docs/superpowers/specs/2026-10-25-desktop-music-overhaul-design.md` §6. That design's goals,

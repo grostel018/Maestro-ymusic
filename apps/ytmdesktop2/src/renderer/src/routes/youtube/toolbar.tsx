@@ -66,7 +66,7 @@ function YoutubeToolbarPage() {
 				<div className="drag flex flex-1 items-center gap-2">
 					{!isDarwin && (
 						<div className="flex items-center gap-1">
-							<div className="-mt-px flex-none text-xs">YouTube Music for Desktop</div>
+							<div className="-mt-px flex-none text-xs">Maestro</div>
 							{appVersion !== undefined && <div className="text-xs text-white opacity-30">v{appVersion}</div>}
 						</div>
 					)}

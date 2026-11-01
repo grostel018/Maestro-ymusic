@@ -9,8 +9,8 @@ import {
 	RiDashboardLine,
 	RiDiscordLine,
 	RiEqualizerLine,
+	RiGitForkLine,
 	RiGithubFill,
-	RiGlobalLine,
 	RiInformationLine,
 	RiKey2Line,
 	RiLiveLine,
@@ -22,6 +22,7 @@ import {
 	RiShieldCheckLine,
 	RiShieldKeyholeLine,
 } from "@remixicon/react";
+import { FORK } from "@shared/fork";
 import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { type ComponentType, type CSSProperties, memo, Suspense, useEffect, useState } from "react";
 import LogoIcon from "@/assets/logo.svg?react";
@@ -86,8 +87,8 @@ const appearanceSubs = [
 ] as const;
 
 const socials = [
-	{ href: "https://github.com/Venipa/ytmdesktop2", label: "GitHub", icon: RiGithubFill },
-	{ href: "https://youtube-music.app", label: "Website", icon: RiGlobalLine },
+	{ href: FORK.repoUrl, label: "GitHub", icon: RiGithubFill },
+	{ href: FORK.upstreamUrl, label: `Forked from ${FORK.upstreamAuthor}/${FORK.upstreamName}`, icon: RiGitForkLine },
 ] as const;
 
 type SettingsTabTo =

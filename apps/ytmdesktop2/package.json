@@ -4,8 +4,9 @@
 	"version": "0.0.0",
 	"private": false,
 	"author": "Venipa <admin@venipa.net>",
-	"homepage": "https://youtube-music.app",
-	"desktopName": "com.ytmdesktop2.plus",
+	"homepage": "https://github.com/grostel018/Maestro-ymusic",
+	"productName": "Maestro",
+	"desktopName": "com.maestro.ymusic",
 	"main": "./out/main/index.js",
 	"scripts": {
 		"format": "prettier --write .",

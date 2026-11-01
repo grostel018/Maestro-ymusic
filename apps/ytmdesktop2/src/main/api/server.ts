@@ -1,3 +1,5 @@
+import fs from "node:fs/promises";
+import path from "node:path";
 import { type ServerType, serve, upgradeWebSocket } from "@hono/node-server";
 import { resolveEmbedsRoot } from "@main/api/resolveEmbedsRoot";
 import { tryServeEmbedFile } from "@main/api/serveEmbeds";
@@ -11,8 +13,6 @@ import { createLogger } from "@shared/utils/console";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { WSContext } from "hono/ws";
-import fs from "node:fs/promises";
-import path from "node:path";
 import { WebSocketServer } from "ws";
 
 const log = createLogger("api-server");
@@ -120,7 +120,7 @@ export async function startApiServer(options: {
 
 	app.get("/", (c) =>
 		c.json({
-			name: "YTMDesktop2 Api",
+			name: "Maestro Api",
 			channel: config?.app?.channel ?? "stable",
 			player: config?.player,
 			authRequired,

@@ -3,15 +3,16 @@
 **Status:** shipped (phase 1, 2026-10-25)
 
 ## What it does
-YTMDesktop2 Plus installs and runs **next to** the upstream YouTube Music Desktop app without
-touching it. It has its own settings, sign-in, link scheme and executable.
+Maestro installs and runs **next to** the upstream YouTube Music Desktop app without
+touching it. It has its own settings, sign-in, link scheme and executable. Settings → About links
+to the original project and credits its author.
 
 | | Upstream | This fork |
 |---|---|---|
-| App id | `net.venipa.ytmdesktop` | `com.ytmdesktop2.plus` |
-| Profile folder | `%APPDATA%\ytmdesktop2` | `%APPDATA%\ytmdesktop2-plus` (dev: `ytmdesktop2-dev`) |
-| Link scheme | `ytmd://` | `ytmdplus://` |
-| Executable | `ytmdesktop.exe` | `ytmdesktop-plus.exe` |
+| App id | `net.venipa.ytmdesktop` | `com.maestro.ymusic` |
+| Profile folder | `%APPDATA%\ytmdesktop2` | `%APPDATA%\ytmdesktop2-plus` (dev: `ytmdesktop2-dev`); old names kept so settings and sign-ins survive the rename |
+| Link scheme | `ytmd://` | `maestro://` |
+| Executable | `ytmdesktop.exe` | `maestro.exe` |
 | Auto-update | upstream releases | **off** (`FORK.updatesEnabled = false`) |
 
 ## How it works

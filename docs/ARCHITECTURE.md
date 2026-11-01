@@ -1,6 +1,6 @@
 # Architecture
 
-How YTMDesktop2 Plus is put together, and where new code goes. Read this before changing anything.
+How Maestro is put together, and where new code goes. Read this before changing anything.
 For the roadmap and its reasons, see `docs/superpowers/plans/2026-10-25-master-roadmap.md`.
 
 ## The big picture
@@ -57,7 +57,7 @@ YouTube Music web page, running in a `WebContentsView`. We add features in three
     `windows/layout.ts` (pure, unit-tested).
   - It runs synchronously on resize and re-checks after state changes (maximize, fullscreen).
 - **Fork identity.** `src/shared/fork.ts` holds the app id, product name, profile folder,
-  `ytmdplus://` scheme, and the setting that keeps upstream updates off.
+  `maestro://` scheme, repo links, and the setting that keeps upstream updates off.
 
 ## Page world (inside YouTube Music)
 
