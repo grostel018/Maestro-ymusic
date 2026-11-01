@@ -274,6 +274,34 @@ export const scenarios: Scenario[] = [
 		},
 	},
 	{
+		id: "s35",
+		title: "Lyrics extra lines: a Japanese song gets a Latin-letter line and a French translation under its lines in the Lyrics tab",
+		launch: { settings: { player: { videoMode: "video", videoControls: true }, lyrics: { enabled: true, romanize: true, translateTo: "fr" } } },
+		run: async (t) => {
+			await t.mainEval(`(() => { const win = __YTMD_TEST__.getMainWindow().main; if (win.isMaximized()) win.unmaximize(); win.setBounds({ x: 1, y: 0, width: 1300, height: 900 }); })()`);
+			const openLyrics = (yt: CdpSession) => yt.eval(`[...document.querySelectorAll("ytmusic-player-page tp-yt-paper-tab")].find((e) => e.textContent.trim().toLowerCase() === "lyrics")?.click()`);
+			const subs = (yt: CdpSession) =>
+				yt.eval<{ lines: number; read: string[]; tr: string[] }>(`(() => ({ lines: document.querySelectorAll(".ytmd-al-line").length, read: [...document.querySelectorAll(".ytmd-al-sub:not(.tr)")].slice(0, 3).map((e) => e.textContent), tr: [...document.querySelectorAll(".ytmd-al-sub.tr")].slice(0, 3).map((e) => e.textContent) }))()`);
+			const [name, url] = ["japanese", "https://music.youtube.com/watch?v=ZRtdQ81jPUQ"];
+			await play(t, { url });
+			const yt = await t.view("youtube");
+			await openLyrics(yt);
+			const seen = await waitFor(
+				async () => {
+					const s = await subs(yt);
+					return s.read.length && s.tr.length ? s : false;
+				},
+				30000,
+				`extra lines on the ${name} song`,
+			);
+			console.log(`  s35 ${name}: ${JSON.stringify(seen)}`);
+			if (!/^[\p{Script=Latin}\p{P}\p{N}\p{M}\p{S}\s]+$/u.test(seen.read[0])) throw new Error(`not Latin letters: ${seen.read[0]}`);
+			if (/[぀-ヿ一-鿿]/.test(seen.tr[0])) throw new Error(`not translated: ${seen.tr[0]}`);
+			await sleep(1500);
+			await yt.screenshot(path.join(import.meta.dirname, "..", "results", `s35-${name}.png`));
+		},
+	},
+	{
 		id: "s34",
 		smoke: true,
 		title: "Reloading the page keeps the app's controls: the Song/Video switch, speed and facts buttons come back and stay",

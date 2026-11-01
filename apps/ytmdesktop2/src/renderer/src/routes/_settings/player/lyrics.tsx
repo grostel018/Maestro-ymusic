@@ -1,3 +1,4 @@
+import { TRANSLATE_LANGUAGES } from "@shared/lyrics/extras";
 import { createFileRoute } from "@tanstack/react-router";
 import { LyricsProvidersOrder } from "@/components/lyrics-providers-order";
 import { ResetDefaults } from "@/components/reset-defaults";
@@ -25,6 +26,8 @@ const LINE_STYLE_OPTIONS: SettingsSelectOption[] = [
 		description: "The current line fills as it's sung: word by word with word timing, across the line with line timing.",
 	},
 ];
+
+const TRANSLATE_OPTIONS: SettingsSelectOption[] = [{ value: "off", label: "Off" }, ...TRANSLATE_LANGUAGES.map(([value, label]) => ({ value, label }))];
 
 const GLOW_OPTIONS: SettingsSelectOption[] = [
 	{ value: "off", label: "Off", description: "No light on the current line." },
@@ -160,6 +163,32 @@ function LyricsSettingsPage() {
 				</CardHeader>
 				<CardContent>
 					<LyricsLook disabled={!lyricsEnabled} />
+				</CardContent>
+			</Card>
+			<Card>
+				<CardHeader>
+					<CardTitle>Extra lines</CardTitle>
+					<CardDescription>A reading or a translation under each line, in the Lyrics tab and in karaoke.</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<FieldGroup>
+						<SettingsCheckbox
+							configKey="lyrics.romanize"
+							defaultValue={true}
+							disabled={!lyricsEnabled}
+							description="Latin letters under Japanese, Korean and Chinese lyrics. Done on this computer."
+						>
+							Show how to read it
+						</SettingsCheckbox>
+						<SettingsSelect
+							configKey="lyrics.translateTo"
+							defaultValue="off"
+							disabled={!lyricsEnabled}
+							label="Translate into"
+							description="Sends the song's lyrics to Google Translate. Nothing shows for songs already in this language."
+							options={TRANSLATE_OPTIONS}
+						/>
+					</FieldGroup>
 				</CardContent>
 			</Card>
 			<Card>

@@ -38,6 +38,8 @@ license duties stay clear.
 | [peers/peerjs](https://github.com/peers/peerjs) | 13.5k | MIT | — | Listen together (phase G) |
 | [jberg/butterchurn](https://github.com/jberg/butterchurn) | 2.0k | MIT | — | Visualizer (phase D) |
 | [hexenq/kuroshiro](https://github.com/hexenq/kuroshiro) | 1.0k (shipped by Pear) | MIT | — | Japanese romaji (phase F) |
+| [toss/es-hangul](https://github.com/toss/es-hangul) | 1.9k | MIT | — | Korean romanization |
+| [zh-lx/pinyin-pro](https://github.com/zh-lx/pinyin-pro) | 4.8k | MIT | — | Chinese pinyin |
 | [fast-average-color](https://github.com/fast-average-color/fast-average-color) | 1.5k | MIT | — | Dominant color (phase E) |
 | [spicetify/spicetify-themes](https://github.com/spicetify/spicetify-themes) | 6.1k | MIT | — | Theme palettes (phase E) |
 | [yt-dlp/yt-dlp](https://github.com/yt-dlp/yt-dlp) | 202k | Unlicense | — | Downloads, Firefox cookie-import approach (phases B, G) |

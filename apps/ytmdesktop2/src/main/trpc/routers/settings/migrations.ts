@@ -287,6 +287,14 @@ const migrations: Omit<Migration<SettingsStore>, "version">[] = [
 			store.set("player.replaceShareLinks", false);
 		},
 	},
+	{
+		hook(store) {
+			// Romanization and translation lines under the lyrics.
+			const lyrics = (store.store as { lyrics?: Record<string, unknown> })?.lyrics ?? {};
+			if (typeof lyrics.romanize !== "boolean") store.set("lyrics.romanize", true);
+			if (typeof lyrics.translateTo !== "string") store.set("lyrics.translateTo", "off");
+		},
+	},
 ];
 
 export default migrations;

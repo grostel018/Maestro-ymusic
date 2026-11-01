@@ -309,7 +309,7 @@ See `docs/features/themes.md`.
 
 **Done 2026-10-30:** F2 Apple-style lyrics, F3 About panel, F6 karaoke. F1, F4 and F5 use what YouTube Music now
 has (its player page is the Now Playing view, opened by the title-bar pill; its Comments tab; its Up next with drag
-to reorder), see DECISIONS. Not done: romanization and translation lines.
+to reorder), see DECISIONS. Romanization and translation lines done 2026-11-01.
 
 | # | Task | Reuse | Details | Tests |
 |---|---|---|---|---|

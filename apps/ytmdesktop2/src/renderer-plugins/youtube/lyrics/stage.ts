@@ -5,7 +5,7 @@ import { normalizeAudio } from "@shared/audio/settings";
 import { setIcon } from "../video-controls.menu";
 import type { LyricsLineStyle } from "./line-style";
 import type { LyricsStoreSnapshot } from "./store";
-import { createLyricsRenderer, type LyricsGlow, type LyricsRenderApi } from "./ui/apple";
+import { createLyricsRenderer, type LyricsGlow, type LyricsRenderApi, type LyricsUiOptions } from "./ui/apple";
 
 const ROOT_ID = "ytmd-karaoke";
 const BUTTON_ID = "ytmd-sing-button";
@@ -78,6 +78,8 @@ export function createKaraokeStage(opts: {
 	fontScale?: () => number;
 	glow?: () => { mode: LyricsGlow; color: string };
 	onScale?: (delta: number) => void;
+	extras?: LyricsUiOptions["extras"];
+	requestExtras?: LyricsUiOptions["requestExtras"];
 }): KaraokeStage {
 	let snap: LyricsStoreSnapshot = { status: "idle", result: null, videoId: null };
 	let renderer: LyricsRenderApi | null = null;
@@ -236,6 +238,8 @@ export function createKaraokeStage(opts: {
 			fontScale: opts.fontScale,
 			glow: opts.glow,
 			onScale: opts.onScale,
+			extras: opts.extras,
+			requestExtras: opts.requestExtras,
 		});
 		renderer.setSnapshot(snap);
 		renderer.setRunning(true);

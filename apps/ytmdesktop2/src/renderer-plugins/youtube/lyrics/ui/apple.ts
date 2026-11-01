@@ -8,6 +8,7 @@
 // - a gap of 4 s or more shows breathing dots; a click on a line seeks there; the wheel scrolls freely for 2.5 s.
 // "stage" is the full-screen karaoke look (F6): bigger, centred.
 
+import type { LyricsExtrasRequest, LyricsExtrasResult } from "@shared/lyrics/extras";
 import { withEstimatedTiming } from "../estimate";
 import type { LyricsLineStyle } from "../line-style";
 import { primaryActiveLineIndex } from "../lrc";
@@ -41,6 +42,10 @@ export interface LyricsUiOptions {
 	glow?: () => { mode: LyricsGlow; color: string };
 	/** A−/A+ in the view: asks to change lyrics.fontScale by `delta`. */
 	onScale?: (delta: number) => void;
+	/** Romanization and translation lines wanted (lyrics.romanize / lyrics.translateTo). */
+	extras?: () => { romanize: boolean; translateTo: string | null };
+	/** Asks main for those lines; returns how to stop waiting. */
+	requestExtras?: (request: LyricsExtrasRequest, onResult: (result: LyricsExtrasResult) => void) => () => void;
 }
 
 /** Where the current line sits in the view (from the top); before the first line, the first line sits higher. */
@@ -108,6 +113,11 @@ const CSS = `
 .ytmd-al-line.fill[data-d="0"] .ytmd-al-w, .ytmd-al-line.fill.lines[data-d="0"] .ytmd-al-text {
 	--ytmd-al-base: linear-gradient(90deg, #fff var(--p, 0%), rgba(255,255,255,.38) var(--p, 0%));
 	background: var(--ytmd-al-base); -webkit-background-clip: text; background-clip: text; color: transparent; }
+/* Romanization and translation under a line: quieter than it, never filled. */
+.ytmd-al-sub { display: block; margin-top: .2em; font-size: .62em; font-weight: 500; line-height: 1.3; color: rgba(255,255,255,.55); background: none; -webkit-text-fill-color: currentColor; }
+.ytmd-al-sub.tr { font-style: italic; }
+.ytmd-al-line[data-d="0"] .ytmd-al-sub { color: rgba(255,255,255,.8); }
+.ytmd-al.stage .ytmd-al-sub { font-size: .5em; }
 .ytmd-al-part { display: block; }
 .ytmd-al-part.alt { text-align: right; font-size: .82em; }
 .ytmd-al-time { display: inline-block; min-width: 3.2em; margin-right: 10px; font-size: 12px; font-weight: 400; color: rgba(255,255,255,.45); vertical-align: middle; }
@@ -207,6 +217,7 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 	/** This song's timing nudge (see OFFSETS_KEY). */
 	let offsetMs = 0;
 	let syncLabel: HTMLElement | null = null;
+	let stopExtras: (() => void) | null = null;
 	const showOffset = () => {
 		if (!syncLabel) return;
 		syncLabel.textContent = offsetLabel(offsetMs);
@@ -327,6 +338,8 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 		host = getHost();
 		if (!host || disposed) return;
 		ensureStyle();
+		stopExtras?.();
+		stopExtras = null;
 		resize?.disconnect();
 		if (raf) cancelAnimationFrame(raf);
 		raf = 0;
@@ -425,6 +438,7 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 		scroller = sc;
 		const fill = options.lineStyle() === "fill";
 		const showTimes = options.showTimeCodes();
+		const extraTargets: { el: HTMLElement; text: string }[] = [];
 
 		if (synced && result?.lines) {
 			// Line-synced lyrics fill word by word too, with timing estimated from syllables.
@@ -507,8 +521,10 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 				el.className = "ytmd-al-line";
 				el.textContent = text || " ";
 				sc.appendChild(el);
+				extraTargets.push({ el, text });
 			}
 		}
+		if (synced) for (const it of items) if (it.line) extraTargets.push({ el: it.el, text: it.line.text });
 		root.appendChild(vp);
 		if (result) {
 			const footer = document.createElement("div");
@@ -525,11 +541,33 @@ export function createLyricsRenderer(getHost: () => HTMLElement | null, options:
 		resize.observe(vp);
 		measure();
 		loop();
+		// The lines under the lyrics arrive later, and only add to what's on screen: no rebuild, one new measure.
+		const wanted = options.extras?.();
+		if (wanted && (wanted.romanize || wanted.translateTo) && snap.videoId && options.requestExtras && extraTargets.length) {
+			stopExtras = options.requestExtras({ videoId: snap.videoId, lines: extraTargets.map((t) => t.text), romanize: wanted.romanize, translateTo: wanted.translateTo }, (extras) => {
+				if (scroller !== sc) return;
+				extraTargets.forEach(({ el }, i) => {
+					for (const [text, cls] of [
+						[extras.romanized[i], "ytmd-al-sub"],
+						[extras.translated[i], "ytmd-al-sub tr"],
+					] as const) {
+						if (!text) continue;
+						const sub = document.createElement("span");
+						sub.className = cls;
+						sub.textContent = text;
+						el.appendChild(sub);
+					}
+				});
+				measure();
+				if (Date.now() > manualUntil) scrollTo(current);
+			});
+		}
 	};
 
 	const rebuildIfNeeded = () => {
 		const g = options.glow?.();
-		const key: unknown[] = [snap.status, snap.result, snap.videoId, getHost(), options.lineStyle(), options.showTimeCodes(), options.fontScale?.(), g?.mode, g?.color];
+		const ex = options.extras?.();
+		const key: unknown[] = [snap.status, snap.result, snap.videoId, getHost(), options.lineStyle(), options.showTimeCodes(), options.fontScale?.(), g?.mode, g?.color, ex?.romanize, ex?.translateTo];
 		if (builtFor && builtFor.length === key.length && builtFor.every((v, i) => v === key[i]) && host?.isConnected) return;
 		builtFor = key;
 		build();

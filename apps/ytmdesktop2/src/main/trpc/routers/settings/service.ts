@@ -75,6 +75,10 @@ const defaultSettings = {
 		glowColor: "#ffffff",
 		/** The glow pulses with the bass (audio engine analyser). */
 		glowBeat: true,
+		/** A Latin-letter line under Japanese, Korean and Chinese lyrics. Works offline. */
+		romanize: true,
+		/** Language of a translation line, or "off". Sends the lyrics to Google Translate, so it's off until chosen. */
+		translateTo: "off",
 	},
 	player: {
 		skipDisliked: false,

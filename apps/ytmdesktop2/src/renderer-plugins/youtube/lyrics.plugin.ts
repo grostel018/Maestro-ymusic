@@ -1,5 +1,6 @@
 import definePlugin from "@plugins/utils";
 import { getYtmd } from "@preload/preload-local";
+import type { LyricsExtrasRequest, LyricsExtrasResult } from "@shared/lyrics/extras";
 import { readLineStyle } from "./lyrics/line-style";
 import { createKaraokeStage, type KaraokeStage } from "./lyrics/stage";
 import { createLyricsStore } from "./lyrics/store";
@@ -68,6 +69,8 @@ function readLyricsSettings(settings?: Record<string, any>) {
 		fontScale: clampScale(s?.lyrics?.fontScale),
 		glow: (["off", "song", "accent", "custom"].includes(s?.lyrics?.glow) ? s.lyrics.glow : "song") as LyricsGlow,
 		glowColor: typeof s?.lyrics?.glowColor === "string" && /^#[0-9a-f]{6}$/i.test(s.lyrics.glowColor) ? s.lyrics.glowColor : "#ffffff",
+		romanize: s?.lyrics?.romanize !== false,
+		translateTo: typeof s?.lyrics?.translateTo === "string" && s.lyrics.translateTo !== "off" ? (s.lyrics.translateTo as string) : null,
 	};
 }
 
@@ -210,6 +213,21 @@ async function startLyrics() {
 			const next = Math.round(clampScale(readLyricsSettings().fontScale + delta) * 10) / 10;
 			settings?.set("lyrics.fontScale", next);
 		},
+		extras: () => {
+			const cfg = readLyricsSettings();
+			return { romanize: cfg.romanize, translateTo: cfg.translateTo };
+		},
+		requestExtras: (request: LyricsExtrasRequest, onResult: (result: LyricsExtrasResult) => void) => {
+			const ytmd = getYtmd();
+			const off = ytmd.onInternal("lyrics:extras:result", (payload) => {
+				const result = payload as LyricsExtrasResult | null;
+				if (result?.videoId !== request.videoId) return;
+				off();
+				onResult(result);
+			});
+			ytmd.emit("lyrics:extras:request", request);
+			return off;
+		},
 	};
 	runtime.renderer = createLyricsRenderer(() => runtime.mount?.getHost() ?? null, {
 		showTimeCodes: () => readLyricsSettings().showTimeCodes,
@@ -217,7 +235,7 @@ async function startLyrics() {
 		onSeek,
 		...look,
 	});
-	runtime.stage = createKaraokeStage({ settings, lineStyle: () => readLyricsSettings().lineStyle, onSeek, fontScale: look.fontScale, glow: look.glow, onScale: look.onScale });
+	runtime.stage = createKaraokeStage({ settings, lineStyle: () => readLyricsSettings().lineStyle, onSeek, fontScale: look.fontScale, glow: look.glow, onScale: look.onScale, extras: look.extras, requestExtras: look.requestExtras });
 
 	runtime.unsubStore = runtime.store.subscribe((snap) => {
 		runtime.renderer?.setSnapshot(snap);
@@ -226,7 +244,7 @@ async function startLyrics() {
 	});
 	runtime.unsubSettings =
 		runtime.onSettingsChange?.((key) => {
-			if (["lyrics", "lyrics.showTimeCodes", "lyrics.lineStyle", "lyrics.fontScale", "lyrics.glow", "lyrics.glowColor"].includes(key)) {
+			if (["lyrics", "lyrics.showTimeCodes", "lyrics.lineStyle", "lyrics.fontScale", "lyrics.glow", "lyrics.glowColor", "lyrics.romanize", "lyrics.translateTo"].includes(key)) {
 				runtime.renderer?.repaint();
 				runtime.stage?.repaint();
 			}

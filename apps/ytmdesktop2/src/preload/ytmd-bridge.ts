@@ -15,6 +15,7 @@ const EMIT_ALLOWLIST = new Set<string>([
 	"audio:gesture-needed",
 	"facts:request",
 	"facts:open",
+	"lyrics:extras:request",
 	"sponsorblock:request",
 	"stats:listen",
 ]);
