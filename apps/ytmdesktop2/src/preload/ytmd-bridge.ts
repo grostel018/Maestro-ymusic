@@ -4,6 +4,7 @@ import { ipcRenderer } from "electron";
 /** Channels page-world `ytmd.emit` may send to main. */
 const EMIT_ALLOWLIST = new Set<string>([
 	"track:info-req",
+	"track:theme-request",
 	"track:like-state",
 	"track:play-state",
 	"track:play-state-progress",

@@ -1201,6 +1201,15 @@ export class TrackService {
 			YtmClient.push("css.thumbnail", thumbnailUrl);
 			this.logger.debug("track:thumbnail", thumbnailUrl);
 		});
+		// A page that just (re)loaded missed those pushes, and the same song won't send them again.
+		serverMain.on("track:theme-request", () => {
+			const track = this.trackData;
+			if (!track) return;
+			const hqThumbnail = resolveArtworkUrl(track);
+			if (hqThumbnail) YtmClient.push("css.thumbnail", `url(${hqThumbnail})`);
+			const accent = this.trackState?.accent;
+			if (accent) YtmClient.push("css.thumbnail-accent", accent);
+		});
 	}
 }
 

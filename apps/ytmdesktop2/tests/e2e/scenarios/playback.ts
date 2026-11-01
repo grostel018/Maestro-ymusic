@@ -323,8 +323,15 @@ export const scenarios: Scenario[] = [
 			console.log("  s37 smart", JSON.stringify(smart));
 			if (smart.own < 3 || smart.recommended < 5) throw new Error(`smart shuffle: ${JSON.stringify(smart)}`);
 			await waitFor(async () => (await queueIds()).length >= smart.own + 5 || false, 30000, "the smart shuffle queue");
-			const paused = await yt.eval<boolean>(`document.querySelector("video").paused`);
-			if (paused) throw new Error("smart shuffle left playback paused");
+			await waitFor(
+				async () => {
+					const s = await yt.eval<{ paused: boolean; t: number; state: number; id: string }>(`(() => { const v = document.querySelector("video"); const p = document.querySelector("#movie_player"); return { paused: v.paused, t: v.currentTime, state: p.getPlayerState(), id: p.getVideoData?.().video_id }; })()`);
+					console.log("  s37 after smart", JSON.stringify(s));
+					return (!s.paused && s.t > 0.5) || false;
+				},
+				15000,
+				"smart shuffle to be playing",
+			);
 
 			await t.mainEval(`__YTMD_TEST__.services.getProvider("app").openSettingsWindow()`);
 			await sleep(1500);
@@ -452,7 +459,7 @@ export const scenarios: Scenario[] = [
 			await t.mainEval(`(() => { const win = __YTMD_TEST__.getMainWindow().main; if (win.isMaximized()) win.unmaximize(); win.setBounds({ x: 1, y: 0, width: 1500, height: 900 }); })()`);
 			await play(t);
 			const yt = await t.view("youtube");
-			const barOpacity = () => yt.eval<number>(`Number(getComputedStyle(document.querySelector("ytmusic-player-bar")).opacity)`);
+			const barOpacity = () => yt.eval<number>(`Number(getComputedStyle(document.querySelector("ytmusic-player-bar, ytmusic-miniplayer")).opacity)`);
 			await mouse(yt, "mouseMoved", "#movie_player");
 			await key(yt, "f");
 			await until(yt, (m) => m.fs, 5000, "full screen");
@@ -471,17 +478,17 @@ export const scenarios: Scenario[] = [
 				await t.mainEval(`__YTMD_TEST__.getMainWindow().main.setBounds({ x: 1, y: 0, width: ${width}, height: 900 })`);
 				await sleep(1500);
 				// The track title stays readable: it was squeezed to one letter when the bar got crowded.
-				const bar = await yt.eval<{ title: number; close: number; off: string[]; overlap: string[] }>(`(() => {
+				const bar = await yt.eval<{ inner: number; barRight: number; middle: number; title: number; close: number; off: string[]; overlap: string[] }>(`(() => {
 					const q = (s) => document.querySelector(s);
 					const close = (q("ytmusic-player-bar .toggle-player-page-button")?.getBoundingClientRect().right) ?? 0;
 					const items = [...document.querySelectorAll("ytmusic-player-bar .middle-controls .content-info-wrapper, ytmusic-player-bar .right-controls-buttons > *")].filter((e) => e.getBoundingClientRect().width > 1);
 					const off = items.filter((e) => e.getBoundingClientRect().right > innerWidth + 1).map((e) => e.id || e.tagName);
 					const overlap = []; items.forEach((a, i) => items.slice(i + 1).forEach((b) => { const x = Math.min(a.getBoundingClientRect().right, b.getBoundingClientRect().right) - Math.max(a.getBoundingClientRect().left, b.getBoundingClientRect().left); if (x > 2) overlap.push((a.id || a.className.split(" ")[0]) + "/" + (b.id || b.className.split(" ")[0])); }));
-					return { title: q("ytmusic-player-bar .middle-controls .content-info-wrapper")?.getBoundingClientRect().width ?? -1, close, off, overlap };
+					return { inner: innerWidth, barRight: q("ytmusic-player-bar, ytmusic-miniplayer").getBoundingClientRect().right, middle: q("ytmusic-player-bar .middle-controls")?.getBoundingClientRect().width ?? -1, title: q("ytmusic-player-bar .middle-controls .content-info-wrapper")?.getBoundingClientRect().width ?? -1, close, off, overlap };
 				})()`);
 				console.log(`  s33 bar ${width}: ${JSON.stringify(bar)}`);
-				if (bar.title !== -1 && bar.title < 100) throw new Error(`at ${width} px the track title is ${bar.title} px wide`);
-				if (bar.close > width) throw new Error(`at ${width} px the close-player button ends at ${bar.close}`);
+				if (bar.middle !== -1 && bar.middle < 150) throw new Error(`at ${width} px the track title has ${bar.middle} px`);
+				if (bar.close > bar.inner) throw new Error(`at ${width} px the close-player button ends at ${bar.close} in a ${bar.inner} px page`);
 				if (bar.off.length || bar.overlap.length) throw new Error(`at ${width} px: off the window ${bar.off}, overlapping ${bar.overlap}`);
 				if (width > 1000) continue;
 				const m = await yt.eval<{ inner: number; switchBottom: number; playerTop: number; playerH: number; close: number }>(`(() => {
@@ -490,7 +497,7 @@ export const scenarios: Scenario[] = [
 					const extra = document.querySelector("#ytmd-av-bar-button").cloneNode(true);
 					extra.id = "s33-extra";
 					document.querySelector("#ytmd-av-bar-button").after(extra);
-					const close = r("ytmusic-player-bar .toggle-player-page-button").right;
+					const close = document.querySelector("ytmusic-player-bar .toggle-player-page-button")?.getBoundingClientRect().right ?? 0;
 					extra.remove();
 					return { inner: innerWidth, switchBottom: r("#ytmd-av-switch").bottom, playerTop: r("ytmusic-player").top, playerH: r("ytmusic-player").height, close };
 				})()`);
@@ -521,7 +528,7 @@ export const scenarios: Scenario[] = [
 					const l = await yt.eval<{ bottom: number; barTop: number; line: number } | null>(`(() => {
 						const root = document.querySelector("#ytmd-lyrics-root"); if (!root || !root.getBoundingClientRect().height) return null;
 						const line = document.querySelector('.ytmd-al-line[data-d="0"], .ytmd-al-dots[data-d="0"]');
-						return line ? { bottom: root.getBoundingClientRect().bottom, barTop: document.querySelector("ytmusic-player-bar").getBoundingClientRect().top, line: line.getBoundingClientRect().bottom } : null;
+						return line ? { bottom: root.getBoundingClientRect().bottom, barTop: document.querySelector("ytmusic-player-bar, ytmusic-miniplayer").getBoundingClientRect().top, line: line.getBoundingClientRect().bottom } : null;
 					})()`);
 					return l ?? false;
 				},

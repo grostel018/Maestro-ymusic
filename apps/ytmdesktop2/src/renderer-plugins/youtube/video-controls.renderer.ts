@@ -73,15 +73,20 @@ ytmusic-player[player-ui-state="FULLSCREEN"] #movie_player { background: #000 !i
 ytmusic-player[player-ui-state="FULLSCREEN"] #${BAR_ID} { bottom: 88px; }
 /* Full screen, mouse still: YTM's own rule doesn't hide the player bar and its show-fullscreen-controls flag doesn't
    reliably bring it back, so this follows our own timer. */
-ytmusic-app-layout[player-fullscreened] ytmusic-player-bar, ytmusic-app-layout[player-fullscreened] > #player-bar-background { transition: opacity 300ms ease; }
-html.${FS_STILL} ytmusic-app-layout[player-fullscreened] ytmusic-player-bar, html.${FS_STILL} ytmusic-app-layout[player-fullscreened] > #player-bar-background { opacity: 0 !important; }
+ytmusic-app-layout[player-fullscreened] :is(ytmusic-player-bar, ytmusic-miniplayer), ytmusic-app-layout[player-fullscreened] > #player-bar-background { transition: opacity 300ms ease; }
+html.${FS_STILL} ytmusic-app-layout[player-fullscreened] :is(ytmusic-player-bar, ytmusic-miniplayer), html.${FS_STILL} ytmusic-app-layout[player-fullscreened] > #player-bar-background { opacity: 0 !important; }
 /* YTM's picture buttons (mini player, full screen) repeat this bar's and stayed on after any click in the player. */
 html.${ON}:not(.${AUDIO_VIEW}) ytmusic-player[video-mode] .song-media-controls { display: none !important; }
 ytmusic-player[focus-within]:not(:hover) .song-media-controls { opacity: 0 !important; }
 /* The bar carries more buttons than YTM planned for: its own are 56 px wide, which squeezed the track title to a letter.
    The title keeps a readable width; below that the buttons make room. */
 ytmusic-player-bar .right-controls-buttons > yt-icon-button:not(.toggle-player-page-button):not(.exit-fullscreen-button) { width: 40px !important; height: 40px !important; padding: 8px !important; }
-ytmusic-player-bar .middle-controls .content-info-wrapper { min-width: 160px; flex-shrink: 0; }
+ytmusic-player-bar .middle-controls .content-info-wrapper { min-width: 160px; }
+/* Its grid gives both sides equal columns, which left the middle (cover, title, likes) 0 px and pushed the right side out. */
+@media (max-width: 1700px) {
+	ytmusic-app ytmusic-player-bar { grid-template-columns: auto minmax(0, 1fr) auto !important; }
+	ytmusic-player-bar :is(.left-controls, .right-controls) { width: auto !important; min-width: 0 !important; }
+}
 @media (max-width: 1400px) { #ytmd-sleep-button { display: none !important; } }
 /* Narrow windows: the player bar's extras pushed YTM's own buttons, including close player, off the edge. */
 @media (max-width: 1200px) {
@@ -339,7 +344,7 @@ const videoControlsRenderer: RendererPluginRegistration = {
 			if (!document.fullscreenElement) return;
 			stillTimer = window.setTimeout(() => {
 				if (video()?.paused) return;
-				if (isMenuOpen() || document.querySelector("ytmusic-player-bar:hover")) armFullscreenBar();
+				if (isMenuOpen() || document.querySelector("ytmusic-player-bar:hover, ytmusic-miniplayer:hover")) armFullscreenBar();
 				else if (document.fullscreenElement) document.documentElement.classList.add(FS_STILL);
 			}, HIDE_AFTER_MS);
 		};

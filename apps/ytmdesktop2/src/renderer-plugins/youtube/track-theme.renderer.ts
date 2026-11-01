@@ -66,6 +66,7 @@ const trackThemeRenderer: RendererPluginRegistration = {
 
 		const unsubThumb = ctx.ytmd?.on("css.thumbnail", handleThumbnail) ?? (() => undefined);
 		const unsubAccent = ctx.ytmd?.on("css.thumbnail-accent", handleAccent) ?? (() => undefined);
+		ctx.ytmd?.emit("track:theme-request");
 
 		return () => {
 			unsubThumb();
