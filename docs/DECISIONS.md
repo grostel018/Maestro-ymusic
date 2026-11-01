@@ -4,6 +4,13 @@ Short records of decisions that shape the code, so collaborators know **why**. N
 Format: what we decided, why, what it costs if wrong. The full per-task record for phases 0–1 is
 in `docs/superpowers/plans/2026-10-25-phase0-1-ledger.md`.
 
+## 2026-11-01: Game mode no longer drops the video to 144p
+- **Found by s9:** switching quality on minimize stalled playback every time (3.50–3.63 s advanced in 5 s, one
+  `waiting` event, in 3 of 3 runs; without the switch 5.01 s and no `waiting`, in 3 of 3).
+- **Decision:** remove the switch. It broke the rule that playback never stalls, for a small saving on a video that
+  isn't being drawn. This replaces the 144p part of the 2026-10-30 game mode entry.
+- **Cost if wrong:** a game shares a little more decoding work with a minimized Video mode. Song mode is unaffected.
+
 ## 2026-11-01: The app is now Maestro
 - **Decision (owner):** product name, app id, executable and link scheme become Maestro. Settings → About and the
   README link to the original project, Venipa/ytmdesktop2. Older entries below keep the old names as history.

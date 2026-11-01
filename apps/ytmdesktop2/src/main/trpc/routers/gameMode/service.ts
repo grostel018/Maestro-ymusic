@@ -13,8 +13,8 @@ export type GameModeLevel = "active" | "background" | "hidden";
  * - background (window not focused for 3 s): GPU, UI and helper processes run at below-normal priority, so a game
  *   wins CPU and GPU time when both want it. The YouTube Music renderer and the audio service keep normal priority,
  *   so the music never stutters.
- * - hidden (minimized or in the tray): also asks the page for its light mode (video decoded at 144p in Video mode,
- *   restored when the window comes back) and frees Blink's in-memory caches.
+ * - hidden (minimized or in the tray): also frees Blink's in-memory caches. It leaves the video quality alone: a live
+ *   quality change makes YouTube rebuffer, a gap of about 1.4 s in the music (s9).
  * Setting `app.gameMode` (default on). Nothing changes while the window is focused.
  */
 export default class GameModeProvider extends BaseProvider implements AfterInit, OnDestroy {
@@ -81,7 +81,7 @@ export default class GameModeProvider extends BaseProvider implements AfterInit,
 		this.logger.debug(`game mode ${prev} -> ${next}`);
 		if (next === "active") this.restorePriorities();
 		else this.lowerPriorities();
-		if ((next === "hidden") !== (prev === "hidden")) void this.setPageLight(next === "hidden");
+		if (next === "hidden") this.freePageCaches();
 	}
 
 	/** Processes that may give way: everything except the YouTube Music renderer and the audio service. */
@@ -121,11 +121,10 @@ export default class GameModeProvider extends BaseProvider implements AfterInit,
 		this.lowered.clear();
 	}
 
-	private async setPageLight(on: boolean): Promise<void> {
+	private freePageCaches(): void {
 		const wc = getAppWindows()?.views?.youtubeView?.webContents;
 		if (!wc || wc.isDestroyed()) return;
-		await wc.executeJavaScript(`window.__ytmdLight?.(${on})`).catch((err) => this.logger.warn("light mode failed", err));
-		if (on) wc.send("ytmd:game-mode-hidden");
+		wc.send("ytmd:game-mode-hidden");
 	}
 
 	OnDestroy() {

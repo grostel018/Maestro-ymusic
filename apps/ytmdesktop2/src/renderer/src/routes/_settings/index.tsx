@@ -53,7 +53,7 @@ function GenericSettingsPage() {
 						<SettingsCheckbox
 							configKey="app.gameMode"
 							defaultValue={true}
-							description="While another app or a game is in front, the app runs at lower priority; minimized, the video drops to 144p and caches are freed. The music keeps its priority."
+							description="While another app or a game is in front, the app runs at lower priority; minimized, caches are freed too. The music keeps its priority."
 						>
 							Game mode
 						</SettingsCheckbox>
