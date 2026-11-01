@@ -98,6 +98,54 @@ async function quitFromFullscreenAndRelaunch(t: TestApp, expectMaximized: boolea
 
 export const scenarios: Scenario[] = [
 	{
+		id: "s31",
+		smoke: true,
+		title: "Half-screen and narrow windows: the video stays on screen at a usable size, the side panel inside the window, playback advancing",
+		run: async (t) => {
+			await ready(t);
+			await play(t);
+			const yt = await t.view("youtube");
+			const measure = `(() => {
+				const box = (s) => { const b = document.querySelector(s)?.getBoundingClientRect(); return b ? { x: b.x, y: b.y, w: b.width, h: b.height, right: b.right } : null; };
+				const v = document.querySelector('video');
+				const p = box('#player');
+				const hit = p && document.elementFromPoint(p.x + p.w / 2, p.y + p.h / 2);
+				return { player: p, panel: box('#side-panel'), innerWidth, onScreen: !!hit?.closest('ytmusic-player'), paused: v.paused, time: v.currentTime };
+			})()`;
+			type Measure = { player: { w: number; h: number }; panel: { x: number; right: number } | null; innerWidth: number; onScreen: boolean; paused: boolean; time: number };
+			for (const width of [1300, 958, 800]) {
+				await winDo(t, `win.setBounds({ x: 1, y: 0, width: ${width}, height: 1000 });`);
+				await expectLayout(t, false, `the views at ${width} px`);
+				const seen = await waitFor(
+					async () => {
+						const m = await yt.eval<Measure>(measure);
+						if (m.player.w < 200 || m.player.h < 100) throw new Error(`player is ${m.player.w}x${m.player.h} at ${width} px`);
+						if (m.panel && m.panel.x < m.innerWidth && m.panel.right > m.innerWidth + 1) throw new Error(`side panel runs to ${m.panel.right} in a ${m.innerWidth} px page`);
+						if (!m.onScreen) throw new Error(`the player isn't what's on screen at ${width} px`);
+						return m;
+					},
+					5000,
+					`a usable player at ${width} px`,
+				);
+				await yt.screenshot(path.join(import.meta.dirname, "..", "results", `s31-${width}.png`));
+				await waitFor(
+					async () => {
+						const m = await yt.eval<Measure>(measure);
+						if (m.paused || m.time <= seen.time) throw new Error(`playback stuck at ${m.time}`);
+						return true;
+					},
+					5000,
+					`playback advancing at ${width} px`,
+				);
+				console.log(`  s31: ${width} px, player ${Math.round(seen.player.w)}x${Math.round(seen.player.h)}`);
+			}
+			// Tall as half a screen, with the artwork loaded: for a look at the background's lower edge.
+			await winDo(t, "win.setBounds({ x: 1, y: 0, width: 958, height: 1031 });");
+			await new Promise((r) => setTimeout(r, 4000));
+			await yt.screenshot(path.join(import.meta.dirname, "..", "results", "s31-tall.png"));
+		},
+	},
+	{
 		id: "s2",
 		smoke: true,
 		reuse: true,

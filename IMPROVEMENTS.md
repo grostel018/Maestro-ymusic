@@ -55,7 +55,7 @@ Done: 26. Next free ID: 100.
 | 90 | Lyrics | Exact syllable timing for line-only lyrics would need speech alignment (Whisper-style); too heavy for now | backlog |
 | 91 | Video mode | Some music videos show a black picture (E. SIGNALER remix, 2026-10-30); not reproduced yet | todo |
 | 92 | Video mode | Theater mode has layout issues (reported 2026-10-30, details to collect) | todo |
-| 93 | Window | Snapping or splitting the window (half screen) breaks the app layout into pieces | todo |
+| 93 | Window | Snapping or splitting the window (half screen) breaks the app layout into pieces | done: inherited 300 px panel padding removed, artwork fades in tall windows; s31 |
 | 94 | Release | Launch from a desktop shortcut without running pnpm; pick up new commits automatically (rebuild on launch when the code changed) | done: scripts/launch.ps1 |
 | 95 | Brand | Rename the app to Maestro; link the original project in the app and README (2026-11-01) | done |
 | 96 | Brand | Our own SVG icon instead of the inherited play-button logo (2026-11-01) | done: build/icon.svg |

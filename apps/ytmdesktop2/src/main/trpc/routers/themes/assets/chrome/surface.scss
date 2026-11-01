@@ -41,10 +41,11 @@ body::before {
   }
   @if $artwork {
     background-color: var(--ytmd-thumbnail-accent, #{$base});
-    background-image: linear-gradient($veil, $veil), var(--ytmd-thumbnail-blur-url, none);
+    // A window taller than the artwork (half a screen) continues in its tint: the fade hides the artwork's lower edge.
+    background-image: linear-gradient($veil, $veil), linear-gradient(transparent 60vw, var(--ytmd-thumbnail-accent, #{$base}) 75vw), var(--ytmd-thumbnail-blur-url, none);
     // square artwork, as wide as the window, its middle band in view (same numbers in the title bar)
-    background-size: 100vw 100%, 100vw 100vw;
-    background-position: 0 0, 0 -25vw;
+    background-size: 100vw 100%, 100vw 100%, 100vw 100vw;
+    background-position: 0 0, 0 0, 0 -25vw;
     background-repeat: no-repeat;
   }
   // No transform/own layer on purpose: a composited, upscaled tiny image drew a seam at a GPU tile boundary.

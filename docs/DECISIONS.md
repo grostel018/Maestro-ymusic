@@ -4,6 +4,17 @@ Short records of decisions that shape the code, so collaborators know **why**. N
 Format: what we decided, why, what it costs if wrong. The full per-task record for phases 0–1 is
 in `docs/superpowers/plans/2026-10-25-phase0-1-ledger.md`.
 
+## 2026-11-01: Half-screen windows keep YouTube Music's own layout
+- **Owner report (93):** snapping the window to half the screen broke the app into pieces.
+- **Causes, reproduced with a real Win+Left on a 1920 px display:**
+  - An inherited rule in `default.scss` set `#main-panel { padding: 0 300px !important }` under 968 px. That left no
+    room in a 600 px column: the player measured 0×0 at 958 px and 64×36 at 800 px, and the side panel left the window.
+  - The artwork layer is a square as wide as the window, so in a taller window it ended in a hard edge.
+- **Decision:** remove the rule, and fade the artwork into its tint between 60vw and 75vw. The title bar's top 40 px
+  aren't affected, so it still meets the page without a seam. s31 guards the layout.
+- **Cost if wrong:** at half screen the video is small (325×183 at 958 px) because the sidebar stays open; closing it
+  with the menu button gives the video more room.
+
 ## 2026-11-01: Game mode no longer drops the video to 144p
 - **Found by s9:** switching quality on minimize stalled playback every time (3.50–3.63 s advanced in 5 s, one
   `waiting` event, in 3 of 3 runs; without the switch 5.01 s and no `waiting`, in 3 of 3).

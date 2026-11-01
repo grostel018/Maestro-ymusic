@@ -49,4 +49,5 @@ export const CHECKS: Check[] = [
 	{ area: "Audio", check: "Crossfeed, width, surround, 8D, normalization, compressor, pitch and vocal reduction each join the chain without silence; vocal reduction lowers the mids; the wheel moves the volume by 1 %", evidence: ["s28"] },
 	{ area: "Audio", check: "A 4 s crossfade fades into the next track without a stall; the sleep timer fades and then pauses", evidence: ["s29"] },
 	{ area: "Audio", check: "The Audio settings page shows the live chain and saves a change; the visualizer draws over the open player and goes away when off", evidence: ["s30"] },
+	{ area: "Window layout", check: "At half-screen and narrow widths the video stays on screen at a usable size, the side panel stays inside the window and playback keeps advancing", evidence: ["s31"] },
 ];

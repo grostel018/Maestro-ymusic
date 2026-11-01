@@ -30,12 +30,6 @@ ytmusic-player-page.ytmusic-app {
   padding: 0;
   visibility: visible;
   background: transparent;
-  @media screen and (max-width: 968px) {
-    #main-panel {
-      padding: 0 300px !important;
-      height: calc(6 / 16 * 100vw);
-    }
-  }
 }
 .image.ytmusic-player-bar {
   border-radius: 8px;
