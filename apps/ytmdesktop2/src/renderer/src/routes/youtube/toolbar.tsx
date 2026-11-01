@@ -68,8 +68,8 @@ function YoutubeToolbarPage() {
 				<div className="flex min-w-0 flex-1 items-center gap-2">
 					{!isDarwin && (
 						<div className="flex items-center gap-1 max-[860px]:hidden">
-							<div className="-mt-px flex-none text-xs">Maestro</div>
-							{appVersion && appVersion !== "0.0.0" && <div className="text-xs text-white opacity-30">v{appVersion}</div>}
+							<div className="-mt-px flex-none text-xs text-foreground">Maestro</div>
+							{appVersion && appVersion !== "0.0.0" && <div className="text-xs text-foreground opacity-40">v{appVersion}</div>}
 						</div>
 					)}
 				</div>
@@ -79,21 +79,21 @@ function YoutubeToolbarPage() {
 						type="button"
 						title="Open the player"
 						onClick={() => void playerPage()}
-						className="no-drag absolute top-1/2 left-1/2 flex h-7 max-w-[40%] max-[1000px]:max-w-[30%] max-[860px]:left-[calc(50%-89px)] -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center gap-2 overflow-hidden rounded-md bg-white/10 pr-3 text-xs hover:bg-white/15"
+						className="no-drag absolute top-1/2 left-1/2 flex h-7 max-w-[40%] max-[1000px]:max-w-[30%] max-[860px]:left-[calc(50%-89px)] -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center gap-2 overflow-hidden rounded-md bg-foreground/10 pr-3 text-xs text-foreground hover:bg-foreground/15"
 					>
 						{artwork ? <img src={artwork} alt="" className="h-7 w-7 flex-none object-cover" /> : null}
 						<span className="flex min-w-0 flex-col items-start leading-tight">
 							<span className="w-full truncate text-left font-medium">{title}</span>
 							{artist ? <span className="w-full truncate text-left text-[10px] opacity-60">{artist}</span> : null}
 						</span>
-						<span className="absolute bottom-0 left-0 h-px bg-white/70" style={{ width: `${percent}%` }} />
+						<span className="absolute bottom-0 left-0 h-px bg-foreground/70" style={{ width: `${percent}%` }} />
 					</button>
 				)}
 				<div className="flex items-center gap-2">
 					{isDarwin && appVersion && (
 						<>
-							<div className="text-xs text-white opacity-30">v{appVersion}</div>
-							<div className="h-6 w-px bg-gray-600" />
+							<div className="text-xs text-foreground opacity-40">v{appVersion}</div>
+							<div className="h-6 w-px bg-foreground/30" />
 						</>
 					)}
 					{updateInfo && (
@@ -125,7 +125,7 @@ function YoutubeToolbarPage() {
 					<ToolbarOptions />
 					{!isDarwin && !isWindows && (
 						<>
-							<div className="h-6 w-px bg-gray-600" />
+							<div className="h-6 w-px bg-foreground/30" />
 							<div className="flex items-center gap-1">
 								<button type="button" className="control-button" onClick={() => void minimize()}>
 									<Minimize2 />

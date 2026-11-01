@@ -4,8 +4,8 @@ import { onMusicReload } from "@main/lifecycle";
 import SettingsProvider from "@main/trpc/routers/settings/service";
 import chromeScrollbarScss from "@main/trpc/routers/themes/assets/chrome/scrollbar.scss?raw";
 import chromeSurfaceScss from "@main/trpc/routers/themes/assets/chrome/surface.scss?raw";
-import { lookCss, normalizeLook } from "@shared/theme/look";
-import type { App } from "electron";
+import { isLightLook, lookCss, normalizeLook } from "@shared/theme/look";
+import { type App, nativeTheme } from "electron";
 import fs from "fs";
 import { debounce } from "lodash-es";
 import path from "path";
@@ -176,11 +176,22 @@ $toolbar: ${TOOLBAR_HEIGHT}px;
 		return this.reapplyChain;
 	}
 
+	/** Windows' caption buttons and Chromium's own scrollbars and form controls follow the look. */
+	private applyWindowColors(light: boolean): void {
+		nativeTheme.themeSource = light ? "light" : "dark";
+		const win = this.windowContext?.main;
+		if (process.platform === "win32" && win && !win.isDestroyed()) {
+			win.setTitleBarOverlay({ color: "#00000000", symbolColor: light ? "#1a1a1a" : "#ffffff", height: TOOLBAR_HEIGHT });
+		}
+	}
+
 	/** The look (palette, accent, radius): YouTube Music's color variables, independent of "Theme styling". */
 	private async applyLook(): Promise<void> {
 		const injector = this.getInjector();
 		if (!injector) return;
-		await injector.inject("look", lookCss(normalizeLook(this.getConfig().look)));
+		const look = normalizeLook(this.getConfig().look);
+		this.applyWindowColors(isLightLook(look));
+		await injector.inject("look", lookCss(look));
 	}
 
 	/** (Re)injects the look and the surface last, so they always sit above the theme in the cascade. */

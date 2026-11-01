@@ -34,7 +34,24 @@ export const PALETTES: Array<{ id: string; name: string; tokens: ThemeTokens }> 
 	{ id: "github-dark", name: "GitHub Dark", tokens: { base: "#0d1117", surface: "#161b22", text: "#e6edf3", subtext: "#8b949e", accent: "#2f81f7" } },
 	{ id: "sakura", name: "Sakura", tokens: { base: "#1f1a24", surface: "#2e2433", text: "#f5e6ef", subtext: "#c9a9bf", accent: "#ff79c6" } },
 	{ id: "ocean", name: "Ocean", tokens: { base: "#0b1622", surface: "#13263a", text: "#e3f2fd", subtext: "#90a4ae", accent: "#29b6f6" } },
+	{ id: "light", name: "Light", tokens: { base: "#ffffff", surface: "#f2f2f2", text: "#0f0f0f", subtext: "#606060", accent: "#cc0000" } },
+	{ id: "catppuccin-latte", name: "Catppuccin Latte", tokens: { base: "#eff1f5", surface: "#dce0e8", text: "#4c4f69", subtext: "#5c5f77", accent: "#8839ef" } },
+	{ id: "solarized-light", name: "Solarized Light", tokens: { base: "#fdf6e3", surface: "#eee8d5", text: "#073642", subtext: "#586e75", accent: "#268bd2" } },
+	{ id: "github-light", name: "GitHub Light", tokens: { base: "#ffffff", surface: "#f6f8fa", text: "#1f2328", subtext: "#656d76", accent: "#0969da" } },
+	{ id: "rose-pine-dawn", name: "Rosé Pine Dawn", tokens: { base: "#faf4ed", surface: "#f2e9e1", text: "#575279", subtext: "#6e6a86", accent: "#b4637a" } },
 ];
+
+/** Relative luminance of a #rrggbb color (WCAG). */
+export function luminance(hex: string): number {
+	const channel = (i: number) => {
+		const v = Number.parseInt(hex.slice(i, i + 2), 16) / 255;
+		return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+	};
+	return 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5);
+}
+
+/** A light look: judged from the base color, so an imported light theme counts too. */
+export const isLightLook = (look: Look): boolean => luminance(lookTokens(look).base) > 0.4;
 
 export const DEFAULT_LOOK: Look = { palette: "youtube", accent: "palette", radius: "soft", imported: null };
 
@@ -83,7 +100,9 @@ export function lookCss(look: Look): string {
 	const t = lookTokens(look);
 	const accent = accentCss(look);
 	const r = RADIUS_PX[look.radius];
+	const light = isLightLook(look);
 	const vars: Array<[string, string]> = [
+		["--ytmd-veil-pct", `${veilPct(look)}%`],
 		["--ytmd-base", t.base],
 		["--ytmd-surface", t.surface],
 		["--ytmd-text", t.text],
@@ -113,6 +132,7 @@ export function lookCss(look: Look): string {
 		["--paper-toggle-button-checked-bar-color", accent],
 		["--paper-toggle-button-checked-button-color", accent],
 		["--paper-checkbox-checked-color", accent],
+		...(light ? lightVars(t) : []),
 	];
 	const decl = vars.map(([k, v]) => `${k}: ${v} !important;`).join(" ");
 	return `html, html[dark], ytmusic-app, ytmusic-app-layout { ${decl} }
@@ -121,13 +141,75 @@ tp-yt-paper-listbox, ytmusic-menu-popup-renderer, ytmusic-multi-page-menu-render
 ytmusic-two-row-item-renderer img, ytmusic-responsive-list-item-renderer img, ytmusic-player #song-image img, ytmusic-player-bar img.image,
 ytmusic-thumbnail-renderer, .thumbnail.ytmusic-player-bar, ytmusic-player #song-image {
 	border-radius: ${r}px !important; overflow: hidden; }
-`;
+${light ? LIGHT_CSS : ""}`;
 }
+
+/** How much of the base color lies over the artwork: text is dark on a light look and needs more of it. */
+const veilPct = (look: Look) => (isLightLook(look) ? 82 : 62);
+
+/** YouTube Music only ships dark colors; these are the ones the dark set hard-codes as white or near-white. */
+function lightVars(t: ThemeTokens): Array<[string, string]> {
+	const line = (pct: number) => mix(t.text, pct);
+	return [
+		["--ytmusic-overlay-text-primary", t.text],
+		["--ytmusic-overlay-text-secondary", t.subtext],
+		["--ytmusic-color-white1-alpha70", mix(t.text, 70)],
+		["--ytmusic-color-white1-alpha50", mix(t.text, 50)],
+		["--ytmusic-color-white1-alpha30", mix(t.text, 30)],
+		["--ytmusic-color-white1-alpha20", mix(t.text, 20)],
+		["--ytmusic-color-white1-alpha15", mix(t.text, 15)],
+		["--ytmusic-color-white1-alpha10", mix(t.text, 10)],
+		["--ytmusic-divider", line(12)],
+		["--ytmusic-guide-divider", line(12)],
+		["--ytmusic-search-background", t.surface],
+		["--ytmusic-nav-bar", t.base],
+		["--ytmusic-player-bar-background", t.base],
+		["--ytmusic-player-bar-ink-color", t.text],
+		["--ytmusic-setting-item-toggle-active", t.accent],
+		["--iron-icon-fill-color", t.text],
+		["--yt-endpoint-color", t.text],
+		["--yt-endpoint-hover-color", t.text],
+		["--yt-endpoint-visited-color", t.text],
+		["--yt-spec-icon-active-other", t.text],
+		["--yt-spec-icon-inactive", t.subtext],
+		["--yt-spec-icon-disabled", mix(t.text, 30)],
+		["--yt-spec-text-disabled", mix(t.text, 40)],
+		["--yt-spec-10-percent-layer", line(10)],
+		["--yt-spec-badge-chip-background", line(6)],
+		["--yt-spec-button-chip-background-hover", line(10)],
+		["--yt-spec-suggested-action", line(8)],
+		["--yt-spec-touch-response", t.text],
+		["--paper-slider-container-color", line(20)],
+		["--paper-slider-secondary-color", line(30)],
+	];
+}
+
+/** Where the variables don't reach; the full-screen player and things over pictures stay light-on-dark. */
+const LIGHT_CSS = `
+ytmusic-app ytmusic-player-bar, ytmusic-app ytmusic-nav-bar, ytmusic-app ytmusic-guide-renderer, ytmusic-app ytmusic-player-page tp-yt-paper-tabs { color: var(--ytmd-text) !important; }
+ytmusic-app :is(ytmusic-player-bar, ytmusic-nav-bar, ytmusic-guide-renderer, ytmusic-responsive-list-item-renderer, ytmusic-player-queue-item, ytmusic-menu-renderer, ytmusic-section-list-renderer) :is(yt-icon, .yt-icon-shape, tp-yt-iron-icon, yt-icon-button, tp-yt-paper-icon-button, button):not(ytmusic-play-button-renderer *) { color: var(--ytmd-text) !important; fill: currentColor; }
+ytmusic-app ytmusic-player-page tp-yt-paper-tab { color: var(--ytmd-subtext) !important; --paper-tab-ink: var(--ytmd-text); }
+ytmusic-app ytmusic-player-page tp-yt-paper-tab[aria-selected="true"], ytmusic-app ytmusic-player-page tp-yt-paper-tab.iron-selected { color: var(--ytmd-text) !important; }
+ytmusic-app ytmusic-chip-cloud-chip-renderer a, ytmusic-app ytmusic-chip-cloud-chip-renderer yt-formatted-string { color: var(--ytmd-text) !important; }
+ytmusic-app ytmusic-chip-cloud-chip-renderer a { background: color-mix(in srgb, var(--ytmd-text) 7%, transparent) !important; }
+ytmusic-app ytmusic-chip-cloud-chip-renderer[chip-style="STYLE_LARGE_TRANSLUCENT_AND_SELECTED_WHITE"] a, ytmusic-app ytmusic-chip-cloud-chip-renderer[is-selected] a, ytmusic-app ytmusic-chip-cloud-chip-renderer[chip-style="STYLE_PRIMARY"] a { background: var(--ytmd-text) !important; }
+ytmusic-app ytmusic-chip-cloud-chip-renderer[chip-style="STYLE_LARGE_TRANSLUCENT_AND_SELECTED_WHITE"] :is(a, yt-formatted-string), ytmusic-app ytmusic-chip-cloud-chip-renderer[is-selected] :is(a, yt-formatted-string), ytmusic-app ytmusic-chip-cloud-chip-renderer[chip-style="STYLE_PRIMARY"] :is(a, yt-formatted-string) { color: var(--ytmd-base) !important; }
+ytmusic-app ytmusic-search-box input { color: var(--ytmd-text) !important; }
+/* The redesigned player bar (an A/B test) and its design-system buttons paint their own white. */
+ytmusic-app :is(ytmusic-player-bar, ytmusic-miniplayer) :is(.ytAttributedStringHost, .ytSpecButtonShapeNextButtonTextContent, button, a, svg, path, .ytIconWrapperHost, yt-formatted-string, span):not(ytmusic-play-button-renderer *) { color: var(--ytmd-text) !important; --yt-spec-text-primary: var(--ytmd-text); }
+ytmusic-app :is(ytmusic-player-bar, ytmusic-miniplayer) :is(.ytSpecButtonShapeNextTonal, .yt-spec-button-shape-next--tonal) { background: color-mix(in srgb, var(--ytmd-text) 7%, transparent) !important; }
+ytmusic-app ytmusic-player-page .ytAttributedStringHost, ytmusic-app ytmusic-section-list-renderer .ytAttributedStringHost, ytmusic-app ytmusic-player-page .ytSpecButtonShapeNextButtonTextContent { color: var(--ytmd-text) !important; }
+/* The wordmark is a white image; inverting and turning the hue back keeps the red play mark red. */
+ytmusic-nav-bar img.logo, ytmusic-nav-bar picture img, ytmusic-nav-bar .logo { filter: invert(1) hue-rotate(180deg) saturate(3) brightness(0.8) !important; }
+ytmusic-app ytmusic-guide-entry-renderer[active] tp-yt-paper-item, ytmusic-app ytmusic-guide-entry-renderer:hover tp-yt-paper-item { background: color-mix(in srgb, var(--ytmd-text) 8%, transparent) !important; }
+ytmusic-app ytmusic-app-layout[player-fullscreened] > :is(ytmusic-player-bar, ytmusic-miniplayer), ytmusic-app ytmusic-app-layout[player-fullscreened] > :is(ytmusic-player-bar, ytmusic-miniplayer) * { color: #fff !important; --ytmusic-text-primary: #fff; --ytmusic-text-secondary: rgba(255, 255, 255, 0.7); --yt-endpoint-color: #fff; --iron-icon-fill-color: #fff; }
+ytmusic-app-layout[player-fullscreened] > #player-bar-background { background: rgba(0, 0, 0, 0.6) !important; }
+`;
 
 /** Title-bar colors that continue the page surface for this look. */
 export function titleBarColors(look: Look): { base: string; veil: string; tint: string } {
 	const base = lookTokens(look).base;
-	return { base, veil: mix(base, 62), tint: mix(base, 28) };
+	return { base, veil: mix(base, veilPct(look)), tint: mix(base, 28) };
 }
 
 /** An exportable .ytmdtheme.json for the current look. */

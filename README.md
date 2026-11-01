@@ -60,8 +60,6 @@ Your library, playlists, queue and comments come from YouTube Music itself. Last
 
 ## Known gaps
 
-- No light mode (dark palettes only).
-- No romanization or translation lines in lyrics yet.
 - Open bug: some music videos show a black picture.
 
 The full backlog is in [`IMPROVEMENTS.md`](./IMPROVEMENTS.md).

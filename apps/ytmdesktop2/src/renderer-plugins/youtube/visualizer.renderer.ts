@@ -58,7 +58,7 @@ const visualizerRenderer: RendererPluginRegistration = {
 				c.height = h;
 			}
 			g.clearRect(0, 0, w, h);
-			g.fillStyle = g.strokeStyle = "rgba(255, 255, 255, 0.55)";
+			g.fillStyle = g.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--ytmd-text").trim() || "rgba(255, 255, 255, 0.55)";
 			if (engine.getState().audio.visualizer.style === "wave") {
 				if (wave?.length !== a.fftSize) wave = new Uint8Array(a.fftSize);
 				a.getByteTimeDomainData(wave);

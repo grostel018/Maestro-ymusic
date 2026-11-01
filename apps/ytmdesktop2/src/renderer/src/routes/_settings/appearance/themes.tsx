@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_settings/appearance/themes")({
 });
 
 function Swatch({ color }: { color: string }) {
-	return <span className="inline-block size-3 rounded-full border border-white/20" style={{ backgroundColor: color }} />;
+	return <span className="inline-block size-3 rounded-full border border-foreground/20" style={{ backgroundColor: color }} />;
 }
 
 function LookCard() {

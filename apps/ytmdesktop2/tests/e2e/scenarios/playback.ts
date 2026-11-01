@@ -274,6 +274,68 @@ export const scenarios: Scenario[] = [
 		},
 	},
 	{
+		id: "s36",
+		title: "Light palette: dark text on a light page, the player bar, tabs and icons readable, full screen and video controls stay light-on-dark",
+		launch: { settings: { player: { videoMode: "video", videoControls: true }, lyrics: { enabled: true }, themes: { background: "artwork", look: { palette: "light", accent: "palette", radius: "soft", imported: null } } } },
+		run: async (t) => {
+			const MW = "__YTMD_TEST__.getMainWindow()";
+			await t.mainEval(`(() => { const win = ${MW}.main; if (win.isMaximized()) win.unmaximize(); win.setBounds({ x: 1, y: 0, width: 1300, height: 900 }); })()`);
+			await play(t, { url: "https://music.youtube.com/watch?v=dQw4w9WgXcQ" });
+			const yt = await t.view("youtube");
+			const res = (n: string) => path.join(import.meta.dirname, "..", "results", `s36-${n}.png`);
+			await sleep(3000);
+			await yt.eval(`[...document.querySelectorAll("ytmusic-player-page tp-yt-paper-tab")].find((e) => e.textContent.trim().toLowerCase() === "lyrics")?.click()`);
+			await sleep(3000);
+			await yt.screenshot(res("player"));
+			/** Any leaf text still light on the light page, and light icons. */
+			const audit = `(() => {
+				const lum = (c) => { const m = c.match(/[\\d.]+/g); if (!m) return null; const [r, g, b, a = 1] = m.map(Number); return a < 0.3 ? null : (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; };
+				const out = { text: [], icons: [] };
+				const seen = new Set();
+				for (const e of document.querySelectorAll("ytmusic-app *")) {
+					const r = e.getBoundingClientRect();
+					if (!r.width || !r.height || r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth) continue;
+					const s = getComputedStyle(e);
+					if (s.visibility === "hidden" || s.display === "none" || s.opacity === "0") continue;
+					if (e.closest("#movie_player, ytmusic-play-button-renderer, #ytmd-av-switch, .ytmd-al-size")) continue;
+					const key = e.tagName.toLowerCase() + "." + String(e.className).split(" ")[0];
+					if (seen.has(key)) continue;
+					const own = [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+					if (own && lum(s.color) > 0.7) { seen.add(key); out.text.push(key + " " + s.color + " '" + e.textContent.trim().slice(0, 20) + "'"); }
+					if (e.tagName === "svg" || e.tagName === "path") { const f = s.fill === "none" ? s.stroke : s.fill; if (lum(f) > 0.7) { seen.add(key); out.icons.push(e.closest("[id],[class]")?.tagName.toLowerCase() + "/" + key + " " + f); } }
+				}
+				out.text = out.text.slice(0, 25); out.icons = out.icons.slice(0, 25);
+				return out;
+			})()`;
+			const readable = async (where: string) => {
+				const found = await yt.eval<{ text: string[]; icons: string[] }>(audit);
+				console.log(`  s36 ${where}`, JSON.stringify(found));
+				if (found.text.length || found.icons.length) throw new Error(`light on light on the ${where}: ${JSON.stringify(found)}`);
+			};
+			await readable("player");
+			await yt.eval(`document.querySelector(".toggle-player-page-button, [aria-label='Close player page'], [aria-label='Collapse']")?.click()`);
+			await sleep(1500);
+			await yt.eval(`[...document.querySelectorAll("ytmusic-guide-entry-renderer")].find((e) => e.innerText.trim() === "Explore")?.querySelector("a,tp-yt-paper-item")?.click()`);
+			await sleep(3500);
+			await yt.screenshot(res("explore"));
+			console.log("  s36 open", await yt.eval(`document.querySelector("ytmusic-app-layout").hasAttribute("player-page-open") + " " + location.pathname`));
+			await readable("explore page");
+			await key(yt, "f");
+			await sleep(2500);
+			await yt.call("Input.dispatchMouseEvent", { type: "mouseMoved", x: 900, y: 500 });
+			await sleep(400);
+			await yt.screenshot(res("fullscreen"));
+			await key(yt, "f");
+			await sleep(1500);
+			const tb = await t.view("toolbar");
+			await tb.screenshot(res("toolbar"));
+			await t.mainEval(`__YTMD_TEST__.services.getProvider("app").openSettingsWindow()`);
+			await sleep(2000);
+			const b64 = await t.mainEval<string>(`${MW}.views.settingsWindow.webContents.capturePage().then((i) => i.toPNG().toString("base64"))`);
+			(await import("node:fs")).writeFileSync(res("settings"), Buffer.from(b64, "base64"));
+		},
+	},
+	{
 		id: "s35",
 		title: "Lyrics extra lines: a Japanese song gets a Latin-letter line and a French translation under its lines in the Lyrics tab",
 		launch: { settings: { player: { videoMode: "video", videoControls: true }, lyrics: { enabled: true, romanize: true, translateTo: "fr" } } },

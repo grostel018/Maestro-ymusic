@@ -10,7 +10,7 @@
 	min-height: 0;
 	padding: 12px 16px 16px;
 	overflow: hidden;
-	color: #fff;
+	color: var(--ytmd-text, #fff);
 	font-family: "YouTube Sans", Roboto, Arial, sans-serif;
 	font-size: 16px;
 	line-height: 1.5;
@@ -36,7 +36,7 @@
 	font-size: 14px;
 	padding: 24px 8px;
 	text-align: center;
-	color: #fff;
+	color: var(--ytmd-text, #fff);
 }
 
 #ytmd-lyrics-root .ytmd-lyrics-status-hint {
@@ -78,7 +78,7 @@
 	margin-top: -4%;
 	margin-left: -12%;
 	border-radius: 2px;
-	background-color: #fff;
+	background-color: var(--ytmd-text, #fff);
 	opacity: 0.15;
 	transform: rotate(calc(var(--i) * 30deg)) translate(146%);
 	animation: ytmd-lyrics-spinner 1.2s linear infinite;
@@ -98,7 +98,7 @@
 	flex: 0 0 auto;
 	font-size: 12px;
 	opacity: 0.55;
-	color: #fff;
+	color: var(--ytmd-text, #fff);
 }
 
 #ytmd-lyrics-root .ytmd-lyrics-meta-row {
@@ -141,9 +141,9 @@
 	border-radius: 8px;
 	background-color: transparent;
 	background-image: none;
-	color: #fff !important;
-	-webkit-text-fill-color: #fff !important;
-	caret-color: #fff;
+	color: var(--ytmd-text, #fff) !important;
+	-webkit-text-fill-color: var(--ytmd-text, #fff) !important;
+	caret-color: var(--ytmd-text, #fff);
 	text-align: left;
 	text-indent: 0;
 	text-transform: none;
@@ -179,7 +179,7 @@
 #ytmd-lyrics-root .ytmd-lyrics-line.is-active {
 	opacity: 1;
 	font-weight: 600 !important;
-	background-color: rgba(255, 255, 255, 0.08);
+	background-color: color-mix(in srgb, var(--ytmd-text, #fff) 8%, transparent);
 }
 
 /* "Active line background" off: only the text brightens. The bar style keeps its row gradient
@@ -193,10 +193,10 @@
 	background-color: transparent;
 	background-image: linear-gradient(
 		to right,
-		rgba(255, 255, 255, 0.18) 0%,
-		rgba(255, 255, 255, 0.18) calc(var(--ytmd-line-progress, 0) * 100%),
-		rgba(255, 255, 255, 0.06) calc(var(--ytmd-line-progress, 0) * 100%),
-		rgba(255, 255, 255, 0.06) 100%
+		color-mix(in srgb, var(--ytmd-text, #fff) 18%, transparent) 0%,
+		color-mix(in srgb, var(--ytmd-text, #fff) 18%, transparent) calc(var(--ytmd-line-progress, 0) * 100%),
+		color-mix(in srgb, var(--ytmd-text, #fff) 6%, transparent) calc(var(--ytmd-line-progress, 0) * 100%),
+		color-mix(in srgb, var(--ytmd-text, #fff) 6%, transparent) 100%
 	);
 }
 
@@ -207,8 +207,8 @@
 	width: 100%;
 	max-width: 100%;
 	min-width: 0;
-	color: #fff !important;
-	-webkit-text-fill-color: #fff !important;
+	color: var(--ytmd-text, #fff) !important;
+	-webkit-text-fill-color: var(--ytmd-text, #fff) !important;
 	font: inherit;
 	letter-spacing: inherit;
 	white-space: normal;
@@ -264,8 +264,8 @@
 	font-weight: inherit !important;
 	background-image: linear-gradient(
 		to right,
-		#fff var(--ytmd-word-progress, 0%),
-		rgba(255, 255, 255, 0.35) var(--ytmd-word-progress, 0%)
+		var(--ytmd-text, #fff) var(--ytmd-word-progress, 0%),
+		color-mix(in srgb, var(--ytmd-text, #fff) 35%, transparent) var(--ytmd-word-progress, 0%)
 	);
 	background-clip: text;
 	-webkit-background-clip: text;
@@ -312,8 +312,8 @@
 	text-align: right;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	color: #fff !important;
-	-webkit-text-fill-color: #fff !important;
+	color: var(--ytmd-text, #fff) !important;
+	-webkit-text-fill-color: var(--ytmd-text, #fff) !important;
 }
 
 #ytmd-lyrics-root .ytmd-lyrics-plain {
@@ -329,7 +329,7 @@
 	min-height: 0;
 	width: 100%;
 	overflow-wrap: break-word;
-	color: #fff !important;
+	color: var(--ytmd-text, #fff) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

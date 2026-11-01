@@ -111,16 +111,16 @@ span,
 }
 
 .control-button {
-	@apply flex size-7 items-center justify-center rounded-lg text-gray-50 transition duration-100;
+	@apply flex size-7 items-center justify-center rounded-lg text-foreground transition duration-100;
 
 	&:hover,
 	&:active,
 	&:focus {
-		@apply bg-gray-100/10;
+		@apply bg-foreground/10;
 	}
 
 	&:active {
-		@apply scale-95 transform-gpu bg-gray-100/15;
+		@apply scale-95 transform-gpu bg-foreground/15;
 	}
 
 	&:disabled,

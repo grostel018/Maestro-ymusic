@@ -18,9 +18,9 @@ const ICON =
 
 const CSS = `
 #${BUTTON_ID} { all: unset; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px;
-	border-radius: 50%; color: rgba(255, 255, 255, 0.7); }
-#${BUTTON_ID}:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
-#${BUTTON_ID}[data-custom] { color: #fff; }
+	border-radius: 50%; color: color-mix(in srgb, var(--ytmd-text, #fff) 70%, transparent); }
+#${BUTTON_ID}:hover { color: var(--ytmd-text, #fff); background: color-mix(in srgb, var(--ytmd-text, #fff) 8%, transparent); }
+#${BUTTON_ID}[data-custom] { color: var(--ytmd-text, #fff); }
 #${BUTTON_ID}:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 #${BUTTON_ID} svg { width: 22px; height: 22px; fill: currentColor; }
 `;

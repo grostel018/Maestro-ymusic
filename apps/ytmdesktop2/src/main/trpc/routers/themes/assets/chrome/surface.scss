@@ -12,10 +12,10 @@
 // (shared/theme/look.ts sets --ytmd-base on the page), so a palette changes the whole surface.
 
 $base: var(--ytmd-base, #030303);
-$veil: color-mix(in srgb, var(--ytmd-base, #030303) 62%, transparent);
+$veil: color-mix(in srgb, var(--ytmd-base, #030303) var(--ytmd-veil-pct, 62%), transparent);
 $bar-tint: color-mix(in srgb, var(--ytmd-base, #030303) 28%, transparent);
 $bar-blur: blur(24px);
-$hairline: rgba(255, 255, 255, 0.06);
+$hairline: color-mix(in srgb, var(--ytmd-text, #fff) 6%, transparent);
 
 html {
   background-color: $base !important;
@@ -92,7 +92,7 @@ ytmusic-search-box tp-yt-paper-input {
   background: color-mix(in srgb, var(--ytmd-surface, #212121) 55%, transparent) !important;
 }
 ytmusic-search-box .search-box.ytmusic-search-box {
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid color-mix(in srgb, var(--ytmd-text, #fff) 8%, transparent) !important;
   border-radius: 10px !important;
 }
 
@@ -150,7 +150,7 @@ ytmusic-player#player #song-video,
 tp-yt-paper-dialog,
 tp-yt-paper-listbox.ytmusic-menu-popup-renderer,
 ytmusic-menu-popup-renderer {
-  background-color: rgba(20, 20, 22, 0.78) !important;
+  background-color: color-mix(in srgb, var(--ytmd-surface, #141416) 88%, transparent) !important;
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
 }

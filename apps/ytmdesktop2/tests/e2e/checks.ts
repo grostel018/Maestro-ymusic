@@ -50,6 +50,7 @@ export const CHECKS: Check[] = [
 	{ area: "Audio", check: "A 4 s crossfade fades into the next track without a stall; the sleep timer fades and then pauses", evidence: ["s29"] },
 	{ area: "Audio", check: "The Audio settings page shows the live chain and saves a change; the visualizer draws over the open player and goes away when off", evidence: ["s30"] },
 	{ area: "Window layout", check: "At half-screen and narrow widths the video stays on screen at a usable size, the side panel stays inside the window and playback keeps advancing", evidence: ["s31"] },
+	{ area: "Themes", check: "A light palette leaves no light text or icons on the player and Explore pages", evidence: ["s36"] },
 	{ area: "Lyrics", check: "A Japanese song gets a Latin-letter line and a translation line in the Lyrics tab", evidence: ["s35"] },
 	{ area: "Boot", check: "A page reload, or a navigation that gets cancelled, keeps the app's controls on the page", evidence: ["s34"] },
 	{ area: "Playback", check: "Full screen hides the player bar while the mouse is still and shows it on a move; at 1000 and 800 px the Song/Video switch clears the picture and the close-player button stays in the window", evidence: ["s33"] },

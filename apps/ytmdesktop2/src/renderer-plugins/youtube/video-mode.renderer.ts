@@ -56,7 +56,7 @@ html.${AUDIO_VIEW} ytmusic-player #song-video { display: none !important; }
 html.${AUDIO_VIEW} ytmusic-player #song-image { display: block !important; }
 /* No song version: the video's thumbnail as a square, centre-cropped (no 16:9 frame with bands). */
 html.${AUDIO_VIEW}.${NO_MATCH} ytmusic-player #song-image img { object-fit: cover !important; aspect-ratio: 1 / 1; height: auto !important; }
-#${HINT_ID} { font: 400 12px/1.2 "YouTube Sans", Roboto, sans-serif; color: rgba(255, 255, 255, 0.6); pointer-events: none; }
+#${HINT_ID} { font: 400 12px/1.2 "YouTube Sans", Roboto, sans-serif; color: color-mix(in srgb, var(--ytmd-text, #fff) 60%, transparent); pointer-events: none; }
 #${HINT_ID}[hidden] { display: none; }
 #${SWITCH_ID} { display: flex; justify-content: center; margin: 0 auto; width: max-content; pointer-events: auto; padding: 3px; gap: 2px;
 	border-radius: 999px; background: rgba(0, 0, 0, 0.55); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); position: relative; z-index: 2; }
@@ -67,8 +67,8 @@ html.${AUDIO_VIEW}.${NO_MATCH} ytmusic-player #song-image img { object-fit: cove
 #${SWITCH_ID} button[disabled] { opacity: 0.35; cursor: default; }
 #${SWITCH_ID} button:focus-visible, #${BAR_BUTTON_ID}:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 #${BAR_BUTTON_ID} { all: unset; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-	width: 40px; height: 40px; border-radius: 50%; color: rgba(255, 255, 255, 0.7); }
-#${BAR_BUTTON_ID}:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+	width: 40px; height: 40px; border-radius: 50%; color: color-mix(in srgb, var(--ytmd-text, #fff) 70%, transparent); }
+#${BAR_BUTTON_ID}:hover { color: var(--ytmd-text, #fff); background: color-mix(in srgb, var(--ytmd-text, #fff) 8%, transparent); }
 #${BAR_BUTTON_ID} svg { width: 22px; height: 22px; fill: currentColor; }
 `;
 

@@ -16,8 +16,8 @@ const INFO = "M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-
 
 const CSS = `
 #${BUTTON_ID} { all: unset; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px;
-	border-radius: 50%; color: rgba(255, 255, 255, 0.7); }
-#${BUTTON_ID}:hover, #${BUTTON_ID}[aria-pressed="true"] { color: #fff; background: rgba(255, 255, 255, 0.08); }
+	border-radius: 50%; color: color-mix(in srgb, var(--ytmd-text, #fff) 70%, transparent); }
+#${BUTTON_ID}:hover, #${BUTTON_ID}[aria-pressed="true"] { color: var(--ytmd-text, #fff); background: color-mix(in srgb, var(--ytmd-text, #fff) 8%, transparent); }
 #${BUTTON_ID}:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 #${BUTTON_ID} svg { width: 20px; height: 20px; fill: currentColor; }
 #${PANEL_ID} { position: fixed; top: 72px; right: 16px; bottom: 88px; width: min(380px, calc(100vw - 32px)); z-index: 2147481000; display: flex; flex-direction: column;
@@ -26,9 +26,9 @@ const CSS = `
 #${PANEL_ID} header { display: flex; align-items: center; gap: 8px; padding: 14px 16px 10px; }
 #${PANEL_ID} header h2 { flex: 1; margin: 0; font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #${PANEL_ID} header button { all: unset; cursor: pointer; padding: 4px 8px; border-radius: 8px; color: var(--ytmd-subtext, #aaa); }
-#${PANEL_ID} header button:hover { color: #fff; background: rgba(255,255,255,.08); }
+#${PANEL_ID} header button:hover { color: var(--ytmd-text, #fff); background: color-mix(in srgb, var(--ytmd-text, #fff) 8%, transparent); }
 #${PANEL_ID} .list { flex: 1; overflow-y: auto; padding: 0 16px 16px; display: flex; flex-direction: column; gap: 12px; }
-#${PANEL_ID} .card { padding: 12px 14px; border-radius: 10px; background: rgba(255,255,255,.05); }
+#${PANEL_ID} .card { padding: 12px 14px; border-radius: 10px; background: color-mix(in srgb, var(--ytmd-text, #fff) 5%, transparent); }
 #${PANEL_ID} .card .src { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--ytmd-subtext, #aaa); }
 #${PANEL_ID} .card h3 { margin: 2px 0 6px; font-size: 14px; font-weight: 600; }
 #${PANEL_ID} .card p { margin: 0; color: color-mix(in srgb, var(--ytmd-text, #fff) 85%, transparent); }
