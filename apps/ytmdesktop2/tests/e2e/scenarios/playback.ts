@@ -274,6 +274,67 @@ export const scenarios: Scenario[] = [
 		},
 	},
 	{
+		id: "s37",
+		title: "Local playlists: an import matches a song by name, Play queues the whole list, the player-bar button adds the playing song, smart shuffle mixes in recommendations",
+		launch: { settings: { player: { videoMode: "video", videoControls: true } } },
+		run: async (t) => {
+			const P = `__YTMD_TEST__.services.getProvider("playlists")`;
+			const MW = "__YTMD_TEST__.getMainWindow()";
+			await t.mainEval(`(() => { const win = ${MW}.main; if (win.isMaximized()) win.unmaximize(); win.setBounds({ x: 1, y: 0, width: 1500, height: 900 }); })()`);
+			await play(t);
+			const yt = await t.view("youtube");
+			type Row = { id: string; name: string; found: number; tracks: { videoId?: string; title: string }[] };
+			const list = () => t.mainEval<Row[]>(`${P}.list()`);
+			const queueIds = () => yt.eval<string[]>(`(() => { const q = document.querySelector("#queue")?.queue?.store?.store?.getState?.()?.queue?.items ?? document.querySelector("ytmusic-app")?.store?.getState?.()?.queue?.items ?? []; return JSON.stringify(q).match(/"videoId":"[\\w-]{11}"/g)?.map((m) => m.slice(11, 22)) ?? []; })()`);
+
+			const m3u = "#EXTM3U\nhttps://youtu.be/dQw4w9WgXcQ\nhttps://youtu.be/fJ9rUzIMcZQ\n#EXTINF:0,Daft Punk - One More Time\nx.mp3\n";
+			await t.mainEval(`${P}.importFile("Road trip.m3u", ${JSON.stringify(m3u)})`);
+			const row = await waitFor(
+				async () => {
+					const r = (await list()).find((p) => p.name === "Road trip");
+					return r && r.found === 3 ? r : false;
+				},
+				30000,
+				"the imported song to be matched by name",
+			);
+			console.log("  s37 matched", JSON.stringify(row.tracks[2]));
+
+			await t.mainEval(`${P}.play(${JSON.stringify(row.id)})`);
+			await waitFor(
+				async () => {
+					const ids = await queueIds();
+					return row.tracks.every((x) => ids.includes(x.videoId as string)) || false;
+				},
+				30000,
+				"every playlist song in the queue",
+			);
+
+			// The button in the player bar, with a real click.
+			await waitFor(async () => (await click(yt, "#ytmd-playlist-button")) || false, 10000, "the playlist button");
+			await sleep(500);
+			const labels = await yt.eval<string[]>(`[...document.querySelectorAll("#ytmd-vc-menu button")].map((b) => b.textContent)`);
+			console.log("  s37 menu", JSON.stringify(labels));
+			if (!labels.includes("Smart shuffle") || !labels.includes("Add to Road trip")) throw new Error(`menu is ${labels.join(", ")}`);
+			await yt.screenshot(path.join(import.meta.dirname, "..", "results", "s37-menu.png"));
+			await yt.eval(`[...document.querySelectorAll("#ytmd-vc-menu button")].find((b) => b.textContent === "Add to a new playlist").click()`);
+			await waitFor(async () => (await list()).some((p) => p.name !== "Road trip" && p.tracks.length === 1) || false, 5000, "the playing song in a new playlist");
+
+			const smart = await t.mainEval<{ own: number; recommended: number }>(`${P}.smartShuffle()`);
+			console.log("  s37 smart", JSON.stringify(smart));
+			if (smart.own < 3 || smart.recommended < 5) throw new Error(`smart shuffle: ${JSON.stringify(smart)}`);
+			await waitFor(async () => (await queueIds()).length >= smart.own + 5 || false, 30000, "the smart shuffle queue");
+			const paused = await yt.eval<boolean>(`document.querySelector("video").paused`);
+			if (paused) throw new Error("smart shuffle left playback paused");
+
+			await t.mainEval(`__YTMD_TEST__.services.getProvider("app").openSettingsWindow()`);
+			await sleep(1500);
+			await t.mainEval(`${MW}.views.settingsWindow.webContents.executeJavaScript('location.hash = "#/player/playlists"', true)`);
+			await sleep(1200);
+			const b64 = await t.mainEval<string>(`${MW}.views.settingsWindow.webContents.capturePage().then((i) => i.toPNG().toString("base64"))`);
+			(await import("node:fs")).writeFileSync(path.join(import.meta.dirname, "..", "results", "s37-settings.png"), Buffer.from(b64, "base64"));
+		},
+	},
+	{
 		id: "s36",
 		title: "Light palette: dark text on a light page, the player bar, tabs and icons readable, full screen and video controls stay light-on-dark",
 		launch: { settings: { player: { videoMode: "video", videoControls: true }, lyrics: { enabled: true }, themes: { background: "artwork", look: { palette: "light", accent: "palette", radius: "soft", imported: null } } } },
@@ -406,9 +467,23 @@ export const scenarios: Scenario[] = [
 			await key(yt, "f");
 			await until(yt, (m) => !m.fs && !m.paused, 5000, "leaving full screen, still playing");
 			if ((await barOpacity()) !== 1) throw new Error("the player bar stays hidden after full screen");
-			for (const width of [1000, 800]) {
+			for (const width of [1900, 1500, 1300, 1150, 1000, 800]) {
 				await t.mainEval(`__YTMD_TEST__.getMainWindow().main.setBounds({ x: 1, y: 0, width: ${width}, height: 900 })`);
 				await sleep(1500);
+				// The track title stays readable: it was squeezed to one letter when the bar got crowded.
+				const bar = await yt.eval<{ title: number; close: number; off: string[]; overlap: string[] }>(`(() => {
+					const q = (s) => document.querySelector(s);
+					const close = (q("ytmusic-player-bar .toggle-player-page-button")?.getBoundingClientRect().right) ?? 0;
+					const items = [...document.querySelectorAll("ytmusic-player-bar .middle-controls .content-info-wrapper, ytmusic-player-bar .right-controls-buttons > *")].filter((e) => e.getBoundingClientRect().width > 1);
+					const off = items.filter((e) => e.getBoundingClientRect().right > innerWidth + 1).map((e) => e.id || e.tagName);
+					const overlap = []; items.forEach((a, i) => items.slice(i + 1).forEach((b) => { const x = Math.min(a.getBoundingClientRect().right, b.getBoundingClientRect().right) - Math.max(a.getBoundingClientRect().left, b.getBoundingClientRect().left); if (x > 2) overlap.push((a.id || a.className.split(" ")[0]) + "/" + (b.id || b.className.split(" ")[0])); }));
+					return { title: q("ytmusic-player-bar .middle-controls .content-info-wrapper")?.getBoundingClientRect().width ?? -1, close, off, overlap };
+				})()`);
+				console.log(`  s33 bar ${width}: ${JSON.stringify(bar)}`);
+				if (bar.title !== -1 && bar.title < 100) throw new Error(`at ${width} px the track title is ${bar.title} px wide`);
+				if (bar.close > width) throw new Error(`at ${width} px the close-player button ends at ${bar.close}`);
+				if (bar.off.length || bar.overlap.length) throw new Error(`at ${width} px: off the window ${bar.off}, overlapping ${bar.overlap}`);
+				if (width > 1000) continue;
 				const m = await yt.eval<{ inner: number; switchBottom: number; playerTop: number; playerH: number; close: number }>(`(() => {
 					const r = (s) => document.querySelector(s).getBoundingClientRect();
 					// One more button: the sing button joins the bar when a track has synced lyrics.

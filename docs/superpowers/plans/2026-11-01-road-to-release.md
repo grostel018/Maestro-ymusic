@@ -10,7 +10,7 @@ only the order. Testing follows the usual rule: unit tests and typecheck while b
 | 2 | Done (s33, s35; karaoke by screenshot only): one scenario for lyrics and karaoke | §1.3 | Lyrics are a main feature, and the smoke set doesn't open them yet |
 | 3 | Done (s35): lyrics romanization and translation lines (Japanese, Korean, Chinese) | F2, G8 | The owner's own listening |
 | 4 | Done (s36): light mode | E1 | Theme tokens exist; YouTube Music's own light styles need mapping |
-| 5 | Library: local playlists and import, smart shuffle | G7, G4 | Daily use |
+| 5 | Done (s37): local playlists and import, smart shuffle | G7, G4 | Daily use |
 | 6 | Bigger extras: offline downloads, Listen Together, animated artwork, song recognition | G2, G1, G9, G6 | Largest and riskiest, each behind its own switch. G6 only if a ≥ 1.5k★ open solution exists; otherwise it's dropped and recorded |
 | 7 | Ready for other people: installer and updates, no keys, welcome, guide and demo | H2–H5 | The app must be feature-complete before the demo is recorded |
 | 8 | Security audit, then a full test run and a clean `VERIFICATION.md` | H6 | Audit what will actually ship |

@@ -16,6 +16,9 @@ const EMIT_ALLOWLIST = new Set<string>([
 	"facts:request",
 	"facts:open",
 	"lyrics:extras:request",
+	"playlists:reply",
+	"playlists:menu-request",
+	"playlists:action",
 	"sponsorblock:request",
 	"stats:listen",
 ]);
@@ -27,6 +30,8 @@ const PUSH_ALLOWLIST = new Set<string>([
 	"css.thumbnail",
 	"css.thumbnail-accent",
 	"facts:result",
+	"playlists:cmd",
+	"playlists:menu",
 	"sponsorblock:segments",
 ]);
 

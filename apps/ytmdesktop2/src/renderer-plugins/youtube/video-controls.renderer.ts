@@ -78,8 +78,13 @@ html.${FS_STILL} ytmusic-app-layout[player-fullscreened] ytmusic-player-bar, htm
 /* YTM's picture buttons (mini player, full screen) repeat this bar's and stayed on after any click in the player. */
 html.${ON}:not(.${AUDIO_VIEW}) ytmusic-player[video-mode] .song-media-controls { display: none !important; }
 ytmusic-player[focus-within]:not(:hover) .song-media-controls { opacity: 0 !important; }
+/* The bar carries more buttons than YTM planned for: its own are 56 px wide, which squeezed the track title to a letter.
+   The title keeps a readable width; below that the buttons make room. */
+ytmusic-player-bar .right-controls-buttons > yt-icon-button:not(.toggle-player-page-button):not(.exit-fullscreen-button) { width: 40px !important; height: 40px !important; padding: 8px !important; }
+ytmusic-player-bar .middle-controls .content-info-wrapper { min-width: 160px; flex-shrink: 0; }
+@media (max-width: 1400px) { #ytmd-sleep-button { display: none !important; } }
 /* Narrow windows: the player bar's extras pushed YTM's own buttons, including close player, off the edge. */
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
 	#ytmd-speed-button, #ytmd-sleep-button { display: none !important; }
 	/* The volume slider opens over the track title: give it a backing so the two don't read as one. */
 	ytmusic-player-bar #volume-slider { background: #1c1c1e; border-radius: 999px; z-index: 5; }

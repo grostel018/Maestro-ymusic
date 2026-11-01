@@ -15,6 +15,7 @@ import type lastfmProvider from "@routers/lastfm/service";
 import type lyricsProvider from "@routers/lyrics/service";
 import type mediaControlProvider from "@routers/mediaControl/service";
 import type navigationProvider from "@routers/navigation/service";
+import type playlistsProvider from "@routers/playlists/service";
 import type settingsProvider from "@routers/settings/service";
 import type shortcutProvider from "@routers/shortcut/service";
 import type sponsorblockProvider from "@routers/sponsorblock/service";
@@ -47,6 +48,7 @@ export interface ServiceTypeMap {
   "lyrics": lyricsProvider;
   "mediaControl": mediaControlProvider;
   "navigation": navigationProvider;
+  "playlists": playlistsProvider;
   "settings": settingsProvider;
   "shortcut": shortcutProvider;
   "sponsorblock": sponsorblockProvider;
