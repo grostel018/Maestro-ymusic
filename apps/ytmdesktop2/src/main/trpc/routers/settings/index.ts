@@ -1,1 +1,0 @@
-export { settingsRouter } from "./router";

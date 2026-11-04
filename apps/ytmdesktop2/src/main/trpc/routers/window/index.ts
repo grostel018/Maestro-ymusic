@@ -1,1 +1,0 @@
-export { windowRouter } from "./router";

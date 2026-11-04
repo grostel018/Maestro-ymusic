@@ -1,1 +1,0 @@
-export { lastfmRouter } from "./router";

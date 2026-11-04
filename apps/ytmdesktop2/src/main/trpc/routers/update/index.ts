@@ -1,1 +1,0 @@
-export { updateRouter } from "./router";

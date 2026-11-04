@@ -1,15 +1,15 @@
 {
-	"name": "ytmdesktop-userscript",
+	"name": "maestro-userscript",
 	"version": "1.0.0",
 	"private": true,
 	"type": "module",
-	"description": "Tampermonkey userscript — open YouTube / YouTube Music links via ytmd://",
+	"description": "Tampermonkey userscript — open YouTube / YouTube Music links via maestro://",
 	"author": "Venipa <admin@venipa.net>",
 	"homepage": "https://youtube-music.app",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/Venipa/ytmdesktop2",
+		"url": "https://github.com/grostel018/Maestro-ymusic",
 		"directory": "packages/userscript"
 	},
 	"scripts": {

@@ -1,5 +1,5 @@
 {
-	"name": "ytmdesktop2-streamdeck",
+	"name": "maestro-streamdeck",
 	"version": "1.0.0",
 	"private": true,
 	"type": "module",
@@ -7,7 +7,7 @@
 		"icons": "node scripts/generate-icons.mjs",
 		"build": "pnpm icons && vite build",
 		"watch": "vite build --watch",
-		"pack": "pnpm build && streamdeck pack com.venipa.ytmdesktop2.sdPlugin -f -o ../../dist/streamdeck"
+		"pack": "pnpm build && streamdeck pack com.maestro.maestro.sdPlugin -f -o ../../dist/streamdeck"
 	},
 	"dependencies": {
 		"@better-fetch/fetch": "^1.3.1",

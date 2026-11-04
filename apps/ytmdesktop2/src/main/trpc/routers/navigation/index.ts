@@ -1,1 +1,0 @@
-export { navigationRouter } from "./router";

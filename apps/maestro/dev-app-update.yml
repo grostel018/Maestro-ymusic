@@ -1,0 +1,4 @@
+provider: github
+owner: grostel018
+repo: Maestro-ymusic
+updaterCacheDirName: maestro-updater

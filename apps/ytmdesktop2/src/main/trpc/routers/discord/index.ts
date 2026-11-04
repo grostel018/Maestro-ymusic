@@ -1,1 +1,0 @@
-export { discordRouter } from "./router";
