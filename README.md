@@ -1,5 +1,5 @@
 <p align="center">
-<img src="./apps/ytmdesktop2/build/icon.svg" alt="" width="112" height="112" />
+  <img src="apps/maestro/build/icon.svg" alt="" width="112" height="112" />
 </p>
 
 <h1 align="center">Maestro</h1>
@@ -12,11 +12,39 @@ A Windows music player for your own YouTube Music account: no ads, a real audio 
 <b>Forked from <a href="https://github.com/Venipa/ytmdesktop2">Venipa/ytmdesktop2</a></b>
 </p>
 
+---
+
 > [!NOTE]
 > Maestro is a fork of [**Youtube Music for Desktop (ytmdesktop2)**](https://github.com/Venipa/ytmdesktop2) by [Venipa](https://github.com/Venipa). See [Credits](#credits). It is an independent project, so please report Maestro bugs here and not to the original repo.
 
 > [!IMPORTANT]
-> **Pre-release.** There are no installers yet, so you build it from source. Only Windows is tested.
+> **Pre-release.** Download the latest `.exe` installer from [Releases](https://github.com/grostel018/Maestro-ymusic/releases) or build from source. Only Windows is tested.
+
+> [!WARNING]
+> ⚠️ **YouTube Dependency:** Maestro integrates with YouTube Music's web interface. If YouTube changes their website structure, APIs, or page layout, Maestro may break until updated. This is an unofficial, community-maintained project — not affiliated with or endorsed by Google, YouTube, or Venipa.
+
+---
+
+## 📺 Demo Video
+
+https://github.com/user-attachments/assets/393a77d3-7218-4ff9-a631-331adbd926d2
+
+---
+
+## 🎵 Welcome to Maestro
+
+If you love YouTube Music's library but hate the bare-bones official desktop app, Maestro is built for you. It's an open-source, feature-packed desktop music workstation designed for true music lovers.
+
+---
+
+## 📸 Feature Showcase
+
+| | | | | | |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| <img width="300" alt="Audio Lab" src="https://github.com/user-attachments/assets/69506f5d-ecbe-4943-9503-7f7e6597d692" /><br><b>Audio Lab</b> | <img width="300" alt="UI View 1" src="https://github.com/user-attachments/assets/e993da1b-b766-4a0e-984d-f251c5df3ae1" /><br><b>Library</b> | <img width="300" alt="UI View 2" src="https://github.com/user-attachments/assets/4c5f8636-6544-40f6-aa60-16eb5cbaa953" /><br><b>Playlists</b> | <img width="300" alt="Karaoke Mode" src="https://github.com/user-attachments/assets/5fed08de-43a9-421f-a795-d19a882c5e3b" /><br><b>Karaoke</b> | <img width="300" alt="Music Facts" src="https://github.com/user-attachments/assets/8fbd39c0-f27f-4762-83b5-29b41ba03a2c" /><br><b>Facts</b> | <img width="300" alt="Video Controls" src="https://github.com/user-attachments/assets/7970fe9b-2716-4249-9df2-3f2d7925d973" /><br><b>Video Mode</b> |
+| <img width="300" alt="Theme Palettes" src="https://github.com/user-attachments/assets/89489214-5edc-4c91-81dd-6da2249a14b7" /><br><b>Themes</b> | <img width="300" alt="UI View 3" src="https://github.com/user-attachments/assets/26484dfe-37c8-40bf-80f7-fac1612b5542" /><br><b>Player</b> | <img width="300" alt="UI View 4" src="https://github.com/user-attachments/assets/2bac68d7-45a7-4944-9c24-afdb64982b70" /><br><b>Queue</b> | <img width="300" alt="Overview" src="https://github.com/user-attachments/assets/1e8714ce-33a2-4673-bc5e-e311c9fe8d4d" /><br><b>Overview</b> | | |
+
+---
 
 ## Features
 
@@ -64,48 +92,29 @@ Your library, playlists, queue and comments come from YouTube Music itself. Last
 
 The full backlog is in [`IMPROVEMENTS.md`](./IMPROVEMENTS.md).
 
-## Build from source
+## Installation
 
-You need Node 24.14 or newer, pnpm 11 (the repo pins 11.15.1), and the [GitHub CLI](https://cli.github.com/).
+Download **`maestro-0.0.0-setup.exe`** from the [Releases page](https://github.com/grostel018/Maestro-ymusic/releases).
+
+Alternatively, build from source (Node.js 24.14+ and pnpm 11+):
 
 ```bash
 git clone https://github.com/grostel018/Maestro-ymusic.git
-```
-
-```bash
 cd Maestro-ymusic
+.\setup.ps1
 ```
 
-One dependency (`@venipa/xosms`) comes from GitHub Packages, so your token needs package access. Add `//npm.pkg.github.com/:_authToken=<your token>` to your user `~/.npmrc`.
-
-```bash
-gh auth login -s read:packages
-```
+Or manually:
 
 ```bash
 pnpm install
 ```
 
-Copy `apps/ytmdesktop2/.env.local.example` to `apps/ytmdesktop2/.env.local`. The app won't start without it. Then run:
+Copy `apps/maestro/.env.local.example` to `apps/maestro/.env.local` (all tokens are optional). Then run:
 
 ```bash
 pnpm dev
 ```
-
-**Optional keys in `.env.local`:**
-
-| Key | Used for |
-|---|---|
-| `VITE_LASTFM_API`, `VITE_LASTFM_SECRET` | Last.fm scrobbling and facts. Create your own API account: see [`docs/features/lastfm.md`](./docs/features/lastfm.md) |
-| `VITE_GENIUS_TOKEN` | Genius "behind the song" cards |
-
-**Desktop shortcut:** this creates a shortcut that opens the app and rebuilds it when the code has changed.
-
-```bash
-powershell -NoProfile -ExecutionPolicy Bypass -File apps/ytmdesktop2/scripts/launch.ps1 -InstallShortcut
-```
-
-Maestro has its own profile folder (`%APPDATA%\ytmdesktop2-plus`, a name kept from before the rename), so it runs next to an installed copy of ytmdesktop2 without touching it.
 
 ## Contributing
 
