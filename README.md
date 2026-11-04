@@ -5,85 +5,72 @@
 <h1 align="center">Maestro</h1>
 
 <p align="center">
-A Windows music player for your own YouTube Music account: no ads, a real audio lab, Apple Music-style lyrics and themes you control.
+A Windows music player for your own YouTube Music account: no ads, an audio lab, Apple Music-style lyrics and themes you control.
 </p>
 
 <p align="center">
-<b>Forked from <a href="https://github.com/Venipa/ytmdesktop2">Venipa/ytmdesktop2</a></b>
+Forked from <a href="https://github.com/Venipa/ytmdesktop2">Venipa/ytmdesktop2</a>
 </p>
 
----
-
 > [!NOTE]
-> Maestro is a fork of [**Youtube Music for Desktop (ytmdesktop2)**](https://github.com/Venipa/ytmdesktop2) by [Venipa](https://github.com/Venipa). See [Credits](#credits). It is an independent project, so please report Maestro bugs here and not to the original repo.
+> Maestro is a fork of [Youtube Music for Desktop (ytmdesktop2)](https://github.com/Venipa/ytmdesktop2) by [Venipa](https://github.com/Venipa). See [Credits](#credits). It is an independent project, so please report Maestro bugs here and not to the original repo.
 
 > [!IMPORTANT]
-> **Pre-release.** Download the latest `.exe` installer from [Releases](https://github.com/grostel018/Maestro-ymusic/releases) or build from source. Only Windows is tested.
+> Maestro is a pre-release. Download the latest `.exe` installer from [Releases](https://github.com/grostel018/Maestro-ymusic/releases) or build from source. Only Windows is tested.
 
 > [!WARNING]
-> ⚠️ **YouTube Dependency:** Maestro integrates with YouTube Music's web interface. If YouTube changes their website structure, APIs, or page layout, Maestro may break until updated. This is an unofficial, community-maintained project — not affiliated with or endorsed by Google, YouTube, or Venipa.
+> Maestro works through YouTube Music's web interface. If YouTube changes its site structure, APIs, or page layout, Maestro may break until it is updated. This is an unofficial, community-maintained project and is not affiliated with or endorsed by Google, YouTube, or Venipa.
 
----
-
-## 📺 Demo Video
+## Demo
 
 https://github.com/user-attachments/assets/393a77d3-7218-4ff9-a631-331adbd926d2
 
----
+## About
 
-## 🎵 Welcome to Maestro
+Maestro is an open-source desktop player for people who like YouTube Music's library but find the official desktop app too limited.
 
-If you love YouTube Music's library but hate the bare-bones official desktop app, Maestro is built for you. It's an open-source, feature-packed desktop music workstation designed for true music lovers.
-
----
-
-## 📸 Feature Showcase
-
-
+## Screenshots
 
 | | | | | |
 |:---:|:---:|:---:|:---:|:---:|
-| <img width="240" src="https://github.com/user-attachments/assets/69506f5d-ecbe-4943-9503-7f7e6597d692" /><br>**Now Playing with Lyrics**<br><sub>Album art + synced lyrics sidebar + transport controls</sub> | <img width="240" src="https://github.com/user-attachments/assets/1e8714ce-33a2-4673-bc5e-e311c9fe8d4d" /><br>**Full-Screen Lyrics**<br><sub>Large centered karaoke-style lyrics view</sub> | <img width="240" src="https://github.com/user-attachments/assets/7970fe9b-2716-4249-9df2-3f2d7925d973" /><br>**Song & Artist Facts**<br><sub>About panel (Genius / Last.fm) + comments</sub> | <img width="240" src="https://github.com/user-attachments/assets/8fbd39c0-f27f-4762-83b5-29b41ba03a2c" /><br>**Music Video Playback**<br><sub>Full video player (visual track)</sub> | <img width="240" src="https://github.com/user-attachments/assets/26484dfe-37c8-40bf-80f7-fac1612b5542" /><br>**Player Settings**<br><sub>Playback preference toggles</sub> |
-| <img width="240" src="https://github.com/user-attachments/assets/5fed08de-43a9-421f-a795-d19a882c5e3b" /><br>**Full-Screen Karaoke**<br><sub>Full-screen karaoke with vocal reduction</sub> | <img width="240" src="https://github.com/user-attachments/assets/e993da1b-b766-4a0e-984d-f251c5df3ae1" /><br>**Enhanced Settings**<br><sub>General enhanced settings tab</sub> | <img width="240" src="https://github.com/user-attachments/assets/89489214-5edc-4c91-81dd-6da2249a14b7" /><br>**Audio DSP Lab**<br><sub>Advanced audio processing & DSP</sub> | <img width="240" src="https://github.com/user-attachments/assets/4c5f8636-6544-40f6-aa60-16eb5cbaa953" /><br>**Graphic Equalizer**<br><sub>Multi-band EQ with presets & preamp</sub> | <img width="240" src="https://github.com/user-attachments/assets/2bac68d7-45a7-4944-9c24-afdb64982b70" /><br>**Themes & Appearance**<br><sub>Color palette & preset settings</sub> |
-
-
----
+| <img width="240" src="https://github.com/user-attachments/assets/69506f5d-ecbe-4943-9503-7f7e6597d692" /><br>**Now playing with lyrics**<br><sub>Album art + synced lyrics sidebar + transport controls</sub> | <img width="240" src="https://github.com/user-attachments/assets/1e8714ce-33a2-4673-bc5e-e311c9fe8d4d" /><br>**Full-screen lyrics**<br><sub>Large centered karaoke-style lyrics view</sub> | <img width="240" src="https://github.com/user-attachments/assets/7970fe9b-2716-4249-9df2-3f2d7925d973" /><br>**Song and artist facts**<br><sub>About panel (Genius / Last.fm) + comments</sub> | <img width="240" src="https://github.com/user-attachments/assets/8fbd39c0-f27f-4762-83b5-29b41ba03a2c" /><br>**Music video playback**<br><sub>Full video player (visual track)</sub> | <img width="240" src="https://github.com/user-attachments/assets/26484dfe-37c8-40bf-80f7-fac1612b5542" /><br>**Player settings**<br><sub>Playback preference toggles</sub> |
+| <img width="240" src="https://github.com/user-attachments/assets/5fed08de-43a9-421f-a795-d19a882c5e3b" /><br>**Full-screen karaoke**<br><sub>Full-screen karaoke with vocal reduction</sub> | <img width="240" src="https://github.com/user-attachments/assets/e993da1b-b766-4a0e-984d-f251c5df3ae1" /><br>**Enhanced settings**<br><sub>General enhanced settings tab</sub> | <img width="240" src="https://github.com/user-attachments/assets/89489214-5edc-4c91-81dd-6da2249a14b7" /><br>**Audio DSP lab**<br><sub>Advanced audio processing & DSP</sub> | <img width="240" src="https://github.com/user-attachments/assets/4c5f8636-6544-40f6-aa60-16eb5cbaa953" /><br>**Graphic equalizer**<br><sub>Multi-band EQ with presets & preamp</sub> | <img width="240" src="https://github.com/user-attachments/assets/2bac68d7-45a7-4944-9c24-afdb64982b70" /><br>**Themes and appearance**<br><sub>Color palette & preset settings</sub> |
 
 ## Features
 
 ### Listening
 
-- **No ads, no Premium needed.** Three layers: network blocking, removing ads from YouTube's responses, and a fallback that skips any ad that still gets through. Premium upsells are hidden too.
-- **One-click Song/Video switch** (`V`). Keeps your position and finds the song version of a music video, or the video of a song, when YouTube doesn't offer one.
-- **Video controls.** Quality, speed, captions, loop, picture-in-picture, theater and full screen, with YouTube's keyboard shortcuts.
-- **SponsorBlock for music videos.** Skips non-music parts, with an Undo and an off switch.
-- **Game mode.** While a game or another app is in front, Maestro lowers its own priority and keeps the music playing.
+- No ads and no Premium needed. Maestro blocks ads at the network level, removes them from YouTube's responses, and skips any that still get through. Premium upsells are hidden too.
+- One-click Song/Video switch (`V`). It keeps your position and finds the song version of a music video, or the video of a song, when YouTube doesn't offer one.
+- Video controls: quality, speed, captions, loop, picture-in-picture, theater and full screen, with YouTube's keyboard shortcuts.
+- SponsorBlock for music videos. It skips non-music parts, with an Undo and an off switch.
+- Game mode. While a game or another app is in front, Maestro lowers its own priority and keeps the music playing.
 
 ### Audio lab
 
-- **Output device** picker, with a fallback when a device is unplugged.
-- **Equalizer:** 10-band and parametric, 13 presets, your own presets, and [AutoEq](https://github.com/jaakkopasanen/AutoEq) headphone profiles.
-- **Spatial:** crossfeed, stereo width, virtual surround and 8D.
-- **Dynamics:** loudness normalization, compressor and 1% volume steps on the mouse wheel.
-- **Vocal reduction and pitch shift** of ±6 semitones.
-- **Transitions:** crossfade (fade out and in), skip silence and a sleep timer.
-- **Visualizer**, and a live view of which effects are on.
+- Output device picker, with a fallback when a device is unplugged.
+- Equalizer: 10-band and parametric, 13 presets, your own presets, and [AutoEq](https://github.com/jaakkopasanen/AutoEq) headphone profiles.
+- Spatial effects: crossfeed, stereo width, virtual surround and 8D.
+- Dynamics: loudness normalization, compressor and 1% volume steps on the mouse wheel.
+- Vocal reduction and pitch shift of ±6 semitones.
+- Transitions: crossfade (fade out and in), skip silence and a sleep timer.
+- A visualizer, and a live view of which effects are on.
 
 Every effect can be switched off. With all of them off, audio plays straight through without the engine.
 
 ### Lyrics and song info
 
-- **Apple Music-style lyrics:** large current line, dimmed and softly blurred neighbours, word-by-word fill, click a line to seek, and text size controls.
-- **A glow in the song's color** that pulses with the bass, and a per-song timing nudge when lyrics run early or late.
-- **Full-screen karaoke** (`Shift+K`) with vocal reduction.
-- **About panel:** short cards on the song and artist from Genius, Wikipedia, MusicBrainz and Last.fm.
-- **Your stats:** hours listened, top songs and top artists, stored only on your computer.
+- Apple Music-style lyrics: large current line, dimmed and softly blurred neighbours, word-by-word fill, click a line to seek, and text size controls.
+- A glow in the song's color that pulses with the bass, and a per-song timing nudge when lyrics run early or late.
+- Full-screen karaoke (`Shift+K`) with vocal reduction.
+- An About panel with short cards on the song and artist from Genius, Wikipedia, MusicBrainz and Last.fm.
+- Your stats: hours listened, top songs and top artists, stored only on your computer.
 
 ### Look
 
-- **16 dark palettes,** a custom or song-colored accent, corner styles, and theme import and export (`.ytmdtheme.json`).
-- **Backgrounds:** blurred song artwork, the playing video, the song's color, or plain.
-- **Title bar** with back, forward, search and a now-playing pill.
+- 16 dark palettes, a custom or song-colored accent, corner styles, and theme import and export (`.ytmdtheme.json`).
+- Backgrounds: blurred song artwork, the playing video, the song's color, or plain.
+- A title bar with back, forward, search and a now-playing pill.
 
 ### From YouTube Music and ytmdesktop2
 
@@ -91,7 +78,7 @@ Your library, playlists, queue and comments come from YouTube Music itself. Last
 
 ## Known gaps
 
-- Open bug: some music videos show a black picture.
+Some music videos show a black picture. This bug is open.
 
 The full backlog is in [`IMPROVEMENTS.md`](./IMPROVEMENTS.md).
 
@@ -134,7 +121,7 @@ Commits follow Conventional Commits with a scope, such as `feat(lyrics): ...`.
 
 ## Credits
 
-**Maestro exists because of [ytmdesktop2](https://github.com/Venipa/ytmdesktop2) by [Venipa](https://github.com/Venipa) and [its contributors](https://github.com/Venipa/ytmdesktop2/graphs/contributors).** Its app, plugin system, lyrics providers and integrations are the base everything here is built on. If you find Maestro useful, please give the original project a star.
+Maestro exists because of [ytmdesktop2](https://github.com/Venipa/ytmdesktop2) by [Venipa](https://github.com/Venipa) and [its contributors](https://github.com/Venipa/ytmdesktop2/graphs/contributors). Its app, plugin system, lyrics providers and integrations are the base everything here is built on. If you find Maestro useful, please give the original project a star.
 
 Thanks also to:
 
