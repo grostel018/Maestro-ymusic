@@ -7,6 +7,7 @@ import { BrowserWindow, WebContents, WebContentsView } from "electron";
 import { join } from "path";
 import { debounceTime, delay, filter, Subject, Subscription, takeWhile, tap } from "rxjs";
 import { BrowserWindowViews } from "./mappedWindow";
+import { navigationState } from "./navigationState";
 
 export type LockSizeOptions = { resize: "both" | "width" | "height" };
 export function lockSizeToParent(win: BrowserWindow, options: LockSizeOptions = { resize: "both" }) {
@@ -80,10 +81,7 @@ export function getWindowStateFromContext<
 		...getWindowState(win),
 		...win.getBounds(),
 		navigation: historyEntry &&
-			new URL(historyEntry.url).hostname === defaultUri.hostname && {
-				canGoBack: youtubeView.webContents.navigationHistory.canGoBack(),
-				index: youtubeView.webContents.navigationHistory.getActiveIndex(),
-			},
+			new URL(historyEntry.url).hostname === defaultUri.hostname && navigationState(youtubeView.webContents.navigationHistory),
 	};
 }
 const manualSyncEmitter = new Subject<number>();
@@ -106,10 +104,7 @@ export function syncWindowStateToWebContents(win: BrowserWindow) {
 				serverMain.emit("windowState", state);
 			} else {
 				const next = Object.assign({}, state, {
-					navigation: {
-						canGoBack: view.navigationHistory.canGoBack(),
-						index: view.navigationHistory.getActiveIndex(),
-					},
+					navigation: navigationState(view.navigationHistory),
 				});
 				serverMain.emit("windowState", next);
 			}
@@ -155,10 +150,7 @@ export function syncMainWindowStates<
 		ctx.sendToAllViews(
 			"mainWindowState",
 			Object.assign({}, state || {}, {
-				navigation: {
-					canGoBack: ctx.views.youtubeView.webContents.navigationHistory.canGoBack(),
-					index: ctx.views.youtubeView.webContents.navigationHistory.getActiveIndex(),
-				},
+				navigation: navigationState(ctx.views.youtubeView.webContents.navigationHistory),
 			}),
 		);
 	};
