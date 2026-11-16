@@ -1,0 +1,36 @@
+{
+ "contents": {
+  "singleColumnMusicWatchNextResultsRenderer": {
+   "tabbedRenderer": {
+    "watchNextTabbedResultsRenderer": {
+     "tabs": [
+      {
+       "tabRenderer": {
+        "title": "Up next",
+        "content": {
+         "musicQueueRenderer": {}
+        }
+       }
+      },
+      {
+       "tabRenderer": {
+        "title": "Lyrics",
+        "unselectable": true
+       }
+      },
+      {
+       "tabRenderer": {
+        "title": "Related",
+        "endpoint": {
+         "browseEndpoint": {
+          "browseId": "MPTRt_related01"
+         }
+        }
+       }
+      }
+     ]
+    }
+   }
+  }
+ }
+}

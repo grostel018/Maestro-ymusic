@@ -1,0 +1,26 @@
+{
+ "contents": {
+  "sectionListRenderer": {
+   "contents": [
+    {
+     "musicDescriptionShelfRenderer": {
+      "description": {
+       "runs": [
+        {
+         "text": "First line of the song\nSecond line of the song\nThird line of the song"
+        }
+       ]
+      },
+      "footer": {
+       "runs": [
+        {
+         "text": "Source: LyricFind"
+        }
+       ]
+      }
+     }
+    }
+   ]
+  }
+ }
+}

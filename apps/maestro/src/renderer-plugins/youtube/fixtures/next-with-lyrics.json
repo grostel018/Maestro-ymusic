@@ -1,0 +1,45 @@
+{
+ "contents": {
+  "singleColumnMusicWatchNextResultsRenderer": {
+   "tabbedRenderer": {
+    "watchNextTabbedResultsRenderer": {
+     "tabs": [
+      {
+       "tabRenderer": {
+        "title": "Up next",
+        "content": {
+         "musicQueueRenderer": {}
+        }
+       }
+      },
+      {
+       "tabRenderer": {
+        "title": "Lyrics",
+        "endpoint": {
+         "browseEndpoint": {
+          "browseId": "MPLYt_abc123XYZ-1",
+          "browseEndpointContextSupportedConfigs": {
+           "browseEndpointContextMusicConfig": {
+            "pageType": "MUSIC_PAGE_TYPE_TRACK_LYRICS"
+           }
+          }
+         }
+        }
+       }
+      },
+      {
+       "tabRenderer": {
+        "title": "Related",
+        "endpoint": {
+         "browseEndpoint": {
+          "browseId": "MPTRt_related01"
+         }
+        }
+       }
+      }
+     ]
+    }
+   }
+  }
+ }
+}

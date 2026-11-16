@@ -1,6 +1,7 @@
 import { searchLyricsDetailed } from "./providers/search";
-import { resolveLyricsDisplay, setLyricsTabDisplayMode, ytmHasStockLyrics, ytmStockText } from "./stock";
+import { resolveLyricsDisplay, setLyricsTabDisplayMode } from "./stock";
 import type { LyricResult, LyricsMissReason, LyricsStatus, TrackSearchInfo } from "./types";
+import type { YtmLyrics } from "./ytm-lyrics";
 
 export interface LyricsStoreSnapshot {
 	status: LyricsStatus;
@@ -28,35 +29,6 @@ type Listener = (snap: LyricsStoreSnapshot) => void;
 /** Waits before asking the providers again after one failed. */
 const RETRY_DELAYS_MS = [6000, 20000];
 
-function applyDisplay(snap: LyricsStoreSnapshot): LyricsStoreSnapshot {
-	const hasTimedLines = !!snap.result?.lines?.length;
-	const resolved = resolveLyricsDisplay({
-		status: snap.status,
-		hasTimedLines,
-		hasStock: ytmHasStockLyrics(),
-	});
-	if (resolved.status === "stock") {
-		// YTM has plain lyrics we don't: show its text in our view (same look and size) rather than its own panel.
-		const stock = ytmStockText();
-		if (stock) {
-			setLyricsTabDisplayMode("overlay");
-			return {
-				...snap,
-				status: "ready",
-				errorMessage: undefined,
-				betterLyricsMiss: undefined,
-				result: { title: "", artists: [], plain: stock.text, provider: "youtube-music", syncLevel: "plain", inexact: false },
-			};
-		}
-		// No lyrics text in YTM's panel (its "Lyrics not available" message is long enough to look like lyrics): keep our
-		// view and its own empty state.
-		setLyricsTabDisplayMode("overlay");
-		return snap;
-	}
-	setLyricsTabDisplayMode(resolved.mode);
-	return snap;
-}
-
 function snapFromEntry(entry: CacheEntry, videoId: string): LyricsStoreSnapshot {
 	return {
 		status: entry.result ? "ready" : "empty",
@@ -67,8 +39,16 @@ function snapFromEntry(entry: CacheEntry, videoId: string): LyricsStoreSnapshot 
 	};
 }
 
-export function createLyricsStore() {
+export type LyricsStoreDeps = {
+	/** YouTube Music's own lyrics for one video id (null: none). Used when no provider has timed lyrics. */
+	fetchYtm?: (videoId: string) => Promise<YtmLyrics | null>;
+};
+
+export function createLyricsStore(deps: LyricsStoreDeps = {}) {
 	const cache = new Map<string, CacheEntry>();
+	/** YouTube Music's lyrics per video id: `null` none, missing = not asked yet. Never read from the page. */
+	const ytm = new Map<string, YtmLyrics | null>();
+	const ytmPending = new Set<string>();
 	let abort: AbortController | null = null;
 	let prefetchAbort: AbortController | null = null;
 	let generation = 0;
@@ -84,6 +64,41 @@ export function createLyricsStore() {
 
 	const emit = () => {
 		for (const fn of listeners) fn(snap);
+	};
+
+	const askYtm = (videoId: string) => {
+		if (!deps.fetchYtm || ytm.has(videoId) || ytmPending.has(videoId)) return;
+		ytmPending.add(videoId);
+		void deps
+			.fetchYtm(videoId)
+			.catch(() => null)
+			.then((found) => {
+				ytmPending.delete(videoId);
+				ytm.set(videoId, found);
+				// Only the song that is still showing gets them.
+				if (found && snap.videoId === videoId) setSnap({});
+			});
+	};
+
+	const applyDisplay = (next: LyricsStoreSnapshot): LyricsStoreSnapshot => {
+		const id = next.videoId;
+		const timed = !!next.result?.lines?.length;
+		const waiting = next.status === "loading" || next.status === "idle" || next.status === "skipped";
+		if (id && !timed && !waiting) askYtm(id);
+		const own = id ? ytm.get(id) : undefined;
+		const resolved = resolveLyricsDisplay({ status: next.status, hasTimedLines: timed, hasStock: !!own });
+		// YTM's text is always shown in our view (same look and size), never its own panel.
+		setLyricsTabDisplayMode("overlay");
+		if (resolved.status === "stock" && own) {
+			return {
+				...next,
+				status: "ready",
+				errorMessage: undefined,
+				betterLyricsMiss: undefined,
+				result: { title: "", artists: [], plain: own.text, provider: "youtube-music", syncLevel: "plain", inexact: false },
+			};
+		}
+		return next;
 	};
 
 	const setSnap = (partial: Partial<LyricsStoreSnapshot>) => {

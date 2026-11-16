@@ -2,7 +2,8 @@ import { definePageCmds } from "@plugins/define-bridge";
 import type { TrackSearchInfo, YouTubeCaptionTrack, YouTubeCaptionTracks } from "./lyrics/types";
 import { currentAlbum } from "./player-bar";
 import { getPagePlayerApi } from "./world0/context";
-import { resolveYtmStore } from "./ytm-store";
+import { fetchYtmLyrics } from "./lyrics/ytm-lyrics";
+import { resolveYtmApp, resolveYtmStore } from "./ytm-store";
 
 function readAlbumTitle(): string | undefined {
 	try {
@@ -285,6 +286,11 @@ export const lyricsPage = definePageCmds({
 		seek: (timeSec) => seekToSec(Number(timeSec) || 0),
 		startClock: () => startLyricsClock(),
 		stopClock: () => stopLyricsClock(),
+		ytmLyrics: (videoId) => {
+			const network = resolveYtmApp()?.networkManager;
+			if (!network?.fetch) return Promise.resolve(null);
+			return fetchYtmLyrics(String(videoId ?? ""), (path, body) => network.fetch(path, body));
+		},
 	},
 });
 
