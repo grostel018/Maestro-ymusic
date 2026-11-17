@@ -19,7 +19,7 @@ Before you change anything, read these in order:
   and get one review at the end of the phase.
 - **Test once, at the end** (owner rule, 2026-10-27).
   - While building: `pnpm t:unit` and the typecheck only. Don't launch the app.
-  - At the end of the phase: `pnpm t:smoke`, once (about 3–5 min). Fix what fails and rerun only the
+  - At the very end of the work: one app run of about 1 minute (owner rule, 2026-11-17). Fix what fails and rerun only the
     failing scenario.
   - `pnpm t:full` and `pnpm t:perf` run only when the owner asks.
 - **Definition of done** (roadmap §1.3):
