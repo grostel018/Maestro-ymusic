@@ -51,6 +51,8 @@ const runApp = async function () {
 
 	protocol.registerSchemesAsPrivileged([
 		{ scheme: "app", privileges: { secure: true, standard: true } },
+		// Downloaded songs for the offline player (main/services/mediaProtocol.ts).
+		{ scheme: "maestro-media", privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } },
 		{
 			scheme: "ytmd-thumb",
 			privileges: {

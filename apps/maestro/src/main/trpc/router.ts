@@ -11,6 +11,7 @@ import { discordRouter } from "@main/trpc/routers/discord";
 import { googleLoginRouter } from "@main/trpc/routers/googleLogin";
 import { lastfmRouter } from "@main/trpc/routers/lastfm";
 import { navigationRouter } from "@main/trpc/routers/navigation";
+import { downloadsRouter } from "@main/trpc/routers/downloads";
 import { playlistsRouter } from "@main/trpc/routers/playlists";
 import { settingsRouter } from "@main/trpc/routers/settings";
 import { shortcutRouter } from "@main/trpc/routers/shortcut";
@@ -49,6 +50,7 @@ export const appRouter = router({
 	audio: audioRouter,
 	stats: statsRouter,
 	playlists: playlistsRouter,
+	downloads: downloadsRouter,
 });
 
 export type AppRouter = typeof appRouter;
