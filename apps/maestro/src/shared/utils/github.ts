@@ -36,7 +36,7 @@ export const githubRepoFetch = createFetch({
 	throw: false as const,
 	headers: {
 		Accept: "application/vnd.github+json",
-		"User-Agent": "ytmdesktop2",
+		"User-Agent": "Maestro",
 	},
 	auth: {
 		type: "Bearer",

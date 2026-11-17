@@ -62,7 +62,7 @@ export function ToolbarOptions() {
 					<DevIcon />
 				</button>
 			)}
-			<button type="button" title="Discord status" className={`control-button relative ${import.meta.env.VITE_DISCORD_CLIENT_ID ? "" : "!hidden"}`} onClick={toggleDiscord}>
+			<button type="button" title="Discord status" aria-label="Discord status" className={`control-button relative ${import.meta.env.VITE_DISCORD_CLIENT_ID ? "" : "!hidden"}`} onClick={toggleDiscord}>
 				<RPCIcon
 					className={
 						discordConnectionError && discordEnabled

@@ -5,7 +5,7 @@ import { createHash } from "crypto";
 /** Overridable only under the e2e bench (YTMD_E2E_API_LASTFM / _LASTFMWEB), see shared/e2e/apiBase. */
 const API_ROOT = apiBase("lastfm", "https://ws.audioscrobbler.com/2.0");
 export const LASTFM_WEB = apiBase("lastfmweb", "https://www.last.fm");
-const USER_AGENT = "ytmd (github.com/Venipa/ytmdesktop2)";
+const USER_AGENT = "Maestro (github.com/grostel018/Maestro-ymusic)";
 
 const lastfmFetch = createFetch({
 	baseURL: API_ROOT,
