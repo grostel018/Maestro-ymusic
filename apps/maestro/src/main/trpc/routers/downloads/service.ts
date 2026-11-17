@@ -68,6 +68,23 @@ export default class DownloadsProvider extends BaseProvider implements AfterInit
 	private get userData() {
 		return app.getPath("userData");
 	}
+	private get queueFile() {
+		return path.join(this.userData, "downloads-queue.json");
+	}
+
+	/** The offline player's queue and position, kept across restarts. Checked again on the page (`restoreQueue`). */
+	getQueue(): unknown {
+		try {
+			return JSON.parse(readFileSync(this.queueFile, "utf8"));
+		} catch {
+			return null;
+		}
+	}
+
+	async saveQueue(saved: unknown): Promise<void> {
+		await writeFile(this.queueFile, JSON.stringify(saved));
+	}
+
 	private get settingsFile() {
 		return path.join(this.userData, "downloads-settings.json");
 	}

@@ -2,21 +2,22 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
 	ArrowLeftIcon,
 	FolderOpenIcon,
+	ListPlusIcon,
+	ListStartIcon,
 	MusicIcon,
 	PauseIcon,
 	PlayIcon,
 	RefreshCwIcon,
 	SearchIcon,
 	ShuffleIcon,
-	SkipBackIcon,
-	SkipForwardIcon,
 	Trash2Icon,
-	Volume2Icon,
-	VolumeXIcon,
 	WifiOffIcon,
 	XIcon,
 } from "lucide-react";
-import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useMemo, useState } from "react";
+import { PlayerBar } from "@/components/offline-player/player-bar";
+import { QueuePanel } from "@/components/offline-player/queue-panel";
+import { useOfflinePlayer } from "@/components/offline-player/use-offline-player";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
@@ -127,7 +128,6 @@ function DownloadsPage() {
 	const reportPlayer = trpc.downloads.reportPlayer.useMutation();
 	const [backOnline, setBackOnline] = useState(false);
 	trpc.downloads.onOnline.useSubscription(undefined, { onData: () => setBackOnline(true) });
-	const pauseYtm = trpc.track.pause.useMutation();
 
 	const items = (list.data ?? []) as Item[];
 	const groups = useMemo(() => groupItems(items), [items]);
@@ -136,77 +136,10 @@ function DownloadsPage() {
 	const commonError = failed.length > 1 && failed.every((f) => f.error === failed[0].error) ? failed[0].error : null;
 	const totalSize = items.reduce((sum, i) => sum + i.size, 0);
 
-	// One <audio>, a queue of video ids.
-	const audio = useRef<HTMLAudioElement>(null);
-	const [order, setOrder] = useState<string[]>([]);
-	const [pos, setPos] = useState(-1);
-	const [playing, setPlaying] = useState(false);
-	const [time, setTime] = useState({ now: 0, total: 0 });
-	const [volume, setVolume] = useState(1);
-	const [muted, setMuted] = useState(false);
-	const failures = useRef(0);
-	const byId = useMemo(() => new Map(items.map((i) => [i.videoId, i])), [items]);
-	const current = pos >= 0 ? byId.get(order[pos]) : undefined;
-
-	const playList = (list: Item[], startAt = 0, shuffle = false) => {
-		const ids = list.filter((i) => i.url).map((i) => i.videoId);
-		if (shuffle) {
-			for (let i = ids.length - 1; i > 0; i--) {
-				const j = Math.floor(Math.random() * (i + 1));
-				[ids[i], ids[j]] = [ids[j], ids[i]];
-			}
-		}
-		if (!ids.length) return;
-		setOrder(ids);
-		setPos(shuffle ? 0 : Math.max(0, ids.indexOf(list[startAt]?.videoId)));
-	};
-	const step = (by: number) => setPos((p) => (order.length ? (p + by + order.length) % order.length : -1));
-
-	useEffect(() => {
-		const el = audio.current;
-		if (!el || !current?.url) return;
-		if (el.src !== current.url) el.src = current.url;
-		pauseYtm.mutate();
-		void el.play().catch(() => setPlaying(false));
-		if ("mediaSession" in navigator) {
-			navigator.mediaSession.metadata = new MediaMetadata({ title: current.title, artist: current.artist, album: current.album ?? current.collection?.title ?? "" });
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [current?.videoId]);
-
-	useEffect(() => {
-		if (!("mediaSession" in navigator)) return;
-		const ms = navigator.mediaSession;
-		ms.setActionHandler("play", () => void audio.current?.play());
-		ms.setActionHandler("pause", () => audio.current?.pause());
-		ms.setActionHandler("nexttrack", () => step(1));
-		ms.setActionHandler("previoustrack", () => step(-1));
-		return () => {
-			for (const a of ["play", "pause", "nexttrack", "previoustrack"] as const) ms.setActionHandler(a, null);
-		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [order.length]);
-
-	// Main keeps Downloads open while it has a queue (YouTube Music coming back must not stop the music).
-	useEffect(() => {
-		reportPlayer.mutate({ hasQueue: order.length > 0, playing });
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [order.length > 0, playing]);
-
-	useEffect(() => {
-		if (audio.current) {
-			audio.current.volume = volume;
-			audio.current.muted = muted;
-		}
-	}, [volume, muted]);
-
-	const toggle = () => {
-		const el = audio.current;
-		if (!el) return;
-		if (!current) return playList(items);
-		if (el.paused) void el.play();
-		else el.pause();
-	};
+	const player = useOfflinePlayer(items);
+	const { current, playing } = player;
+	const [queueOpen, setQueueOpen] = useState(false);
+	const playList = (list: Item[], startAt = 0, shuffle = false) => player.play(list, shuffle ? undefined : list[startAt]?.videoId, shuffle);
 	const back = () => {
 		if (view.page === "group") setView({ page: "library", tab: groups.find((g) => g.key === view.key)?.kind === "playlist" ? "playlists" : "albums" });
 		else leave();
@@ -214,8 +147,8 @@ function DownloadsPage() {
 	/** Back to YouTube Music. With a queue the page is only hidden, so the queue and position survive. */
 	const leave = () => {
 		setBackOnline(false);
-		if (order.length) {
-			audio.current?.pause();
+		if (player.q) {
+			player.audioRef.current?.pause();
 			hidePage.mutate();
 		} else closePage.mutate({ retry: !online });
 	};
@@ -236,7 +169,7 @@ function DownloadsPage() {
 					className="relative flex size-10 items-center justify-center rounded text-sm tabular-nums text-muted-foreground"
 					aria-label={`Play ${item.title}`}
 					disabled={!item.url}
-					onClick={() => (isCurrent ? toggle() : playList(list, index))}
+					onClick={() => (isCurrent ? player.toggle() : playList(list, index))}
 				>
 					{numbered ? (
 						<span className={cn("group-hover:invisible", isCurrent && "invisible")}>{item.trackNumber ?? index + 1}</span>
@@ -254,6 +187,12 @@ function DownloadsPage() {
 				<div className="flex items-center gap-1">
 					<span className="w-12 text-right text-xs tabular-nums text-muted-foreground group-hover:hidden">{fmtTime(item.durationSec)}</span>
 					<div className="hidden items-center gap-0.5 group-hover:flex">
+						<Button variant="ghost" size="icon-xs" title="Play next" aria-label={`Play ${item.title} next`} onClick={() => player.playNext([item.videoId])}>
+							<ListStartIcon />
+						</Button>
+						<Button variant="ghost" size="icon-xs" title="Add to queue" aria-label={`Add ${item.title} to queue`} onClick={() => player.addToQueue([item.videoId])}>
+							<ListPlusIcon />
+						</Button>
 						<Button variant="ghost" size="icon-xs" title="Show in folder" aria-label={`Show ${item.title} in folder`} onClick={() => showInFolder.mutate({ videoId: item.videoId })}>
 							<FolderOpenIcon />
 						</Button>
@@ -401,6 +340,7 @@ function DownloadsPage() {
 				</section>
 			)}
 
+			<div className="flex min-h-0 flex-1">
 			<main className="min-h-0 flex-1 overflow-y-auto">
 				{view.page === "group" && group ? (
 					<GroupPage
@@ -474,91 +414,10 @@ function DownloadsPage() {
 					</div>
 				)}
 			</main>
+			{queueOpen && player.q && <QueuePanel player={player} onClose={() => setQueueOpen(false)} />}
+			</div>
 
-			<footer className="grid h-[4.5rem] grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)] items-center gap-4 border-t border-foreground/10 px-4">
-				<div className="flex min-w-0 items-center gap-3">
-					{current ? (
-						<>
-							<Cover src={current.artSrc} className="size-12 shrink-0 rounded" />
-							<div className="min-w-0">
-								<div className="truncate text-sm font-medium">{current.title}</div>
-								<div className="truncate text-xs text-muted-foreground">{current.artist}</div>
-							</div>
-						</>
-					) : (
-						<span className="text-xs text-muted-foreground">Pick something to play</span>
-					)}
-				</div>
-				<div className="flex flex-col items-center gap-1">
-					<div className="flex items-center gap-2">
-						<Button variant="ghost" size="icon-sm" aria-label="Previous" disabled={!current} onClick={() => step(-1)}>
-							<SkipBackIcon className="fill-current" />
-						</Button>
-						<button
-							type="button"
-							aria-label={playing ? "Pause" : "Play"}
-							disabled={!items.length}
-							onClick={toggle}
-							className="flex size-9 items-center justify-center rounded-full bg-foreground text-background disabled:opacity-40"
-						>
-							{playing ? <PauseIcon className="size-4 fill-current" /> : <PlayIcon className="ml-0.5 size-4 fill-current" />}
-						</button>
-						<Button variant="ghost" size="icon-sm" aria-label="Next" disabled={!current} onClick={() => step(1)}>
-							<SkipForwardIcon className="fill-current" />
-						</Button>
-					</div>
-					<div className="flex w-full max-w-xl items-center gap-2 text-[11px] tabular-nums text-muted-foreground">
-						<span className="w-9 text-right">{fmtTime(time.now) || "0:00"}</span>
-						<input
-							type="range"
-							aria-label="Seek"
-							className="h-1 flex-1 accent-primary"
-							min={0}
-							max={time.total || 0}
-							step={1}
-							value={time.now}
-							disabled={!current}
-							onChange={(e) => {
-								if (audio.current) audio.current.currentTime = Number(e.target.value);
-							}}
-						/>
-						<span className="w-9">{fmtTime(time.total) || "0:00"}</span>
-					</div>
-				</div>
-				<div className="flex items-center justify-end gap-2">
-					<Button variant="ghost" size="icon-sm" aria-label={muted ? "Unmute" : "Mute"} onClick={() => setMuted((m) => !m)}>
-						{muted || volume === 0 ? <VolumeXIcon /> : <Volume2Icon />}
-					</Button>
-					<input
-						type="range"
-						aria-label="Volume"
-						className="h-1 w-24 accent-primary"
-						min={0}
-						max={1}
-						step={0.01}
-						value={muted ? 0 : volume}
-						onChange={(e) => {
-							setVolume(Number(e.target.value));
-							setMuted(false);
-						}}
-					/>
-				</div>
-				<audio
-					ref={audio}
-					onPlay={() => {
-						failures.current = 0;
-						setPlaying(true);
-					}}
-					onPause={() => setPlaying(false)}
-					onEnded={() => (pos < order.length - 1 ? step(1) : setPlaying(false))}
-					onTimeUpdate={(e) => setTime({ now: e.currentTarget.currentTime, total: e.currentTarget.duration || 0 })}
-					onError={() => {
-						failures.current += 1;
-						if (failures.current < order.length) step(1);
-						else setPlaying(false);
-					}}
-				/>
-			</footer>
+			<PlayerBar player={player} queueOpen={queueOpen && !!player.q} onToggleQueue={() => setQueueOpen((o) => !o)} canPlay={items.length > 0} />
 		</div>
 	);
 }

@@ -32,6 +32,21 @@ export const downloadsRouter = router({
 	openPage: publicProcedure.mutation(() => void serverMain.emit("downloads:open")),
 	/** `retry`: load YouTube Music again (after being offline). */
 	closePage: publicProcedure.input(z.object({ retry: z.boolean().optional() })).mutation(({ input }) => void serverMain.emit("downloads:close", { retry: !!input.retry })),
+	getQueue: publicProcedure.query(({ ctx }) => provider(ctx, "downloads").getQueue()),
+	saveQueue: publicProcedure
+		.input(
+			z.object({
+				q: z.object({
+					order: z.array(z.string().max(20)).max(5000),
+					base: z.array(z.string().max(20)).max(5000),
+					pos: z.number().int().min(0),
+					repeat: z.enum(["off", "all", "one"]),
+					shuffle: z.boolean(),
+				}),
+				positionSec: z.number().min(0),
+			}),
+		)
+		.mutation(({ ctx, input }) => provider(ctx, "downloads").saveQueue(input)),
 	/** Back to YouTube Music, keeping the offline player's queue and position (the page pauses first). */
 	hidePage: publicProcedure.mutation(() => void serverMain.emit("downloads:hide")),
 	/** The offline player's state, so main knows whether Downloads may close when YouTube Music comes back. */
