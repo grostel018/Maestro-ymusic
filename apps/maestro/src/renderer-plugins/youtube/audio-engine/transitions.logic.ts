@@ -7,7 +7,7 @@ export const SILENCE_HOLD_MS = 1500;
 /** Within this much of the end, silence is the track's tail: go to the next track instead of seeking. */
 export const TAIL_S = 20;
 export const SKIP_STEP_S = 0.5;
-export const SLEEP_FADE_S = 10;
+export { SLEEP_FADE_S } from "@shared/player/sleep";
 
 /** Seconds before the end at which the fade-out starts, or null when the track is too short for one. */
 export function fadeOutAt(duration: number, crossfade: number): number | null {
@@ -36,26 +36,5 @@ export class SilenceTracker {
 	}
 }
 
-export type SleepTimer = { kind: "off" } | { kind: "at"; endsAt: number } | { kind: "end-of-track" };
-
-export type SleepAction = "none" | "fade" | "pause";
-
-/**
- * What the sleep timer wants now. `fading` is true once the fade started; `remaining` is the track's remaining
- * time (for "end of track").
- */
-export function sleepAction(timer: SleepTimer, now: number, remaining: number, fading: boolean): SleepAction {
-	if (timer.kind === "off") return "none";
-	const left = timer.kind === "at" ? (timer.endsAt - now) / 1000 : remaining;
-	if (!Number.isFinite(left)) return "none";
-	if (left <= 0.3) return "pause";
-	if (!fading && left <= SLEEP_FADE_S) return "fade";
-	return "none";
-}
-
-export function sleepLabel(timer: SleepTimer, now: number): string {
-	if (timer.kind === "off") return "Sleep timer";
-	if (timer.kind === "end-of-track") return "Sleep: end of track";
-	const min = Math.max(0, Math.ceil((timer.endsAt - now) / 60000));
-	return `Sleep: ${min} min`;
-}
+// The sleep timer moved to @shared/player/sleep so the offline player shares it.
+export { type SleepAction, type SleepTimer, sleepAction, sleepLabel } from "@shared/player/sleep";
