@@ -20,4 +20,10 @@ describe("exposeTestHooks", () => {
 		expect(globalThis.__YTMD_TEST__?.services).toBe(serviceCollection);
 		expect(globalThis.__YTMD_TEST__?.getMainWindow).toBe(getMainWindow);
 	});
+
+	it("exposes the track service when given", () => {
+		const track = { getTrackState: () => null };
+		exposeTestHooks({ serviceCollection, getMainWindow, track }, { YTMD_E2E: "1" });
+		expect(globalThis.__YTMD_TEST__?.track).toBe(track);
+	});
 });

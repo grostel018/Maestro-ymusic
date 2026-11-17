@@ -1,4 +1,5 @@
 // Must stay the first import: sets userData before any module below opens a store (see userDataBootstrap.ts).
+import { trackService } from "@main/trpc/routers/track/service";
 import "@main/infra/userDataBootstrap";
 
 import { createEventCollection, createServiceCollection } from "@main/core/serviceCollection";
@@ -144,6 +145,7 @@ const runApp = async function () {
 		exposeTestHooks({
 			serviceCollection,
 			getMainWindow: () => mainWindow,
+			track: trackService,
 			googleLogin: {
 				open: (url) => googleLoginPopup(url, mainWindow.main),
 				state: getGoogleLoginState,

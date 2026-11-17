@@ -6,6 +6,8 @@ export type TestHooks = {
 	getMainWindow: () => unknown;
 	/** Google sign-in window: open on any URL (a mock page in tests), read its state, retry. */
 	googleLogin?: { open(url: string): Promise<boolean>; state(): unknown; retry(): boolean; importFromFirefox(): Promise<unknown> };
+	/** The track service (a module singleton, not in the service collection). */
+	track?: unknown;
 };
 
 declare global {
@@ -15,9 +17,9 @@ declare global {
 
 /** Exposes main-process internals to the e2e bench; a no-op unless `YTMD_E2E=1`. */
 export function exposeTestHooks(
-	o: { serviceCollection: ServiceCollection; getMainWindow: () => unknown; googleLogin?: TestHooks["googleLogin"] },
+	o: { serviceCollection: ServiceCollection; getMainWindow: () => unknown; googleLogin?: TestHooks["googleLogin"]; track?: unknown },
 	env: NodeJS.ProcessEnv = process.env,
 ) {
 	if (env.YTMD_E2E !== "1") return;
-	globalThis.__YTMD_TEST__ = { services: o.serviceCollection, getMainWindow: o.getMainWindow, googleLogin: o.googleLogin };
+	globalThis.__YTMD_TEST__ = { services: o.serviceCollection, getMainWindow: o.getMainWindow, googleLogin: o.googleLogin, track: o.track };
 }

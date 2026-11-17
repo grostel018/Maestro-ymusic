@@ -1,6 +1,7 @@
 import { serverMain } from "@main/ipc/serverEvents";
 import { fromIpcEvent } from "@main/trpc/fromIpcEvent";
 import { provider } from "@main/trpc/provider";
+import { trackService } from "@main/trpc/routers/track/service";
 import type { OfflineCommand } from "@shared/track/offlineTrack";
 import { publicProcedure, router } from "@shared/trpc/trpc";
 import { z } from "zod";
@@ -69,9 +70,10 @@ export const downloadsRouter = router({
 				volume: z.number().min(0).max(100),
 			}),
 		)
-		.mutation(({ ctx, input }) => {
+		.mutation(({ input }) => {
 			const { playing, position, volume, ...item } = input;
-			return provider(ctx, "track").ingestOffline({ item, playing, position, volume });
+			// The track service is a module singleton (not in the service collection), like in the track router.
+			return trackService.ingestOffline({ item, playing, position, volume });
 		}),
 	/** Seconds actually played offline, for Your stats (same shape the YouTube Music page sends). */
 	reportListen: publicProcedure
