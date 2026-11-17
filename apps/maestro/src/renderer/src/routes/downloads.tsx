@@ -14,11 +14,16 @@ import {
 	WifiOffIcon,
 	XIcon,
 } from "lucide-react";
-import { type CSSProperties, useCallback, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { OutputMenu } from "@/components/offline-player/output-menu";
 import { PlayerBar } from "@/components/offline-player/player-bar";
 import { QueuePanel } from "@/components/offline-player/queue-panel";
+import { SleepMenu, useSleepTimer } from "@/components/offline-player/sleep-menu";
+import { SpeedMenu, stepSpeed } from "@/components/offline-player/speed-menu";
 import { useOfflinePlayer } from "@/components/offline-player/use-offline-player";
+import { useShortcuts } from "@/components/offline-player/use-shortcuts";
 import { Button } from "@/components/ui/button";
+import { useSettingsState } from "@/hooks/use-settings";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 
@@ -136,8 +141,35 @@ function DownloadsPage() {
 	const commonError = failed.length > 1 && failed.every((f) => f.error === failed[0].error) ? failed[0].error : null;
 	const totalSize = items.reduce((sum, i) => sum + i.size, 0);
 
-	const player = useOfflinePlayer(items);
+	const audioRef = useRef<HTMLAudioElement>(null);
+	const sleep = useSleepTimer(audioRef);
+	const [volumeRatio] = useSettingsState("volumeRatio.enabled", true);
+	const volumeCurve = useCallback((v: number) => (volumeRatio ? v ** 3 : v), [volumeRatio]);
+	const player = useOfflinePlayer(items, { audioRef, onBoundary: sleep.onBoundary, gain: sleep.gain, volumeCurve });
 	const { current, playing } = player;
+	// Speed is per player and not saved (spec); pitch follows the shared setting.
+	const [rate, setRate] = useState(1);
+	const [keepPitch] = useSettingsState("player.keepPitch", true);
+	useEffect(() => {
+		const el = audioRef.current;
+		if (!el) return;
+		el.defaultPlaybackRate = rate;
+		el.playbackRate = rate;
+		el.preservesPitch = keepPitch;
+	}, [rate, keepPitch, current?.videoId]);
+	const changeVolume = (by: number) => {
+		player.setMuted(false);
+		player.setVolume((v) => Math.max(0, Math.min(1, Math.round((v + by) * 100) / 100)));
+	};
+	useShortcuts((a) => {
+		const el = audioRef.current;
+		if (a === "toggle") player.toggle();
+		else if (a === "seek+5" && el) player.seek(el.currentTime + 5);
+		else if (a === "seek-5" && el) player.seek(el.currentTime - 5);
+		else if (a === "speed+") setRate((r) => stepSpeed(r, 1));
+		else if (a === "speed-") setRate((r) => stepSpeed(r, -1));
+		else if (a === "mute") player.setMuted((m) => !m);
+	});
 	const [queueOpen, setQueueOpen] = useState(false);
 	const playList = (list: Item[], startAt = 0, shuffle = false) => player.play(list, shuffle ? undefined : list[startAt]?.videoId, shuffle);
 	const back = () => {
@@ -417,7 +449,20 @@ function DownloadsPage() {
 			{queueOpen && player.q && <QueuePanel player={player} onClose={() => setQueueOpen(false)} />}
 			</div>
 
-			<PlayerBar player={player} queueOpen={queueOpen && !!player.q} onToggleQueue={() => setQueueOpen((o) => !o)} canPlay={items.length > 0} />
+			<PlayerBar
+				player={player}
+				queueOpen={queueOpen && !!player.q}
+				onToggleQueue={() => setQueueOpen((o) => !o)}
+				canPlay={items.length > 0}
+				onVolumeWheel={(e) => changeVolume(e.deltaY < 0 ? 0.05 : -0.05)}
+				extra={
+					<>
+						<SpeedMenu rate={rate} onRate={setRate} />
+						<SleepMenu sleep={sleep} />
+						<OutputMenu elements={[audioRef, player.preloadRef]} />
+					</>
+				}
+			/>
 		</div>
 	);
 }

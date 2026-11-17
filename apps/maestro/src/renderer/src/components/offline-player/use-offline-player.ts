@@ -41,8 +41,20 @@ const LISTEN_EVERY_S = 15;
  * so tray, Discord, Last.fm, stats and the API follow it.
  * `onBoundary` lets the sleep timer count songs; returning true stops playback at that boundary.
  */
-export function useOfflinePlayer(items: PlayerItem[], opts: { onBoundary?: (b: Boundary) => boolean } = {}) {
-	const audioRef = useRef<HTMLAudioElement>(null);
+export function useOfflinePlayer(
+	items: PlayerItem[],
+	opts: {
+		onBoundary?: (b: Boundary) => boolean;
+		/** Slider value (0–1) to element volume, e.g. the volume-ratio curve. */
+		volumeCurve?: (v: number) => number;
+		/** Extra 0–1 gain, e.g. the sleep timer's fade. */
+		gain?: number;
+		/** The media element, when the page shares it with other hooks (sleep timer, speed, speaker). */
+		audioRef?: React.RefObject<HTMLAudioElement | null>;
+	} = {},
+) {
+	const ownAudioRef = useRef<HTMLAudioElement>(null);
+	const audioRef = opts.audioRef ?? ownAudioRef;
 	const preloadRef = useRef<HTMLAudioElement>(null);
 	const [q, setQ] = useState<QueueState | null>(null);
 	const [playing, setPlaying] = useState(false);
@@ -244,9 +256,10 @@ export function useOfflinePlayer(items: PlayerItem[], opts: { onBoundary?: (b: B
 
 	useEffect(() => {
 		if (!audioRef.current) return;
-		audioRef.current.volume = volume;
+		const curve = opts.volumeCurve ?? ((v: number) => v);
+		audioRef.current.volume = Math.max(0, Math.min(1, curve(volume) * (opts.gain ?? 1)));
 		audioRef.current.muted = muted;
-	}, [volume, muted]);
+	}, [volume, muted, opts.volumeCurve, opts.gain]);
 
 	// OS media keys.
 	useEffect(() => {
