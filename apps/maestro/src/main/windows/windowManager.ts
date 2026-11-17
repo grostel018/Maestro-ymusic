@@ -258,6 +258,7 @@ export class WindowManager {
 		this.downloadsView = null;
 		this.downloadsForOffline = false;
 		this.downloadsHasQueue = false;
+		serverMain.emit("downloads:closed");
 		if (view && this.mainWindow && !this.mainWindow.isDestroyed()) {
 			if (this.mainWindow.contentView.children.includes(view)) this.mainWindow.contentView.removeChildView(view);
 			// Closing the page stops its player.

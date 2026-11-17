@@ -4,6 +4,7 @@ import { getAppWindows, getLifecycleContext, getYoutubeView, onAfterInit, requir
 import { thumbnailCache } from "@main/services/thumbnailCache";
 import { YtmClient } from "@main/ytm/ytm-client";
 import IPC_EVENT_NAMES from "@shared/constants/eventNames";
+import { ActivePlayer } from "@shared/player/activePlayer";
 import {
 	decideLastFmSession,
 	isProgressWrap,
@@ -145,7 +146,7 @@ export class TrackService {
 	/** Delayed post-scrobble NP — clear on new listen. */
 	private postScrobbleNpTimer: ReturnType<typeof setTimeout> | null = null;
 	/** Which player integrations follow and command: the one that last started playing (offline player parity spec). */
-	private activePlayer: "online" | "offline" = "online";
+	private readonly active = new ActivePlayer();
 	private offlineState = { playing: false, progress: 0, volume: 100 };
 	/** YouTube Music page events that arrived while the offline player was active, replayed when the page plays. */
 	private deferredOnline: { info?: unknown[]; title?: unknown[] } = {};
@@ -200,7 +201,7 @@ export class TrackService {
 		this._ipcBound = true;
 		// No debounce on track info — watcher already dedupes; UI must stay instant
 		const onInfo = (ev: unknown, data: Parameters<TrackService["onTrackInfo"]>[1]) => {
-			if (this.activePlayer === "offline") this.deferredOnline.info = [ev, data];
+			if (this.active.current === "offline") this.deferredOnline.info = [ev, data];
 			else void this.onTrackInfo(ev, data);
 		};
 		const onTitle = debounce(this.onTitleChange.bind(this), 25);
@@ -208,8 +209,15 @@ export class TrackService {
 		const onProgress = debounce(this.onPlayStateProgress.bind(this), 50);
 		serverMain.on("track:info-req", onInfo);
 		serverMain.on(IPC_EVENT_NAMES.TRACK_LIKE_STATE, (ev, data) => this.onLikeState(ev, data));
+		// Downloads closed: nothing plays offline any more, so the page gets its controls back at once.
+		serverMain.on("downloads:closed", () => {
+			const r = this.active.downloadsClosed();
+			if (!r.released) return;
+			this.restoreOnline({ pauseOffline: false, onlineTrackId: r.onlineTrackId });
+			this.patchTrackState({ playing: false });
+		});
 		serverMain.on("track:title-change", (ev: unknown, id: string) => {
-			if (this.activePlayer === "offline") this.deferredOnline.title = [ev, id];
+			if (this.active.current === "offline") this.deferredOnline.title = [ev, id];
 			else onTitle(ev, id);
 		});
 		// While the offline player is active, the page's own events are ignored until it starts playing.
@@ -238,7 +246,7 @@ export class TrackService {
 	}
 
 	async executeCommand<T = unknown>(command: string, ...args: unknown[]): Promise<T> {
-		if (this.activePlayer === "offline") {
+		if (this.active.current === "offline") {
 			const routed = offlineCommand(command, args, this.offlineState);
 			if (routed) {
 				serverMain.emit("downloads:command", routed.command);
@@ -251,23 +259,24 @@ export class TrackService {
 
 	/** The YouTube Music page reported a play state: it applies unless the offline player is active and the page isn't playing. */
 	private pageMayReport(isPlaying: boolean): boolean {
-		if (this.activePlayer === "online") return true;
-		if (!isPlaying) return false;
-		this.becomeOnline();
-		return true;
+		const r = this.active.page(isPlaying, Date.now());
+		if (r === "takeover") this.restoreOnline({ pauseOffline: true, onlineTrackId: this.active.lastReleasedOnlineTrackId });
+		return r !== "ignore";
 	}
 
-	/** The YouTube Music page started playing: it is the active player again and the offline player pauses. */
-	private becomeOnline(): void {
-		if (this.activePlayer === "online") return;
-		this.activePlayer = "online";
+	/**
+	 * The YouTube Music page is the active player again: the offline player pauses (when it lost to a playing page),
+	 * then the page's track shows again — what it sent meanwhile, or else the song that was showing before.
+	 */
+	private restoreOnline(o: { pauseOffline: boolean; onlineTrackId: string | null }): void {
 		this.offlineState.playing = false;
-		serverMain.emit("downloads:command", { command: "pause" });
+		if (o.pauseOffline) serverMain.emit("downloads:command", { command: "pause" });
 		const { info, title } = this.deferredOnline;
 		this.deferredOnline = {};
 		this._pendingTrackId = null;
 		if (info) void this.onTrackInfo(info[0], info[1] as Parameters<TrackService["onTrackInfo"]>[1]);
 		if (title) this.onTitleChange(title[0], String(title[1]));
+		if (!info && !title && o.onlineTrackId && trackCollection.findById(o.onlineTrackId)) void this.onActiveTrack(o.onlineTrackId);
 	}
 
 	/**
@@ -277,12 +286,11 @@ export class TrackService {
 	async ingestOffline(state: { item: OfflineItem; playing: boolean; position: number; volume: number }): Promise<void> {
 		const { item, playing } = state;
 		const position = Math.max(0, Number(state.position) || 0);
-		if (playing && this.activePlayer === "online") {
-			this.activePlayer = "offline";
+		if (playing && this.active.offline(true, Date.now(), this._trackState?.id || null)) {
 			// Straight to the page: executeCommand would now route to the offline player.
 			void YtmClient.cmd("api", "pause").catch(() => undefined);
 		}
-		if (this.activePlayer !== "offline") return;
+		if (this.active.current !== "offline") return;
 		this.offlineState = { playing, progress: position, volume: state.volume };
 		if (this._trackState?.id !== item.videoId) {
 			const track = offlineTrackData(item, Date.now() / 1000);
