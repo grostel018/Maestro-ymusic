@@ -58,6 +58,9 @@ function playlistIdOf(player: PlayerApi | null): string {
 	}
 }
 
+/** How long a failed continuation waits before it is tried again. */
+const RETRY_FAILED_MS = 30_000;
+
 const queueContinueRenderer: RendererPluginRegistration = {
 	id: "queue-continue",
 	enabled: true,
@@ -80,6 +83,8 @@ const queueContinueRenderer: RendererPluginRegistration = {
 	onPlayerApiReady(playerApi, ctx) {
 		let inFlight = false;
 		let fetchedToken = "";
+		/** A token whose fetch failed is not asked again for a while: tick runs on every store change. */
+		let failed: { token: string; at: number } | null = null;
 		let unsub: (() => void) | undefined;
 
 		const tick = () => {
@@ -87,6 +92,7 @@ const queueContinueRenderer: RendererPluginRegistration = {
 			unsub ??= resolveYtmStore()?.subscribe?.(tick);
 			const token = readQueueContinuation();
 			if (!token || token === fetchedToken) return;
+			if (failed?.token === token && Date.now() - failed.at < RETRY_FAILED_MS) return;
 			const store = resolveYtmStore();
 			const items = store?.getState()?.queue?.items ?? [];
 			const player = getPagePlayerApi() ?? playerApi;
@@ -106,6 +112,7 @@ const queueContinueRenderer: RendererPluginRegistration = {
 				.then((res) => {
 					const parsed = parseNextPanel(res);
 					if (!parsed) {
+						failed = { token, at: Date.now() };
 						ctx.log.warn("queue continuation: empty /next panel");
 						return;
 					}
@@ -113,7 +120,10 @@ const queueContinueRenderer: RendererPluginRegistration = {
 					writeQueueContinuation(parsed.continuation);
 					fetchedToken = token;
 				})
-				.catch((err) => ctx.log.warn("queue continuation fetch failed", err))
+				.catch((err) => {
+					failed = { token, at: Date.now() };
+					ctx.log.warn("queue continuation fetch failed", err);
+				})
 				.finally(() => {
 					inFlight = false;
 				});
