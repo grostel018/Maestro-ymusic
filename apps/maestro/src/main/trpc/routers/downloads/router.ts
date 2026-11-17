@@ -1,4 +1,5 @@
 import { fromIpcEvent } from "@main/trpc/fromIpcEvent";
+import { serverMain } from "@main/ipc/serverEvents";
 import { provider } from "@main/trpc/provider";
 import { publicProcedure, router } from "@shared/trpc/trpc";
 import { z } from "zod";
@@ -24,6 +25,10 @@ export const downloadsRouter = router({
 	showInFolder: publicProcedure.input(videoId).mutation(({ ctx, input }) => provider(ctx, "downloads").showInFolder(input.videoId)),
 	openFolder: publicProcedure.mutation(({ ctx }) => provider(ctx, "downloads").openFolder()),
 	chooseFolder: publicProcedure.input(z.object({ move: z.boolean() })).mutation(({ ctx, input }) => provider(ctx, "downloads").chooseFolder(input.move)),
+	/** Shows the Downloads page in the main window, in YouTube Music's place. */
+	openPage: publicProcedure.mutation(() => void serverMain.emit("downloads:open")),
+	/** `retry`: load YouTube Music again (after being offline). */
+	closePage: publicProcedure.input(z.object({ retry: z.boolean().optional() })).mutation(({ input }) => void serverMain.emit("downloads:close", { retry: !!input.retry })),
 	onStatus: publicProcedure.subscription(() => fromIpcEvent<DownloadStatus>("downloads:status")),
 	onChange: publicProcedure.subscription(() => fromIpcEvent<{ statuses: DownloadStatus[]; downloaded: string[] }>("downloads:all")),
 });

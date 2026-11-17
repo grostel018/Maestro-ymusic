@@ -54,6 +54,7 @@ If you love YouTube Music's library but hate the bare-bones official desktop app
 - **One-click Song/Video switch** (`V`). Keeps your position and finds the song version of a music video, or the video of a song, when YouTube doesn't offer one.
 - **Video controls.** Quality, speed, captions, loop, picture-in-picture, theater and full screen, with YouTube's keyboard shortcuts.
 - **SponsorBlock for music videos.** Skips non-music parts, with an Undo and an off switch.
+- **Offline downloads.** Download a song, a playlist or an album as tagged audio files (with cover) to a folder you choose, and play them from Maestro's Downloads page with no internet. Uses yt-dlp and ffmpeg, fetched and checked on first use.
 - **Game mode.** While a game or another app is in front, Maestro lowers its own priority and keeps the music playing.
 
 ### Audio lab
@@ -153,3 +154,5 @@ The complete list, with pinned versions and licenses, is in [`docs/REUSE.md`](./
 ## Disclaimer
 
 Maestro is an unofficial project and isn't affiliated with or endorsed by Google, YouTube or Venipa. YouTube and YouTube Music are trademarks of Google LLC.
+
+Downloading from YouTube goes against YouTube's terms of service. The download feature is for personal use; you are responsible for how you use it.

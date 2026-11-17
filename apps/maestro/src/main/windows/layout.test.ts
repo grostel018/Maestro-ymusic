@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeViewBounds, createFullscreenRestore, isGoogleSignInUrl, isReachableOnDisplays, isYoutubeViewUrl, nextSavedWindowState } from "./layout";
+import { computeViewBounds, createFullscreenRestore, isGoogleSignInUrl, isOfflineLoadError, isReachableOnDisplays, isYoutubeViewUrl, nextSavedWindowState } from "./layout";
 
 describe("YouTube view navigation", () => {
 	it("recognises Google sign-in hosts, not look-alikes", () => {
@@ -105,5 +105,15 @@ describe("nextSavedWindowState", () => {
 
 	it("treats a pending html fullscreen as fullscreen even before the window reports it", () => {
 		expect(nextSavedWindowState(prev, { ...normal, bounds: monitor }, { maximized: false, fullScreen: false })).toEqual(prev);
+	});
+});
+
+describe("isOfflineLoadError", () => {
+	it("treats network failures of the main page as offline", () => {
+		for (const code of [-106, -105, -109, -21, -2]) expect(isOfflineLoadError(code, true)).toBe(true);
+	});
+	it("ignores aborted loads and sub-frames", () => {
+		expect(isOfflineLoadError(-3, true)).toBe(false);
+		expect(isOfflineLoadError(-106, false)).toBe(false);
 	});
 });

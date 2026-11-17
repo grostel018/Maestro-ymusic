@@ -87,3 +87,11 @@ export function nextSavedWindowState(
 	const { x, y, width, height } = cur.bounds;
 	return { ...prev, x, y, width, height, maximized: false };
 }
+
+/** Chromium network errors that mean "no internet" (disconnected, DNS, unreachable, network changed, failed). */
+const OFFLINE_ERRORS = new Set([-106, -105, -109, -21, -2]);
+
+/** The YouTube view's own page failed to load for lack of network: show Downloads instead. */
+export function isOfflineLoadError(errorCode: number, isMainFrame: boolean): boolean {
+	return isMainFrame && OFFLINE_ERRORS.has(errorCode);
+}

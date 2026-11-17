@@ -1,7 +1,7 @@
 import { cn } from "@renderer/lib/utils";
 import { resolveArtworkUrl } from "@shared/track/thumbnail";
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowLeftIcon, ArrowRightIcon, MaximizeIcon, Minimize2, SearchIcon, XIcon } from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, DownloadIcon, MaximizeIcon, Minimize2, SearchIcon, XIcon } from "lucide-react";
 import { useMemo } from "react";
 import { ToolbarOptions } from "@/components/toolbar-options";
 import { Spinner } from "@/components/ui/spinner";
@@ -10,6 +10,7 @@ import { useMainWindowState } from "@/hooks/use-settings";
 import { useTrack, useTrackProgress } from "@/hooks/use-track";
 import { useUpdater } from "@/hooks/use-updater";
 import { useWindowControls } from "@/hooks/use-window-controls";
+import { trpc } from "@/lib/trpc";
 import { useSurfaceBackground } from "@/lib/surface";
 
 export const Route = createFileRoute("/youtube/toolbar")({
@@ -26,6 +27,7 @@ function YoutubeToolbarPage() {
 	const { updateInfo, downloaded, progress, isPending: updatePending, status, runUpdate } = useUpdater();
 	const { minimize, maximize, quit } = useWindowControls();
 	const { goback, goforward, playerPage, search } = useNavigation();
+	const openDownloads = trpc.downloads.openPage.useMutation();
 	const playback = useTrackProgress();
 	const surface = useSurfaceBackground();
 
@@ -63,6 +65,9 @@ function YoutubeToolbarPage() {
 					</button>
 					<button type="button" title="Search" className="control-button cursor-pointer" onClick={() => void search()}>
 						<SearchIcon />
+					</button>
+					<button type="button" title="Downloads" aria-label="Downloads" className="control-button cursor-pointer" onClick={() => openDownloads.mutate()}>
+						<DownloadIcon />
 					</button>
 				</div>
 				<div className="flex min-w-0 flex-1 items-center gap-2">

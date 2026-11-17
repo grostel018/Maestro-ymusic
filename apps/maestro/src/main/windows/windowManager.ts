@@ -11,7 +11,7 @@ import { app, BrowserWindow, BrowserWindowConstructorOptions, shell, WebContents
 import { debounce } from "lodash-es";
 import { join } from "path";
 import appIconPath from "~/build/favicon.ico?asset";
-import { computeViewBounds, createFullscreenRestore, isGoogleSignInUrl, isYoutubeViewUrl } from "./layout";
+import { computeViewBounds, createFullscreenRestore, isGoogleSignInUrl, isOfflineLoadError, isYoutubeViewUrl } from "./layout";
 import { createWindowContext } from "./mappedWindow";
 import { createApiView, createView, googleLoginPopup } from "./view";
 import { pushWindowStates } from "./webContentUtils";
@@ -68,6 +68,10 @@ export class WindowManager {
 	private mainWindow: BrowserWindow | null = null;
 	private views: WindowViews | null = null;
 	private loadingView: WebContentsView | null = null;
+	/** Maestro's Downloads page; while open it takes the YouTube view's place (spec 2026-11-17 §5). */
+	private downloadsView: WebContentsView | null = null;
+	/** Downloads was opened because YouTube Music could not load: close it once YouTube loads again. */
+	private downloadsForOffline = false;
 	private isGoogleLoginProcessing = false;
 	private userAgentResolved: string | null = null;
 	/** YouTube Music's own fullscreen (HTML fullscreen) is active: the toolbar is hidden. */
@@ -218,7 +222,57 @@ export class WindowManager {
 		);
 	}
 
+	private async openDownloads(offline: boolean) {
+		if (!this.mainWindow || this.mainWindow.isDestroyed()) return;
+		this.downloadsForOffline = this.downloadsForOffline || offline;
+		if (!this.downloadsView || this.downloadsView.webContents.isDestroyed()) {
+			this.downloadsView = await createApiView(
+				"/downloads",
+				(view) => {
+					view.setBackgroundColor("#030404");
+				},
+				{ lockSize: false },
+			);
+		}
+		const { contentView } = this.mainWindow;
+		// No YouTube to wait for: the loading screen would cover Downloads for good.
+		if (offline && this.loadingView && contentView.children.includes(this.loadingView)) contentView.removeChildView(this.loadingView);
+		contentView.addChildView(this.downloadsView);
+		if (this.views && !this.htmlFullscreen) contentView.addChildView(this.views.toolbarView);
+		this.applyLayout();
+	}
+
+	private closeDownloads(retry: boolean) {
+		const view = this.downloadsView;
+		this.downloadsView = null;
+		this.downloadsForOffline = false;
+		if (view && this.mainWindow && !this.mainWindow.isDestroyed()) {
+			if (this.mainWindow.contentView.children.includes(view)) this.mainWindow.contentView.removeChildView(view);
+			// Closing the page stops its player.
+			if (!view.webContents.isDestroyed()) view.webContents.close();
+		}
+		if (retry && this.views) {
+			serverMain.emit("app.loadStart");
+			void this.views.youtubeView.webContents.loadURL(defaultUrl).catch(() => undefined);
+		}
+	}
+
 	private setupYoutubeViewEvents(view: WebContentsView) {
+		// A failed load can still end in did-finish-load (the error page); only a clean load closes Downloads again.
+		let loadFailed = false;
+		view.webContents.on("did-start-loading", () => {
+			loadFailed = false;
+		});
+		view.webContents.on("did-fail-load", (_ev, errorCode, _desc, url, isMainFrame) => {
+			if (!isOfflineLoadError(errorCode, isMainFrame)) return;
+			loadFailed = true;
+			logger.warn("youtube view offline", { errorCode, url });
+			void this.openDownloads(true);
+		});
+		view.webContents.on("did-finish-load", () => {
+			if (this.downloadsForOffline && !loadFailed) this.closeDownloads(false);
+		});
+
 		let lastLocation: string;
 
 		view.webContents.on("did-navigate", (ev, location) => {
@@ -341,6 +395,8 @@ export class WindowManager {
 		}, 100);
 
 		serverMain.on("app.loadEnd", handleLoadEnd);
+		serverMain.on("downloads:open", () => void this.openDownloads(false));
+		serverMain.on("downloads:close", (_ev, opts?: { retry?: boolean }) => this.closeDownloads(!!opts?.retry));
 		serverMain.on("app.loadStart", handleLoadStart);
 	}
 	private setupWindowEvents() {
@@ -376,6 +432,7 @@ export class WindowManager {
 		const { toolbarView, youtubeView } = this.views;
 		const { toolbar, youtube } = this.computeBounds();
 		youtubeView.setBounds(youtube);
+		if (this.downloadsView && !this.downloadsView.webContents.isDestroyed()) this.downloadsView.setBounds(youtube);
 		if (!toolbar) {
 			if (contentView.children.includes(toolbarView)) contentView.removeChildView(toolbarView);
 		} else {

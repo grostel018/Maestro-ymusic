@@ -55,7 +55,8 @@ export function largestArt(url: string | undefined): string | undefined {
 	return url ? hdArt(url) : undefined;
 }
 
-function parseItem(item: Obj): SearchHit | null {
+/** One `musicResponsiveListItemRenderer` row (search, playlist, album). */
+export function parseItem(item: Obj): SearchHit | null {
 	const r = item?.musicResponsiveListItemRenderer;
 	if (!r) return null;
 	const col = (i: number): Obj[] => r.flexColumns?.[i]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs ?? [];
