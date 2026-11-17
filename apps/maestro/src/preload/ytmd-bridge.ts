@@ -20,6 +20,9 @@ const EMIT_ALLOWLIST = new Set<string>([
 	"playlists:reply",
 	"playlists:menu-request",
 	"playlists:action",
+	"downloads:add",
+	"downloads:open",
+	"downloads:status-request",
 	"sponsorblock:request",
 	"stats:listen",
 ]);
@@ -33,6 +36,8 @@ const PUSH_ALLOWLIST = new Set<string>([
 	"facts:result",
 	"playlists:cmd",
 	"playlists:menu",
+	"downloads:status",
+	"downloads:all",
 	"sponsorblock:segments",
 ]);
 

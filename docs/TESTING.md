@@ -2,7 +2,7 @@
 
 **The rule (owner, 2026-10-27): one app run per phase.**
 - While building: `pnpm t:unit` and the typecheck. Don't launch the app.
-- At the end of the phase: `pnpm t:smoke`, once (3–5 min). If something fails, fix it and rerun only
+- At the very end of the work: one app run of about 1 minute (owner rule, 2026-11-17). Each new feature also gets one real run of its own path (for example one real download) before it is called done, and code built against an outside service (YouTube, GitHub releases, yt-dlp) is checked against a real response, not a hand-made fixture. If something fails, fix it and rerun only
   that scenario (`node tests/e2e/run.ts sNN`).
 - `pnpm t:full` and `pnpm t:perf` run only when the owner asks.
 - A phase adds at most one smoke scenario, for its main path. Don't write a scenario per feature or

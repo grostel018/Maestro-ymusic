@@ -4,6 +4,7 @@ import type { LyricsExtrasRequest, LyricsExtrasResult } from "@shared/lyrics/ext
 import { readLineStyle } from "./lyrics/line-style";
 import { createKaraokeStage, type KaraokeStage } from "./lyrics/stage";
 import { createLyricsStore } from "./lyrics/store";
+import type { YtmLyrics } from "./lyrics/ytm-lyrics";
 import { createTabMount, selectLyricsTab, type TabMountHandle } from "./lyrics/tab-mount";
 import { seekPlayer, shouldSkipTrack, trackInfoFromMainWorld } from "./lyrics/track";
 import type { TrackSearchInfo } from "./lyrics/types";
@@ -35,7 +36,15 @@ interface LyricsRuntime {
 }
 
 const runtime: LyricsRuntime = {
-	store: createLyricsStore(),
+	store: createLyricsStore({
+		fetchYtm: async (videoId) => {
+			try {
+				return ((await lyricsPage.request("ytmLyrics", videoId)) as YtmLyrics | null) ?? null;
+			} catch {
+				return null;
+			}
+		},
+	}),
 	mount: null,
 	renderer: null,
 	stage: null,

@@ -5,6 +5,15 @@ export function stringSimilarity(a: string, b: string): number {
 	if (!x || !y) return 0;
 	if (x === y) return 1;
 	if (x.includes(y) || y.includes(x)) return 0.95;
+	return diceSimilarity(x, y);
+}
+
+/** Dice similarity on bigrams with no "one contains the other" shortcut ("Love Me" vs "Love Me Now" stays low). */
+export function diceSimilarity(a: string, b: string): number {
+	const x = a.toLowerCase().trim();
+	const y = b.toLowerCase().trim();
+	if (!x || !y) return 0;
+	if (x === y) return 1;
 
 	const bigrams = (s: string): Map<string, number> => {
 		const map = new Map<string, number>();

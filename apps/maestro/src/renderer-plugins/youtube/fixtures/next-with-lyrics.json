@@ -1,0 +1,55 @@
+{
+ "_note": "Trimmed from a real music.youtube.com /next response (2026-11-17, WEB_REMIX, signed out).",
+ "contents": {
+  "singleColumnMusicWatchNextResultsRenderer": {
+   "tabbedRenderer": {
+    "watchNextTabbedResultsRenderer": {
+     "tabs": [
+      {
+       "tabRenderer": {
+        "title": "Up next"
+       }
+      },
+      {
+       "tabRenderer": {
+        "title": "Lyrics",
+        "endpoint": {
+         "clickTrackingParams": "CBYQpLQFGAUiEwiNjoWplI-YAxXoCwYAHYOeG-PKAQQavNrK",
+         "browseEndpoint": {
+          "browseId": "MPLYt_6AEOVn4k62q",
+          "browseEndpointContextSupportedConfigs": {
+           "browseEndpointContextMusicConfig": {
+            "pageType": "MUSIC_PAGE_TYPE_TRACK_LYRICS"
+           }
+          }
+         }
+        }
+       }
+      },
+      {
+       "tabRenderer": {
+        "title": "Comments"
+       }
+      },
+      {
+       "tabRenderer": {
+        "title": "Related",
+        "endpoint": {
+         "clickTrackingParams": "CBIQlM0FGAciEwiNjoWplI-YAxXoCwYAHYOeG-PKAQQavNrK",
+         "browseEndpoint": {
+          "browseId": "MPTRt_6AEOVn4k62q",
+          "browseEndpointContextSupportedConfigs": {
+           "browseEndpointContextMusicConfig": {
+            "pageType": "MUSIC_PAGE_TYPE_TRACK_RELATED"
+           }
+          }
+         }
+        }
+       }
+      }
+     ]
+    }
+   }
+  }
+ }
+}

@@ -2,12 +2,21 @@ pre-commit:
   parallel: true
   commands:
     format:
-      glob: 
-        - apps/ytmdesktop2/src/**/*.{js,jsx,ts,tsx,json,yaml,yml,html,vue}
-        - apps/ytmdesktop2/vite.config.ts
-        - apps/ytmdesktop2/electron.vite.config.ts
-        - apps/ytmdesktop2/tsconfig.*.json
-        - apps/ytmdesktop2/tsconfig.json
-        - "!apps/ytmdesktop2/src/**/*.generated.d.ts"
+      glob:
+        - apps/maestro/src/**/*.{js,jsx,ts,tsx,json,yaml,yml,html}
+        - apps/maestro/vite.config.ts
+        - apps/maestro/electron.vite.config.ts
+        - apps/maestro/tsconfig.*.json
+        - apps/maestro/tsconfig.json
+        - "!apps/maestro/src/**/*.generated.d.ts"
       run: npx @biomejs/biome check --write --no-errors-on-unmatched --files-ignore-unknown=true --colors=off {staged_files}
       stage_fixed: true
+
+# The safety net while GitHub Actions can't run: nothing is pushed with failing unit tests or type errors.
+pre-push:
+  parallel: true
+  commands:
+    unit:
+      run: pnpm t:unit
+    typecheck:
+      run: pnpm typecheck

@@ -61,7 +61,7 @@ jobs:
         run: |
           node <<'EOF'
           const fs = require('fs');
-          const p = 'apps/ytmdesktop2/package.json';
+          const p = 'apps/maestro/package.json';
           const text = fs.readFileSync(p, 'utf8');
           const next = text.replace(/("version"\s*:\s*")[^"]*(")/, `$1${process.env.APP_VERSION}$2`);
           fs.writeFileSync(p, next);
@@ -100,18 +100,18 @@ jobs:
       - name: Verify compile output
         shell: bash
         run: |
-          test -f apps/ytmdesktop2/out/main/index.js
-          test -f apps/ytmdesktop2/resources/embeds/now-playing/index.html
-          test -f apps/ytmdesktop2/src/preload/generated/ytmd-world0-host.js
+          test -f apps/maestro/out/main/index.js
+          test -f apps/maestro/resources/embeds/now-playing/index.html
+          test -f apps/maestro/src/preload/generated/ytmd-world0-host.js
 
-      # out/ + resources/embeds (sidecar). upload-artifact strips common apps/ytmdesktop2 prefix.
+      # out/ + resources/embeds (sidecar). upload-artifact strips common apps/maestro prefix.
       - name: Upload compile artifact
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.COMPILE_ARTIFACT }}
           path: |
-            apps/ytmdesktop2/out
-            apps/ytmdesktop2/resources/embeds
+            apps/maestro/out
+            apps/maestro/resources/embeds
           if-no-files-found: error
           retention-days: 3
 
@@ -152,7 +152,7 @@ jobs:
         run: |
           node <<'EOF'
           const fs = require('fs');
-          const p = 'apps/ytmdesktop2/package.json';
+          const p = 'apps/maestro/package.json';
           const text = fs.readFileSync(p, 'utf8');
           const next = text.replace(/("version"\s*:\s*")[^"]*(")/, `$1${process.env.APP_VERSION}$2`);
           fs.writeFileSync(p, next);
@@ -183,20 +183,20 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           npm_config_msvs_version: "2026"
 
-      # Artifact root is out/ + resources/ (common apps/ytmdesktop2 prefix stripped).
+      # Artifact root is out/ + resources/ (common apps/maestro prefix stripped).
       - name: Download compile artifact
         uses: actions/download-artifact@v8
         with:
           name: ${{ env.COMPILE_ARTIFACT }}
-          path: apps/ytmdesktop2
+          path: apps/maestro
 
       - name: Verify compile output
         shell: pwsh
         run: |
-          if (-not (Test-Path -LiteralPath "apps/ytmdesktop2/out/main/index.js")) {
-            throw "missing apps/ytmdesktop2/out/main/index.js"
+          if (-not (Test-Path -LiteralPath "apps/maestro/out/main/index.js")) {
+            throw "missing apps/maestro/out/main/index.js"
           }
-          if (-not (Test-Path -LiteralPath "apps/ytmdesktop2/resources/embeds/now-playing/index.html")) {
+          if (-not (Test-Path -LiteralPath "apps/maestro/resources/embeds/now-playing/index.html")) {
             throw "missing embeds now-playing/index.html"
           }
 
@@ -233,7 +233,7 @@ jobs:
         run: |
           node <<'EOF'
           const fs = require('fs');
-          const p = 'apps/ytmdesktop2/package.json';
+          const p = 'apps/maestro/package.json';
           const text = fs.readFileSync(p, 'utf8');
           const next = text.replace(/("version"\s*:\s*")[^"]*(")/, `$1${process.env.APP_VERSION}$2`);
           fs.writeFileSync(p, next);
@@ -259,13 +259,13 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: ${{ env.COMPILE_ARTIFACT }}
-          path: apps/ytmdesktop2
+          path: apps/maestro
 
       - name: Verify compile output
         shell: bash
         run: |
-          test -f apps/ytmdesktop2/out/main/index.js
-          test -f apps/ytmdesktop2/resources/embeds/now-playing/index.html
+          test -f apps/maestro/out/main/index.js
+          test -f apps/maestro/resources/embeds/now-playing/index.html
 
       # Outside Mac App Store: Developer ID Application + notarize
       # Secrets: MACOS_DEVELOPER_ID_APPLICATION_P12 (+ _PASSWORD),
@@ -330,7 +330,7 @@ jobs:
         run: |
           node <<'EOF'
           const fs = require('fs');
-          const p = 'apps/ytmdesktop2/package.json';
+          const p = 'apps/maestro/package.json';
           const text = fs.readFileSync(p, 'utf8');
           const next = text.replace(/("version"\s*:\s*")[^"]*(")/, `$1${process.env.APP_VERSION}$2`);
           fs.writeFileSync(p, next);
@@ -361,13 +361,13 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: ${{ env.COMPILE_ARTIFACT }}
-          path: apps/ytmdesktop2
+          path: apps/maestro
 
       - name: Verify compile output
         shell: bash
         run: |
-          test -f apps/ytmdesktop2/out/main/index.js
-          test -f apps/ytmdesktop2/resources/embeds/now-playing/index.html
+          test -f apps/maestro/out/main/index.js
+          test -f apps/maestro/resources/embeds/now-playing/index.html
 
       - name: Pack Linux core (AppImage/deb/rpm)
         run: pnpm release:pack:linux:core
@@ -382,7 +382,7 @@ jobs:
       - name: Verify RPM Requires
         shell: bash
         run: |
-          rpm_file="$(find apps/ytmdesktop2/dist dist -name '*.rpm' -print -quit 2>/dev/null || true)"
+          rpm_file="$(find apps/maestro/dist dist -name '*.rpm' -print -quit 2>/dev/null || true)"
           test -n "$rpm_file"
           echo "rpm=$rpm_file"
           rpm -qp --requires "$rpm_file"
@@ -414,7 +414,7 @@ jobs:
         run: |
           node <<'EOF'
           const fs = require('fs');
-          const p = 'apps/ytmdesktop2/package.json';
+          const p = 'apps/maestro/package.json';
           const text = fs.readFileSync(p, 'utf8');
           const next = text.replace(/("version"\s*:\s*")[^"]*(")/, `$1${process.env.APP_VERSION}$2`);
           fs.writeFileSync(p, next);
@@ -445,13 +445,13 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: ${{ env.COMPILE_ARTIFACT }}
-          path: apps/ytmdesktop2
+          path: apps/maestro
 
       - name: Verify compile output
         shell: bash
         run: |
-          test -f apps/ytmdesktop2/out/main/index.js
-          test -f apps/ytmdesktop2/resources/embeds/now-playing/index.html
+          test -f apps/maestro/out/main/index.js
+          test -f apps/maestro/resources/embeds/now-playing/index.html
 
       - name: Pack Linux arm64 AppImage
         run: pnpm release:pack:linux:arm
@@ -486,7 +486,7 @@ jobs:
         run: |
           node <<'EOF'
           const fs = require('fs');
-          const p = 'apps/ytmdesktop2/package.json';
+          const p = 'apps/maestro/package.json';
           const text = fs.readFileSync(p, 'utf8');
           const next = text.replace(/("version"\s*:\s*")[^"]*(")/, `$1${process.env.APP_VERSION}$2`);
           fs.writeFileSync(p, next);
@@ -527,13 +527,13 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: ${{ env.COMPILE_ARTIFACT }}
-          path: apps/ytmdesktop2
+          path: apps/maestro
 
       - name: Verify compile output
         shell: bash
         run: |
-          test -f apps/ytmdesktop2/out/main/index.js
-          test -f apps/ytmdesktop2/resources/embeds/now-playing/index.html
+          test -f apps/maestro/out/main/index.js
+          test -f apps/maestro/resources/embeds/now-playing/index.html
 
       - name: Pack Linux Flatpak
         run: pnpm release:pack:linux:flatpak

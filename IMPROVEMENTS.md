@@ -24,7 +24,33 @@ The ordered list of improvements still to make. Work top to bottom unless someth
 | Tier 5 - Low value for now | 0 |
 | **Total open** | **41** |
 
-Done: 26. Next free ID: 100.
+Done: 26. Next free ID: 147.
+
+## Owner requests (2026-11-17)
+
+| ID | Area | Request | Status |
+|---|---|---|---|
+| 118 | Navigation | Forward button never enabled (window state sent only canGoBack); add mouse back/forward buttons and Alt+←/→ | done |
+| 119 | Lyrics | Songs without lyrics showed the previous song's lyrics (YTM's Lyrics tab DOM was read and not cleared on track change) | done: YTM lyrics fetched for the exact video id (/next → /browse) |
+| 120 | Video mode | Wrong music video for a song | done: YTM's own pairing (/next counterpart) first; search fallback stricter (no 'title contains title', lead artist must match, video ≤ 90 s longer, album must agree); cache v2 drops old picks; 'Wrong version?' pins a track, with undo |
+| 121 | Playback | Playback stopped with 'Video paused. Continue watching?' | done: prompt dismissed and playback resumed; a failed stream is retried once |
+| 122 | Library | Real offline downloads | done: yt-dlp + ffmpeg fetched and checksum-checked on first use; player-bar button, menu item, Download all, sidebar and toolbar entries; Downloads page plays offline and opens by itself when YTM can't load; folder setting. Not run in the app yet |
+| 123 | Tests | 11 unit-test files never ran: vitest aliases still pointed at apps/ytmdesktop2 | done |
+| 124 | Build | Release workflow still built from apps/ytmdesktop2 (CI release broken) | done |
+| 125 | Build | biome.json formatter ignore path still apps/ytmdesktop2 | done |
+| 126 | Build | OBS embeds dev path still apps/ytmdesktop2 | done |
+| 127 | Build | ESLint config is the old Vue one and its plugins aren't installed: pnpm lint can't run | todo: needs new dev dependencies (risky, not done) |
+| 128 | Downloads | Page events (downloads:*) were not on the bridge allowlists: the plugin would have thrown on start | done |
+| 129 | Discord | IPC frames split across or joined in one socket chunk were lost | done: buffered frame reader |
+| 130 | Security | Secure store promises never settled when the encrypted store threw | done |
+| 131 | Queue | A failed queue continuation was retried on every store change (request storm) | done: 30 s back-off |
+| 132 | Video mode | Matching: 'Eagles' vs 'The Eagles' failed the artist check | done |
+| 133 | Window | Four unused window helpers | done: removed |
+| 134 | Brand | GitHub and Last.fm user agents named ytmdesktop2/Venipa; macOS tray fallback title 'YT' | done |
+| 135 | Accessibility | Discord toolbar button had no accessible name | done |
+| 136 | Docs | Bug report template pointed at ytmdesktop2 paths | done |
+| 137 | Docs | AGENTS.md and TESTING.md still asked for a 3–5 min smoke run per phase | done: one ~1 min run at the very end |
+| 138 | Brand | Keychain service name, dev profile folder and Linux ids (MPRIS, package) still say ytmdesktop2 | todo: renaming loses saved logins and media keys (risky, not done) |
 
 ## Owner requests (2026-10-30)
 
@@ -124,13 +150,13 @@ Done: 26. Next free ID: 100.
 | 22 | 25 | Now Playing | Phase 4: animated mesh-gradient background (quarter-resolution WebGL, paused when hidden, static with reduce-motion) | 46 | M | todo |
 | 23 | 20 | Themes | Phase 3: keep custom SCSS files (customFile) working on top of the theme | 45 | S | todo |
 | 24 | 35 | Now Playing | Phase 4: video toggle in Now Playing that closes it, switches YTM to Video and shows the phase 2 controls | 42 | S | todo |
-| 25 | 50 | Library | Phase 6: local playlists stored in userData, played through YTM by video ID | 42 | M | todo |
+| 25 | 50 | Library | Phase 6: local playlists stored in userData, played through YTM by video ID | 42 | M | done: #117 |
 | 26 | 31 | Lyrics | Phase 4: slot for a translation/romanization line under each lyric line | 40 | S | todo |
 | 27 | 55 | Bench | Signed-in bench scenarios on the throwaway Google account (ad-block runs while signed in) | 40 | M | todo |
 | 28 | 11 | Video | Phase 2: setting 'Open new tracks as video when available' (default off) | 38 | S | todo |
-| 29 | 52 | Library | Phase 6: optional offline downloads through yt-dlp (off by default) with a Downloaded library that plays local files | 38 | L | todo |
+| 29 | 52 | Library | Phase 6: optional offline downloads through yt-dlp (off by default) with a Downloaded library that plays local files | 38 | L | done: #122 |
 | 30 | 29 | Lyrics | Phase 4: background vocals smaller under their line and duet singers aligned left and right | 36 | M | todo |
-| 31 | 51 | Library | Phase 6: import local playlists from YTM playlists, CSV, M3U and a Spotify export file | 36 | M | todo |
+| 31 | 51 | Library | Phase 6: import local playlists from YTM playlists, CSV, M3U and a Spotify export file | 36 | M | done: #117 |
 | 32 | 17 | Themes | Phase 3: about 16 extra palettes in the spirit of Metrolist's 19 | 34 | S | todo |
 | 33 | 30 | Lyrics | Phase 4: three pulsing dots for instrumental breaks | 34 | S | todo |
 | 34 | 6 | Video | Phase 2: stats panel (resolution, codec, dropped frames, buffer) | 32 | S | todo |

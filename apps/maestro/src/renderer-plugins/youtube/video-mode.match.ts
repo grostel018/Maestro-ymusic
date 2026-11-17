@@ -2,7 +2,7 @@
 // and picks the version of the playing track. The page side (search call, cache) lives in video-mode.search.ts.
 
 import { hdArt } from "@shared/track/thumbnail";
-import { artistMatchRatio, stringSimilarity } from "./lyrics/match";
+import { diceSimilarity, splitArtists } from "./lyrics/match";
 import { cleanArtist, cleanTitle } from "./lyrics/normalize";
 import { ATV } from "./video-mode.logic";
 
@@ -24,15 +24,17 @@ export type SearchHit = {
 
 export type VersionMatch = SearchHit;
 
-export type TrackQuery = { title: string; artist: string; durationSec: number };
+export type TrackQuery = { title: string; artist: string; durationSec: number; album?: string };
 
 /** Longest allowed length difference between the playing track and its other version. */
 export const MAX_DURATION_GAP_SEC = 10;
-/** Music videos often add an intro, skit or outro (some run 2 min or more): a song this much shorter still counts when title and artist are near exact. */
-export const MAX_VIDEO_EXTRA_SEC = 180;
-const STRONG = 0.9;
-const MIN_TITLE = 0.8;
-const MIN_ARTIST = 0.8;
+/** Music videos often add an intro, skit or outro: a song this much shorter still counts when title and artist are near exact. */
+export const MAX_VIDEO_EXTRA_SEC = 90;
+const STRONG = 0.97;
+const MIN_TITLE = 0.92;
+const MIN_ARTIST = 0.9;
+/** Below this, two albums are different records. */
+const MIN_ALBUM = 0.6;
 
 /** Words that make a different recording; both sides must carry the same ones. */
 const VARIANT = /\b(remix|live|cover|karaoke|instrumental|acoustic|akustik|slowed|sped[\s-]?up|nightcore|reverb|8d|mashup|demo|tribute)\b/gi;
@@ -53,7 +55,8 @@ export function largestArt(url: string | undefined): string | undefined {
 	return url ? hdArt(url) : undefined;
 }
 
-function parseItem(item: Obj): SearchHit | null {
+/** One `musicResponsiveListItemRenderer` row (search, playlist, album). */
+export function parseItem(item: Obj): SearchHit | null {
 	const r = item?.musicResponsiveListItemRenderer;
 	if (!r) return null;
 	const col = (i: number): Obj[] => r.flexColumns?.[i]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs ?? [];
@@ -79,7 +82,8 @@ function parseItem(item: Obj): SearchHit | null {
 		title,
 		artist: artists.length ? artists.join(", ") : (segments[0] ?? ""),
 		album: typeof album === "string" ? album : undefined,
-		durationSec: parseDuration(segments.at(-1) ?? ""),
+		// Album and playlist rows put the length in a fixed column instead of the subtitle.
+		durationSec: parseDuration(segments.at(-1) ?? "") ?? parseDuration(runsText(r.fixedColumns?.[0]?.musicResponsiveListItemFixedColumnRenderer?.text?.runs).trim()),
 		type: watch?.watchEndpointMusicSupportedConfigs?.watchEndpointMusicConfig?.musicVideoType,
 		art: largestArt(thumbs.at(-1)?.url),
 	};
@@ -134,6 +138,32 @@ export function searchQuery(track: Pick<TrackQuery, "title" | "artist">): string
 	return `${q.title} ${q.artist}`.trim();
 }
 
+/** Lower case, accents and punctuation removed, spaces collapsed: "Beyoncé - Halo!" and "beyonce halo" compare equal. */
+function fold(text: string): string {
+	return text
+		.normalize("NFKD")
+		.replace(/[̀-ͯ]/g, "")
+		.toLowerCase()
+		.replace(/[^\p{L}\p{N}]+/gu, " ")
+		.trim();
+}
+
+function similar(a: string, b: string): number {
+	return diceSimilarity(fold(a), fold(b));
+}
+
+/** "The Eagles" and "Eagles" are the same band. */
+function similarArtist(a: string, b: string): number {
+	const strip = (s: string) => fold(s).replace(/^the /, "");
+	return diceSimilarity(strip(a), strip(b));
+}
+
+/** The lead artist: "Some Singer, Guest", "Some Singer & Guest" and "Some Singer feat. Guest" all lead with Some Singer. */
+export function mainArtist(artist: string): string {
+	const lead = cleanArtist(artist).split(/\s+(?:feat\.?|ft\.?|featuring|with|x)\s+/i)[0] ?? "";
+	return splitArtists(lead)[0] ?? lead.trim();
+}
+
 /** The best hit of the wanted kind, or null when none is close enough in title, artist, length and variant. */
 export function pickMatch(track: TrackQuery, hits: SearchHit[], want: MatchKind): VersionMatch | null {
 	if (!(track.durationSec > 0) || !track.title.trim()) return null;
@@ -144,16 +174,17 @@ export function pickMatch(track: TrackQuery, hits: SearchHit[], want: MatchKind)
 	for (const hit of hits) {
 		if (hit.type !== wantType || hit.durationSec === undefined) continue;
 		if (variants(`${hit.title} ${hit.artist}`) !== qVariants) continue;
-		const hitArtist = cleanArtist(hit.artist);
+		const hitArtist = mainArtist(hit.artist);
 		const hitTitle = cleanTitle(hit.title, hit.artist);
 		let artist = 0;
 		let title = 0;
 		for (const q of qs) {
-			const a = artistMatchRatio(q.artist, hitArtist);
-			const t = stringSimilarity(q.title, hitTitle);
+			const a = similarArtist(mainArtist(q.artist), hitArtist);
+			const t = similar(q.title, hitTitle);
 			if (a + t > artist + title) [artist, title] = [a, t];
 		}
 		if (artist < MIN_ARTIST || title < MIN_TITLE) continue;
+		if (track.album && hit.album && similar(track.album, hit.album) < MIN_ALBUM) continue;
 		// The video is the longer one (song wanted while a video plays, or a video wanted while its song plays).
 		const extra = want === "song" ? track.durationSec - hit.durationSec : hit.durationSec - track.durationSec;
 		const gap = Math.abs(hit.durationSec - track.durationSec);
@@ -164,4 +195,44 @@ export function pickMatch(track: TrackQuery, hits: SearchHit[], want: MatchKind)
 		if (!best || score > best.score) best = { hit, score };
 	}
 	return best ? { ...best.hit } : null;
+}
+
+function rendererHit(r: Obj): SearchHit | null {
+	const videoId = r?.videoId ?? r?.navigationEndpoint?.watchEndpoint?.videoId;
+	const title = runsText(r?.title?.runs).trim();
+	if (typeof videoId !== "string" || !videoId || !title) return null;
+	const thumbs: Obj[] = r?.thumbnail?.thumbnails ?? [];
+	return {
+		videoId,
+		title,
+		artist: runsText(r?.shortBylineText?.runs).trim(),
+		durationSec: parseDuration(runsText(r?.lengthText?.runs).trim()),
+		type: r?.navigationEndpoint?.watchEndpoint?.watchEndpointMusicSupportedConfigs?.watchEndpointMusicConfig?.musicVideoType,
+		art: largestArt(thumbs.at(-1)?.url),
+	};
+}
+
+/**
+ * YouTube Music's own other version of `videoId` from a `/next` response (the pair behind its Song/Video switch):
+ * the song (ATV) when `want` is "song", the music video otherwise. Null when the track has no pair of that kind.
+ */
+export function parseNextCounterpart(next: unknown, videoId: string, want: MatchKind): VersionMatch | null {
+	const tabs: Obj[] =
+		(next as Obj)?.contents?.singleColumnMusicWatchNextResultsRenderer?.tabbedRenderer?.watchNextTabbedResultsRenderer?.tabs ?? [];
+	if (!Array.isArray(tabs)) return null;
+	for (const tab of tabs) {
+		const items: Obj[] = tab?.tabRenderer?.content?.musicQueueRenderer?.content?.playlistPanelRenderer?.contents ?? [];
+		if (!Array.isArray(items)) continue;
+		for (const item of items) {
+			const wrapper = item?.playlistPanelVideoWrapperRenderer;
+			if (!wrapper) continue;
+			const sides = [wrapper.primaryRenderer?.playlistPanelVideoRenderer, wrapper.counterpart?.[0]?.counterpartRenderer?.playlistPanelVideoRenderer].map(rendererHit);
+			if (!sides.some((side) => side?.videoId === videoId)) continue;
+			const other = sides.find((side) => side && side.videoId !== videoId);
+			if (!other) return null;
+			const isSong = other.type === ATV;
+			return (want === "song") === isSong ? other : null;
+		}
+	}
+	return null;
 }

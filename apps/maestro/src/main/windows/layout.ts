@@ -87,3 +87,19 @@ export function nextSavedWindowState(
 	const { x, y, width, height } = cur.bounds;
 	return { ...prev, x, y, width, height, maximized: false };
 }
+
+/** Chromium network errors that mean "no internet" (disconnected, DNS, unreachable, network changed, failed). */
+const OFFLINE_ERRORS = new Set([-106, -105, -109, -21, -2]);
+
+/** The YouTube view's own page failed to load for lack of network: show Downloads instead. */
+export function isOfflineLoadError(errorCode: number, isMainFrame: boolean): boolean {
+	return isMainFrame && OFFLINE_ERRORS.has(errorCode);
+}
+
+/**
+ * The `retry` flag of a `downloads:close` event. serverMain passes an IPC event first when the page or a view sent it,
+ * and nothing when main emitted it, so the flag is looked for in every argument.
+ */
+export function retryRequested(args: unknown[]): boolean {
+	return args.some((a) => !!a && typeof a === "object" && (a as { retry?: unknown }).retry === true);
+}

@@ -82,7 +82,29 @@ export default class WindowUtilsProvider extends BaseProvider implements AfterIn
 		this.views.youtubeView.webContents.on("will-navigate", this._handleNavigation.bind(this));
 		this.views.youtubeView.webContents.on("did-navigate", this._handleNavigation.bind(this));
 		this.views.youtubeView.webContents.on("did-navigate-in-page", this._handleNavigation.bind(this));
+		this._bindHistoryInput();
 		this.logger.debug("Watching nav changes for window state...");
+	}
+	/** Mouse back/forward buttons and Alt+←/→ move through the YTM view's history, like a browser. */
+	private _bindHistoryInput() {
+		const contents = this.views.youtubeView.webContents;
+		const go = (dir: "back" | "forward") => {
+			if (contents.isDestroyed()) return;
+			const history = contents.navigationHistory;
+			if (dir === "back" && history.canGoBack()) history.goBack();
+			if (dir === "forward" && history.canGoForward()) history.goForward();
+		};
+		BrowserWindow.fromWebContents(contents)?.on("app-command", (_ev, command) => {
+			if (command === "browser-backward") go("back");
+			if (command === "browser-forward") go("forward");
+		});
+		contents.on("before-input-event", (ev, input) => {
+			if (input.type !== "keyDown" || !input.alt || input.control || input.meta || input.shift) return;
+			if (input.key === "ArrowLeft") go("back");
+			else if (input.key === "ArrowRight") go("forward");
+			else return;
+			ev.preventDefault();
+		});
 	}
 	async OnDestroy() {}
 }

@@ -64,7 +64,7 @@ export default class TrayProvider extends BaseProvider implements AfterInit, OnD
 			this._tray.setToolTip("Maestro");
 			// macOS: text keeps a visible status item if the glyph failed to load.
 			if (platform.isMacOS && icon.isEmpty()) {
-				this._tray.setTitle("YT");
+				this._tray.setTitle("Maestro");
 			}
 			// Do not setContextMenu — macOS would steal left-click for the menu.
 			try {

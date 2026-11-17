@@ -8,6 +8,7 @@ import type authProvider from "@routers/auth/service";
 import type chromecastProvider from "@routers/chromecast/service";
 import type deeplinkProvider from "@routers/deeplink/service";
 import type discordProvider from "@routers/discord/service";
+import type downloadsProvider from "@routers/downloads/service";
 import type eventProvider from "@routers/event/service";
 import type factsProvider from "@routers/facts/service";
 import type gameModeProvider from "@routers/gameMode/service";
@@ -41,6 +42,7 @@ export interface ServiceTypeMap {
   "chromecast": chromecastProvider;
   "deeplink": deeplinkProvider;
   "discord": discordProvider;
+  "downloads": downloadsProvider;
   "event": eventProvider;
   "facts": factsProvider;
   "gameMode": gameModeProvider;
