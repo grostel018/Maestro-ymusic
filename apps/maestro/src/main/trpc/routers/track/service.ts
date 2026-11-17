@@ -17,6 +17,7 @@ import {
 	shouldRefreshLastFmNowPlaying,
 	trackNeedsLastFmPush,
 } from "@shared/track/lastfmTrackSession";
+import { type OfflineItem, offlineCommand, offlineTrackData } from "@shared/track/offlineTrack";
 import { resolveArtworkUrl } from "@shared/track/thumbnail";
 import type { TrackData } from "@shared/track/trackData";
 import { createLogger } from "@shared/utils/console";
@@ -143,6 +144,11 @@ export class TrackService {
 	private lastFmPausedAt: number | null = null;
 	/** Delayed post-scrobble NP — clear on new listen. */
 	private postScrobbleNpTimer: ReturnType<typeof setTimeout> | null = null;
+	/** Which player integrations follow and command: the one that last started playing (offline player parity spec). */
+	private activePlayer: "online" | "offline" = "online";
+	private offlineState = { playing: false, progress: 0, volume: 100 };
+	/** YouTube Music page events that arrived while the offline player was active, replayed when the page plays. */
+	private deferredOnline: { info?: unknown[]; title?: unknown[] } = {};
 	private _ipcBound = false;
 	private _styleBound = false;
 	private readonly onProgressHandlerDebounced = debounce(this.onProgressHandler.bind(this), 1000);
@@ -193,13 +199,31 @@ export class TrackService {
 		if (this._ipcBound) return;
 		this._ipcBound = true;
 		// No debounce on track info — watcher already dedupes; UI must stay instant
-		serverMain.on("track:info-req", (ev, data) => void this.onTrackInfo(ev, data));
+		const onInfo = (ev: unknown, data: Parameters<TrackService["onTrackInfo"]>[1]) => {
+			if (this.activePlayer === "offline") this.deferredOnline.info = [ev, data];
+			else void this.onTrackInfo(ev, data);
+		};
+		const onTitle = debounce(this.onTitleChange.bind(this), 25);
+		const onState = debounce(this.onPlayStateChange.bind(this), 50);
+		const onProgress = debounce(this.onPlayStateProgress.bind(this), 50);
+		serverMain.on("track:info-req", onInfo);
 		serverMain.on(IPC_EVENT_NAMES.TRACK_LIKE_STATE, (ev, data) => this.onLikeState(ev, data));
-		serverMain.on("track:title-change", debounce(this.onTitleChange.bind(this), 25));
-		serverMain.on(IPC_EVENT_NAMES.TRACK_PLAYSTATE, debounce(this.onPlayStateChange.bind(this), 50));
+		serverMain.on("track:title-change", (ev: unknown, id: string) => {
+			if (this.activePlayer === "offline") this.deferredOnline.title = [ev, id];
+			else onTitle(ev, id);
+		});
+		// While the offline player is active, the page's own events are ignored until it starts playing.
+		// `ev` is null for main's own echoes (play/pause/toggle replies), which always apply.
+		serverMain.on(IPC_EVENT_NAMES.TRACK_PLAYSTATE, (ev: unknown, isPlaying: boolean, ...rest: [number?, boolean?]) => {
+			if (ev && !this.pageMayReport(isPlaying)) return;
+			onState(ev, isPlaying, ...rest);
+		});
 		// Last.fm + UI progress: 50ms. Discord timeline: separate 1s handler (no Last.fm).
-		serverMain.on(IPC_EVENT_NAMES.TRACK_PLAYSTATE_PROGRESS, debounce(this.onPlayStateProgress.bind(this), 50));
-		serverMain.on(IPC_EVENT_NAMES.TRACK_PLAYSTATE_PROGRESS, this.onProgressHandlerDebounced);
+		serverMain.on(IPC_EVENT_NAMES.TRACK_PLAYSTATE_PROGRESS, (ev: unknown, isPlaying: boolean, ...rest: [number?, boolean?]) => {
+			if (ev && !this.pageMayReport(isPlaying)) return;
+			onProgress(ev, isPlaying, ...rest);
+			this.onProgressHandlerDebounced(ev, isPlaying, rest[0]);
+		});
 	}
 
 	afterInit(): void {
@@ -214,8 +238,76 @@ export class TrackService {
 	}
 
 	async executeCommand<T = unknown>(command: string, ...args: unknown[]): Promise<T> {
+		if (this.activePlayer === "offline") {
+			const routed = offlineCommand(command, args, this.offlineState);
+			if (routed) {
+				serverMain.emit("downloads:command", routed.command);
+				return routed.reply as T;
+			}
+		}
 		// api-controls plugin registers under service "api" -> plugins:api:cmd:*
 		return await YtmClient.cmd<T>("api", command, ...args);
+	}
+
+	/** The YouTube Music page reported a play state: it applies unless the offline player is active and the page isn't playing. */
+	private pageMayReport(isPlaying: boolean): boolean {
+		if (this.activePlayer === "online") return true;
+		if (!isPlaying) return false;
+		this.becomeOnline();
+		return true;
+	}
+
+	/** The YouTube Music page started playing: it is the active player again and the offline player pauses. */
+	private becomeOnline(): void {
+		if (this.activePlayer === "online") return;
+		this.activePlayer = "online";
+		this.offlineState.playing = false;
+		serverMain.emit("downloads:command", { command: "pause" });
+		const { info, title } = this.deferredOnline;
+		this.deferredOnline = {};
+		this._pendingTrackId = null;
+		if (info) void this.onTrackInfo(info[0], info[1] as Parameters<TrackService["onTrackInfo"]>[1]);
+		if (title) this.onTitleChange(title[0], String(title[1]));
+	}
+
+	/**
+	 * The offline player's state (Downloads page). Starting to play makes it the active player and pauses YouTube Music;
+	 * while active, its song and progress drive tray, Discord, Last.fm, the API and OBS.
+	 */
+	async ingestOffline(state: { item: OfflineItem; playing: boolean; position: number; volume: number }): Promise<void> {
+		const { item, playing } = state;
+		const position = Math.max(0, Number(state.position) || 0);
+		if (playing && this.activePlayer === "online") {
+			this.activePlayer = "offline";
+			// Straight to the page: executeCommand would now route to the offline player.
+			void YtmClient.cmd("api", "pause").catch(() => undefined);
+		}
+		if (this.activePlayer !== "offline") return;
+		this.offlineState = { playing, progress: position, volume: state.volume };
+		if (this._trackState?.id !== item.videoId) {
+			const track = offlineTrackData(item, Date.now() / 1000);
+			trackCollection.addOrUpdate(item.videoId, track);
+			this._trackDataCache = null;
+			this._pendingTrackId = item.videoId;
+			this.lastTrackContentKey = trackContentKey(track);
+			this.pushTrackToViews(track, true);
+			this.patchTrackState({
+				id: item.videoId,
+				duration: track.meta.duration,
+				progress: position,
+				uiProgress: position,
+				startedAt: Date.now() / 1000,
+				percentage: 0,
+				eventType: "state",
+				accent: null,
+				playing,
+			});
+		}
+		if (playing !== this._trackState?.playing) await this.onPlayStateChange(null, playing, position);
+		else {
+			await this.onPlayStateProgress(null, playing, position);
+			this.onProgressHandlerDebounced(null, playing, position);
+		}
 	}
 
 	getTrackInformation(): TrackEntry | null {

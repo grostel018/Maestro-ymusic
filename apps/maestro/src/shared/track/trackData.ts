@@ -85,6 +85,8 @@ interface TrackMeta {
 	duration: number;
 	liked?: boolean;
 	disliked?: boolean;
+	/** Which player is playing it: the YouTube Music page (default) or Maestro's offline player. */
+	source?: "online" | "offline";
 }
 export interface TrackData {
 	video: TrackVideoData;

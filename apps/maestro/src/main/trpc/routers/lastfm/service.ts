@@ -1,4 +1,7 @@
+import { readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { AfterInit, BaseProvider, OnInit } from "@main/core/baseProvider";
+import { serverMain } from "@main/ipc/serverEvents";
 import { emitAppToast } from "@main/lib/appToast";
 import { stringifyJson } from "@main/lib/json";
 import { LASTFM_KEYTAR_SESSION, LASTFM_KEYTAR_TOKEN } from "@main/lib/keytar";
@@ -6,6 +9,7 @@ import { LastFMClient } from "@main/lib/lastfm";
 import secureStore from "@main/lib/secureStore";
 import IPC_EVENT_NAMES from "@shared/constants/eventNames";
 import { lastFmListenKey } from "@shared/track/lastfmTrackSession";
+import { ScrobbleBacklog, type ScrobbleEntry } from "@shared/track/scrobbleBacklog";
 import { TrackData } from "@shared/track/trackData";
 import { App, BrowserWindow, shell } from "electron";
 import { LastFMSettings } from "ytmd";
@@ -36,6 +40,9 @@ export default class LastFMProvider extends BaseProvider implements AfterInit, O
 	private authMode: "connect" | "reauth" | null = null;
 	/** Reauth enables setting without letting toggle handler start a second auth. */
 	private skipNextEnableAuth = false;
+	/** Scrobbles that failed (offline), sent once the connection is back (offline player parity spec). */
+	private backlog = new ScrobbleBacklog();
+	private flushing = false;
 
 	constructor(private app: App) {
 		super("lastfm");
@@ -73,6 +80,51 @@ export default class LastFMProvider extends BaseProvider implements AfterInit, O
 		this.views.toolbarView.webContents.on("did-finish-load", () => this.sendState());
 		// No debounce — enable/disable must react immediately
 		this.getProvider("settings").onSettingChange("lastfm.enabled", (value) => void this.__onToggleEnabled(!!value));
+		void this.loadBacklog().then(() => this.flushBacklog());
+		serverMain.on("downloads:online", () => void this.flushBacklog());
+	}
+
+	private get backlogFile() {
+		return path.join(this.app.getPath("userData"), "lastfm-backlog.json");
+	}
+
+	private async loadBacklog() {
+		try {
+			this.backlog = ScrobbleBacklog.from(JSON.parse(await readFile(this.backlogFile, "utf8")));
+		} catch {
+			// No file yet, or unreadable: start empty.
+		}
+	}
+
+	private async saveBacklog() {
+		try {
+			await writeFile(this.backlogFile, JSON.stringify(this.backlog.toJSON()));
+		} catch (err) {
+			this.logger.warn("lastfm backlog not saved", err);
+		}
+	}
+
+	/** Sends kept scrobbles, oldest first; the ones that fail stay for the next try. */
+	async flushBacklog(): Promise<void> {
+		if (this.flushing || !this.backlog.size || !this.client?.isConnected()) return;
+		this.flushing = true;
+		try {
+			const sent: ScrobbleEntry[] = [];
+			for (const e of this.backlog.due(Date.now() / 1000)) {
+				try {
+					await this.enqueueWrite(async () => {
+						await this.client!.scrobble({ artist: e.artist, track: e.title, timestamp: e.timestamp, duration: e.durationSec, ...(e.album && { album: e.album }) });
+					});
+					sent.push(e);
+				} catch {
+					// Still offline, or Last.fm refused it: kept until it is 14 days old.
+				}
+			}
+			this.backlog.ack(sent);
+			await this.saveBacklog();
+		} finally {
+			this.flushing = false;
+		}
 	}
 
 	private async __onToggleEnabled(enabled: boolean) {
@@ -428,8 +480,19 @@ export default class LastFMProvider extends BaseProvider implements AfterInit, O
 				this.logger.debug(stringifyJson(d));
 				this.sendState();
 				this.windowContext.sendToAllViews(IPC_EVENT_NAMES.LAST_FM_SUBMIT_STATE, true);
+				void this.flushBacklog();
 			} catch (err) {
 				this.logger.error(err);
+				// Kept and sent later (e.g. played offline).
+				this.backlog.add({
+					videoId,
+					artist: track.video.author,
+					title: track.video.title,
+					timestamp: track.meta.startedAt,
+					durationSec: track.meta.duration,
+					...(track.music?.album && { album: track.music.album }),
+				});
+				void this.saveBacklog();
 				this.sendState();
 				this.windowContext.sendToAllViews(IPC_EVENT_NAMES.LAST_FM_SUBMIT_STATE, false);
 			}

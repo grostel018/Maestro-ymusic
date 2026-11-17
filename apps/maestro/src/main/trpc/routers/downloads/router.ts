@@ -1,6 +1,7 @@
 import { serverMain } from "@main/ipc/serverEvents";
 import { fromIpcEvent } from "@main/trpc/fromIpcEvent";
 import { provider } from "@main/trpc/provider";
+import type { OfflineCommand } from "@shared/track/offlineTrack";
 import { publicProcedure, router } from "@shared/trpc/trpc";
 import { z } from "zod";
 import type { DownloadStatus } from "./service";
@@ -39,6 +40,30 @@ export const downloadsRouter = router({
 		.mutation(({ input }) => void serverMain.emit("downloads:player", input)),
 	/** YouTube Music loaded again while Downloads stayed open. */
 	onOnline: publicProcedure.subscription(() => fromIpcEvent<{ at: number }>("downloads:online")),
+	/** The offline player's song and position: tray, Discord, Last.fm, the API and OBS follow it while it is active. */
+	reportTrack: publicProcedure
+		.input(
+			z.object({
+				videoId: z.string().regex(/^[A-Za-z0-9_-]{11}$/),
+				title: z.string().max(300),
+				artist: z.string().max(300),
+				album: z.string().max(300).optional(),
+				durationSec: z.number().nonnegative().optional(),
+				playing: z.boolean(),
+				position: z.number().nonnegative(),
+				volume: z.number().min(0).max(100),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			const { playing, position, volume, ...item } = input;
+			return provider(ctx, "track").ingestOffline({ item, playing, position, volume });
+		}),
+	/** Seconds actually played offline, for Your stats (same shape the YouTube Music page sends). */
+	reportListen: publicProcedure
+		.input(z.object({ videoId: z.string().regex(/^[A-Za-z0-9_-]{11}$/), title: z.string().max(300), artist: z.string().max(300), seconds: z.number().int().min(0).max(3600) }))
+		.mutation(({ input }) => void serverMain.emit("stats:listen", null, input)),
+	/** Commands from tray, shortcuts, the API, Stream Deck and remote while the offline player is active. */
+	onCommand: publicProcedure.subscription(() => fromIpcEvent<OfflineCommand>("downloads:command")),
 	onStatus: publicProcedure.subscription(() => fromIpcEvent<DownloadStatus>("downloads:status")),
 	onChange: publicProcedure.subscription(() => fromIpcEvent<{ statuses: DownloadStatus[]; downloaded: string[] }>("downloads:all")),
 });
