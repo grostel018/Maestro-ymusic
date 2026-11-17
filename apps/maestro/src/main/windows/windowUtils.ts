@@ -329,14 +329,6 @@ export async function createAppDialogWindow<Action extends string = "close" | "o
 	});
 	return win;
 }
-function getScaleFactor(win: BrowserWindow) {
-	if (!platform.isWindows) {
-		return 1;
-	}
-	const [x, y] = win.getPosition();
-	const currentDisplay = screen.getDisplayNearestPoint({ x, y });
-	return currentDisplay.scaleFactor;
-}
 function calculateSizeWithScaleFactor(x: number, y: number, width: number, height: number) {
 	const currentDisplay = screen.getDisplayNearestPoint({ x, y });
 	const scaleFactor = platform.isWindows ? currentDisplay.scaleFactor : 1;
@@ -362,10 +354,6 @@ function getDisplayNearestPoint(win: BrowserWindow) {
 	const [x, y] = win.getPosition();
 	const { bounds } = screen.getDisplayNearestPoint({ x, y });
 	return bounds;
-}
-function getNearestDisplay(win: BrowserWindow) {
-	const [x, y] = win.getPosition();
-	return screen.getDisplayNearestPoint({ x, y });
 }
 export function getBoundsWithScaleFactor(win: BrowserWindow) {
 	const { width, height, x, y } = win.getBounds();
