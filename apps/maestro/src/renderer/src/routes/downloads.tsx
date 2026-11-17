@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowLeftIcon, FolderOpenIcon, MusicIcon, PauseIcon, PlayIcon, RefreshCwIcon, ShuffleIcon, SkipBackIcon, SkipForwardIcon, Trash2Icon, WifiOffIcon } from "lucide-react";
+import { ArrowLeftIcon, FolderOpenIcon, MusicIcon, PauseIcon, PlayIcon, RefreshCwIcon, ShuffleIcon, SkipBackIcon, SkipForwardIcon, Trash2Icon, WifiOffIcon, XIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +59,8 @@ function DownloadsPage() {
 
 	const remove = trpc.downloads.remove.useMutation({ onSuccess: refresh });
 	const cancel = trpc.downloads.cancel.useMutation({ onSuccess: refresh });
+	const retry = trpc.downloads.retry.useMutation({ onSuccess: refresh });
+	const dismiss = trpc.downloads.dismiss.useMutation({ onSuccess: refresh });
 	const showInFolder = trpc.downloads.showInFolder.useMutation();
 	const openFolder = trpc.downloads.openFolder.useMutation();
 	const closePage = trpc.downloads.closePage.useMutation();
@@ -70,7 +72,10 @@ function DownloadsPage() {
 		return q ? items.filter((i) => `${i.title} ${i.artist} ${i.album ?? ""}`.toLowerCase().includes(q)) : items;
 	}, [items, query]);
 	const total = items.reduce((sum, i) => sum + i.size, 0);
-	const active = (status.data ?? []).filter((s) => s.state !== "done");
+	const inProgress = (status.data ?? []).filter((s) => s.state !== "done" && s.state !== "error");
+	const failed = (status.data ?? []).filter((s) => s.state === "error");
+	/** When every failure has the same cause (the downloader couldn't be set up), say it once. */
+	const commonError = failed.length > 1 && failed.every((f) => f.error === failed[0].error) ? failed[0].error : null;
 
 	// The offline player: a queue of the list's order (or shuffled), one <audio>.
 	const audio = useRef<HTMLAudioElement>(null);
@@ -166,29 +171,65 @@ function DownloadsPage() {
 				</div>
 			)}
 
-			{active.length > 0 && (
-				<ul className="border-b border-border px-4 py-2 text-xs text-muted-foreground" aria-label="Downloading">
-					{active.map((s) => (
-						<li key={s.videoId} className="flex items-center gap-2 py-0.5">
-							<span className="truncate">
-								{s.artist ? `${s.artist} - ` : ""}
-								{s.title}
-							</span>
-							<span className={cn("ml-auto shrink-0", s.state === "error" && "text-destructive")}>
-								{s.state === "error" ? `Failed: ${s.error ?? "unknown error"}` : s.state === "binaries" ? "Getting the downloader ready…" : s.state === "queued" ? "Waiting" : `${s.percent}%`}
-							</span>
-							{s.state !== "error" && (
-								<Button variant="ghost" size="xs" onClick={() => cancel.mutate({ videoId: s.videoId })}>
-									Cancel
+			{(inProgress.length > 0 || failed.length > 0) && (
+				<section className="max-h-[40vh] overflow-y-auto border-b border-border" aria-label="Download queue">
+					{inProgress.length > 0 && (
+						<>
+							<h2 className="px-4 pt-3 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Downloading · {inProgress.length}</h2>
+							<ul>
+								{inProgress.map((s) => (
+									<li key={s.videoId} className="flex items-center gap-3 px-4 py-1.5 text-sm">
+										<span className="min-w-0 flex-1 truncate">
+											{s.title}
+											{s.artist ? <span className="text-muted-foreground"> · {s.artist}</span> : null}
+										</span>
+										<span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+											{s.state === "binaries" ? "Setting up the downloader…" : s.state === "queued" ? "Waiting" : `${s.percent}%`}
+										</span>
+										<Button variant="ghost" size="xs" onClick={() => cancel.mutate({ videoId: s.videoId })}>
+											Cancel
+										</Button>
+									</li>
+								))}
+							</ul>
+						</>
+					)}
+					{failed.length > 0 && (
+						<>
+							<div className="flex items-center gap-2 px-4 pt-3 pb-1">
+								<h2 className="mr-auto text-xs font-medium uppercase tracking-wide text-destructive">Failed · {failed.length}</h2>
+								<Button variant="outline" size="xs" onClick={() => retry.mutate({})}>
+									<RefreshCwIcon /> Retry all
 								</Button>
-							)}
-						</li>
-					))}
-				</ul>
+								<Button variant="ghost" size="xs" onClick={() => dismiss.mutate({})}>
+									Clear
+								</Button>
+							</div>
+							{commonError && <p className="px-4 pb-1 text-xs text-destructive">{commonError}</p>}
+							<ul>
+								{failed.map((s) => (
+									<li key={s.videoId} className="flex items-center gap-3 px-4 py-1.5 text-sm">
+										<span className="min-w-0 flex-1 truncate">
+											{s.title}
+											{s.artist ? <span className="text-muted-foreground"> · {s.artist}</span> : null}
+										</span>
+										{!commonError && <span className="max-w-[45%] shrink truncate text-xs text-destructive" title={s.error}>{s.error ?? "Failed"}</span>}
+										<Button variant="ghost" size="xs" onClick={() => retry.mutate({ videoId: s.videoId })}>
+											Retry
+										</Button>
+										<Button variant="ghost" size="icon-xs" aria-label={`Dismiss ${s.title}`} title="Dismiss" onClick={() => dismiss.mutate({ videoId: s.videoId })}>
+											<XIcon />
+										</Button>
+									</li>
+								))}
+							</ul>
+						</>
+					)}
+				</section>
 			)}
 
 			<main className="min-h-0 flex-1 overflow-y-auto">
-				{list.isLoading ? null : !items.length ? (
+				{list.isLoading ? null : !items.length && (inProgress.length || failed.length) ? null : !items.length ? (
 					<div className="flex h-full flex-col items-center justify-center gap-2 p-8 text-center text-sm text-muted-foreground">
 						<MusicIcon className="size-8" />
 						<p>No downloads yet.</p>

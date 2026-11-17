@@ -44,6 +44,8 @@ export default class DownloadsProvider extends BaseProvider implements AfterInit
 	private readonly statuses = new Map<string, DownloadStatus>();
 	private readonly queue: DownloadJob[] = [];
 	private readonly running = new Map<string, AbortController>();
+	/** Jobs that failed, kept so they can be retried from the Downloads page. */
+	private readonly failedJobs = new Map<string, DownloadJob>();
 	private binaries: Promise<{ ytDlp: string; ffmpeg: string; deno: string }> | null = null;
 	private folderPath: string;
 
@@ -149,6 +151,25 @@ export default class DownloadsProvider extends BaseProvider implements AfterInit
 		return added;
 	}
 
+	/** Tries failed songs again (all of them without an id). */
+	retry(videoId?: string): number {
+		const jobs = videoId ? [this.failedJobs.get(videoId)].filter((j): j is DownloadJob => !!j) : [...this.failedJobs.values()];
+		for (const job of jobs) this.failedJobs.delete(job.videoId);
+		// A failed downloader setup is tried again too.
+		this.binaries = null;
+		return this.add(jobs);
+	}
+
+	/** Forgets failed songs (all of them without an id). */
+	dismiss(videoId?: string) {
+		const ids = videoId ? [videoId] : [...this.failedJobs.keys()];
+		for (const id of ids) {
+			this.failedJobs.delete(id);
+			if (this.statuses.get(id)?.state === "error") this.statuses.delete(id);
+		}
+		this.pushAll();
+	}
+
 	cancel(videoId: string) {
 		const i = this.queue.findIndex((j) => j.videoId === videoId);
 		if (i >= 0) this.queue.splice(i, 1);
@@ -234,6 +255,7 @@ export default class DownloadsProvider extends BaseProvider implements AfterInit
 				signal,
 			);
 			const art = await this.saveArt(job).catch(() => undefined);
+			this.failedJobs.delete(job.videoId);
 			this.index.add({ videoId: job.videoId, title: job.title, artist: job.artist, album: job.album, durationSec: job.durationSec, file, art, addedAt: Date.now() });
 			this.setStatus(job, "done", 100);
 			this.pushAll();
@@ -241,6 +263,7 @@ export default class DownloadsProvider extends BaseProvider implements AfterInit
 			if (signal.aborted) return;
 			const message = err instanceof Error ? err.message : String(err);
 			this.logger.warn(`download failed for ${job.videoId}: ${message}`);
+			this.failedJobs.set(job.videoId, job);
 			this.setStatus(job, "error", 0, message);
 		}
 	}

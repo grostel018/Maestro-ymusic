@@ -27,8 +27,9 @@ const CSS = `
 #${MENU_ID} { display: flex; align-items: center; gap: 16px; padding: 0 16px; height: 48px; cursor: pointer; font: 400 14px Roboto, sans-serif; color: var(--ytmusic-text-primary, #fff); }
 #${MENU_ID}:hover { background: rgba(255,255,255,.1); }
 #${MENU_ID} svg { width: 24px; height: 24px; fill: currentColor; }
-#${ALL_ID} { margin-left: 8px; height: 36px; padding: 0 16px; border-radius: 18px; border: 1px solid rgba(255,255,255,.2); background: none; color: var(--ytmusic-text-primary, #fff); font: 500 14px Roboto, sans-serif; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
-#${ALL_ID}:hover { background: rgba(255,255,255,.1); }
+#${ALL_ID} { flex: none; align-self: center; margin-left: 8px; height: 40px; padding: 0 18px 0 14px; border-radius: 20px; border: 0; background: rgba(255,255,255,.1); color: var(--ytmusic-text-primary, #fff); font: 500 14px "YouTube Sans", Roboto, sans-serif; white-space: nowrap; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+#${ALL_ID}:hover { background: rgba(255,255,255,.2); }
+#${ALL_ID}:disabled { opacity: .6; cursor: default; }
 #${ALL_ID} svg, #${GUIDE_ID} svg { width: 20px; height: 20px; fill: currentColor; }
 #${GUIDE_ID} { display: flex; align-items: center; gap: 24px; margin: 0 8px; padding: 0 16px; height: 48px; border-radius: 8px; cursor: pointer; color: var(--ytmusic-text-primary, #fff); font: 500 14px Roboto, sans-serif; background: none; border: 0; width: calc(100% - 16px); text-align: left; }
 #${GUIDE_ID}:hover { background: rgba(255,255,255,.1); }
@@ -147,7 +148,14 @@ const downloadsRenderer: RendererPluginRegistration = {
 					btn.title = "Download every song on this page (songs further down load as you scroll)";
 					btn.addEventListener("click", () => {
 						const rows = [...document.querySelectorAll("ytmusic-playlist-shelf-renderer ytmusic-responsive-list-item-renderer, ytmusic-shelf-renderer ytmusic-responsive-list-item-renderer")].map(dataOf);
-						add(jobsFromRows(rows).filter((j) => !downloaded.has(j.videoId)));
+						const jobs = jobsFromRows(rows).filter((j) => !downloaded.has(j.videoId));
+						add(jobs);
+						btn.lastChild!.textContent = jobs.length ? `Downloading ${jobs.length}` : "All downloaded";
+						btn.disabled = true;
+						window.setTimeout(() => {
+							btn.lastChild!.textContent = "Download all";
+							btn.disabled = false;
+						}, 3000);
 					});
 					actions.appendChild(btn);
 				}

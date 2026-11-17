@@ -82,6 +82,12 @@ describe("parseSha256Sums", () => {
 		expect(parseSha256Sums(`${"d".repeat(64)}
 `, "deno.zip")).toBe("d".repeat(64));
 	});
+	it("reads PowerShell's Get-FileHash output (Deno publishes that)", () => {
+		const crlf = String.fromCharCode(13, 10);
+		const text = ["Algorithm : SHA256", "Hash      : CBA84B26E0DF5AE7F74FC66B86A95B866872A86292EBD84FA1E959927EDD93BF", "Path      : C:\\a\\release\\deno-x86_64-pc-windows-msvc.zip", ""].join(crlf);
+		expect(parseSha256Sums(text, "deno-x86_64-pc-windows-msvc.zip")).toBe("cba84b26e0df5ae7f74fc66b86a95b866872a86292ebd84fa1e959927edd93bf");
+		expect(parseSha256Sums(text, "other.zip")).toBeNull();
+	});
 	it("accepts the binary-mode marker", () => {
 		expect(parseSha256Sums(`${"c".repeat(64)} *ffmpeg.zip`, "ffmpeg.zip")).toBe("c".repeat(64));
 	});

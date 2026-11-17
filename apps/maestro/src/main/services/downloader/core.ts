@@ -82,6 +82,10 @@ export function parseSha256Sums(text: string, name: string): string | null {
 	// Some releases publish one `<asset>.sha256sum` file holding just the hash.
 	const bare = text.trim();
 	if (/^[a-f0-9]{64}$/i.test(bare)) return bare.toLowerCase();
+	// PowerShell's Get-FileHash list ("Hash : <HEX>" / "Path : C:\…\name"), which Deno publishes.
+	const psHash = /^\s*Hash\s*:\s*([a-f0-9]{64})\s*$/im.exec(text);
+	const psPath = /^\s*Path\s*:\s*(.+?)\s*$/im.exec(text);
+	if (psHash && psPath) return psPath[1].split(/[\\/]/).pop() === name ? psHash[1].toLowerCase() : null;
 	for (const line of text.split(/\r?\n/)) {
 		const m = /^([a-f0-9]{64})\s+\*?(.+)$/i.exec(line.trim());
 		if (m && m[2].trim() === name) return m[1].toLowerCase();
