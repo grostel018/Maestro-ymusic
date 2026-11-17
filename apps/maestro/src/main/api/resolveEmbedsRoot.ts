@@ -33,7 +33,7 @@ export function resolveEmbedsRoot(): string | null {
 
 	// Always allow cwd (preview / monorepo / pack-from-artifact)
 	push(path.resolve(process.cwd(), "resources/embeds"));
-	push(path.resolve(process.cwd(), "apps/ytmdesktop2/resources/embeds"));
+	push(path.resolve(process.cwd(), "apps/maestro/resources/embeds"));
 
 	try {
 		push(path.join(process.resourcesPath, "app.asar.unpacked", "resources", "embeds"));
