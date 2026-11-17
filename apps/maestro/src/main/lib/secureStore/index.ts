@@ -12,39 +12,21 @@ const store = createEncryptedStore<CredentialStore>("ytm-credentials", {
 	defaults: { credentials: {} },
 });
 class SecureStore {
-	getAll() {
-		return new Promise<Credentials>((resolve, reject) =>
-			resolve(
-				Object.entries(store.get("credentials", {})).map(
-					([account, password]) =>
-						({
-							account,
-							password,
-						}) as Credential,
-				),
-			),
-		);
+	// async: an error from the encrypted store now rejects instead of leaving the caller waiting forever.
+	async getAll(): Promise<Credentials> {
+		return Object.entries(store.get("credentials", {})).map(([account, password]) => ({ account, password }) as Credential);
 	}
-	set(key: string, value: string) {
-		return new Promise<string | null>(async (resolve, reject) => {
-			store.set(`credentials.${key}`, value);
-			return resolve(value);
-		});
+	async set(key: string, value: string): Promise<string | null> {
+		store.set(`credentials.${key}`, value);
+		return value;
 	}
-	get<T = any>(key: string) {
-		return new Promise<T | null>(async (resolve, reject) => {
-			const value = store.get(`credentials.${key}`, null);
-			return resolve(value);
-		});
+	async get<T = any>(key: string): Promise<T | null> {
+		return store.get(`credentials.${key}`, null) as T | null;
 	}
-	delete(key: string) {
-		return new Promise<boolean>(async (resolve, reject) => {
-			store.delete(`credentials.${key}`);
-			return resolve(true);
-		});
+	async delete(key: string): Promise<boolean> {
+		store.delete(`credentials.${key}`);
+		return true;
 	}
-	readonly setPassword: typeof this.set = this.set.bind(this);
-	readonly getPassword: typeof this.get = this.get.bind(this);
 }
 
 const secureStore = new SecureStore();
