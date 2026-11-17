@@ -39,6 +39,8 @@ describe("buildArgs", () => {
 		expect(args[args.indexOf("--js-runtimes") + 1]).toBe("deno:C:/bin/deno.exe");
 		// A cut-off download must stay a .part file, never look finished.
 		expect(args).not.toContain("--no-part");
+		// Paths with Greek letters or accents came back mangled without it (Windows console code page).
+		expect(args[args.indexOf("--encoding") + 1]).toBe("utf-8");
 		expect(args[args.indexOf("--ffmpeg-location") + 1]).toBe("C:/bin/ffmpeg");
 		expect(args[args.indexOf("-o") + 1]).toBe("C:/Music/Maestro/Rick Astley - Never Gonna Give You Up.%(ext)s");
 	});

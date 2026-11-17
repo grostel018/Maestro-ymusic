@@ -35,6 +35,9 @@ export function buildArgs(job: DownloadJob, paths: DownloadPaths, opts: { withId
 	const args = [
 		`https://music.youtube.com/watch?v=${job.videoId}`,
 		"--no-playlist",
+		// Our output lines carry the file path: UTF-8, not the Windows console code page (mangled Greek and accents).
+		"--encoding",
+		"utf-8",
 		"-f",
 		"bestaudio[ext=m4a]/bestaudio",
 		// Audio only, in its own codec (no re-encode): m4a, or opus when that is all there is.
