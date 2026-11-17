@@ -11,7 +11,7 @@ import { app, BrowserWindow, BrowserWindowConstructorOptions, shell, WebContents
 import { debounce } from "lodash-es";
 import { join } from "path";
 import appIconPath from "~/build/favicon.ico?asset";
-import { computeViewBounds, createFullscreenRestore, isGoogleSignInUrl, isOfflineLoadError, isYoutubeViewUrl } from "./layout";
+import { computeViewBounds, createFullscreenRestore, isGoogleSignInUrl, isOfflineLoadError, isYoutubeViewUrl, retryRequested } from "./layout";
 import { createWindowContext } from "./mappedWindow";
 import { createApiView, createView, googleLoginPopup } from "./view";
 import { pushWindowStates } from "./webContentUtils";
@@ -396,7 +396,7 @@ export class WindowManager {
 
 		serverMain.on("app.loadEnd", handleLoadEnd);
 		serverMain.on("downloads:open", () => void this.openDownloads(false));
-		serverMain.on("downloads:close", (_ev, opts?: { retry?: boolean }) => this.closeDownloads(!!opts?.retry));
+		serverMain.on("downloads:close", (...args: unknown[]) => this.closeDownloads(retryRequested(args)));
 		serverMain.on("app.loadStart", handleLoadStart);
 	}
 	private setupWindowEvents() {

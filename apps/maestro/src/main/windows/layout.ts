@@ -95,3 +95,11 @@ const OFFLINE_ERRORS = new Set([-106, -105, -109, -21, -2]);
 export function isOfflineLoadError(errorCode: number, isMainFrame: boolean): boolean {
 	return isMainFrame && OFFLINE_ERRORS.has(errorCode);
 }
+
+/**
+ * The `retry` flag of a `downloads:close` event. serverMain passes an IPC event first when the page or a view sent it,
+ * and nothing when main emitted it, so the flag is looked for in every argument.
+ */
+export function retryRequested(args: unknown[]): boolean {
+	return args.some((a) => !!a && typeof a === "object" && (a as { retry?: unknown }).retry === true);
+}

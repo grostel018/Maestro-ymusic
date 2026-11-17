@@ -8,7 +8,7 @@ import type { Session } from "electron";
 import { forceUpdateYtDlp } from "./binaries";
 import { buildArgs, type DownloadJob, looksOutdated, netscapeCookies, parseFinalPath, parseProgress } from "./core";
 
-export type RunPaths = { ytDlp: string; ffmpeg: string; electron: string; outDir: string; tmpDir: string; stampFile: string };
+export type RunPaths = { ytDlp: string; ffmpeg: string; jsRuntime: string; outDir: string; tmpDir: string; stampFile: string; withId?: boolean };
 
 export class DownloadError extends Error {}
 
@@ -22,12 +22,8 @@ export async function writeCookies(session: Session, dir: string): Promise<strin
 
 function once(job: DownloadJob, paths: RunPaths, cookies: string | null, onProgress: (p: number) => void, signal: AbortSignal): Promise<string> {
 	return new Promise((resolve, reject) => {
-		const args = buildArgs(job, { ffmpeg: paths.ffmpeg, electron: paths.electron, cookies, outDir: paths.outDir });
-		const child = spawn(paths.ytDlp, args, {
-			windowsHide: true,
-			// yt-dlp runs Maestro's own binary as Node to solve YouTube's JavaScript challenges.
-			env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
-		});
+		const args = buildArgs(job, { ffmpeg: paths.ffmpeg, jsRuntime: paths.jsRuntime, cookies, outDir: paths.outDir }, { withId: paths.withId });
+		const child = spawn(paths.ytDlp, args, { windowsHide: true });
 		let file: string | null = null;
 		let stderr = "";
 		let buffer = "";

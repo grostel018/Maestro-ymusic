@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { mkdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { AfterInit, BaseProvider } from "@main/core/baseProvider";
 import { serverMain } from "@main/ipc/serverEvents";
@@ -44,7 +44,7 @@ export default class DownloadsProvider extends BaseProvider implements AfterInit
 	private readonly statuses = new Map<string, DownloadStatus>();
 	private readonly queue: DownloadJob[] = [];
 	private readonly running = new Map<string, AbortController>();
-	private binaries: Promise<{ ytDlp: string; ffmpeg: string }> | null = null;
+	private binaries: Promise<{ ytDlp: string; ffmpeg: string; deno: string }> | null = null;
 	private folderPath: string;
 
 	constructor() {
@@ -76,7 +76,11 @@ export default class DownloadsProvider extends BaseProvider implements AfterInit
 	}
 
 	async AfterInit() {
-		registerMediaProtocol(electronSession.defaultSession, () => this.folderPath);
+		// By video id through the index: songs left in an older folder still play, and nothing else can be served.
+		registerMediaProtocol(electronSession.defaultSession, (kind, videoId) => {
+			const entry = this.index.get(videoId);
+			return kind === "song" ? entry?.file : entry?.art;
+		});
 		const ytDlp = path.join(this.binDir, "yt-dlp.exe");
 		if (existsSync(ytDlp)) void updateYtDlp(ytDlp, path.join(this.binDir, ".last-update"));
 	}
@@ -117,7 +121,7 @@ export default class DownloadsProvider extends BaseProvider implements AfterInit
 		const items: DownloadItem[] = [];
 		for (const e of this.index.list().sort((a, b) => b.addedAt - a.addedAt)) {
 			const size = await stat(e.file).then((s) => s.size).catch(() => 0);
-			items.push({ ...e, url: mediaUrl(e.file, this.folderPath), artSrc: e.art ? mediaUrl(e.art, this.folderPath) : null, size });
+			items.push({ ...e, url: mediaUrl("song", e.videoId), artSrc: e.art ? mediaUrl("art", e.videoId) : null, size });
 		}
 		return items;
 	}
@@ -213,9 +217,18 @@ export default class DownloadsProvider extends BaseProvider implements AfterInit
 			this.setStatus(job, "downloading", 0);
 			await mkdir(this.folderPath, { recursive: true });
 			const youtubeSession = this.views?.youtubeView?.webContents?.session ?? null;
+			const withId = await this.nameTaken(job);
 			const file = await runDownload(
 				job,
-				{ ytDlp: bins.ytDlp, ffmpeg: bins.ffmpeg, electron: process.execPath, outDir: this.folderPath, tmpDir: path.join(this.userData, "tmp"), stampFile: path.join(this.binDir, ".last-update") },
+				{
+					ytDlp: bins.ytDlp,
+					ffmpeg: bins.ffmpeg,
+					jsRuntime: `deno:${bins.deno}`,
+					outDir: this.folderPath,
+					tmpDir: path.join(this.userData, "tmp"),
+					stampFile: path.join(this.binDir, ".last-update"),
+					withId,
+				},
 				youtubeSession,
 				(percent) => this.setStatus(job, "downloading", percent),
 				signal,
@@ -230,6 +243,21 @@ export default class DownloadsProvider extends BaseProvider implements AfterInit
 			this.logger.warn(`download failed for ${job.videoId}: ${message}`);
 			this.setStatus(job, "error", 0, message);
 		}
+	}
+
+	/** Another song (or a file we don't know) already has this "Artist - Title" name, or is being downloaded under it. */
+	private async nameTaken(job: DownloadJob): Promise<boolean> {
+		const base = safeFileName(job.artist, job.title, "x").slice(0, -2).toLowerCase();
+		const same = (file: string) => {
+			const name = path.basename(file).toLowerCase();
+			return name.startsWith(`${base}.`);
+		};
+		if (this.index.list().some((e) => e.videoId !== job.videoId && same(e.file))) return true;
+		for (const [id, status] of this.statuses) {
+			if (id !== job.videoId && this.running.has(id) && safeFileName(status.artist, status.title, "x").slice(0, -2).toLowerCase() === base) return true;
+		}
+		const files = await readdir(this.folderPath).catch(() => [] as string[]);
+		return files.some((f) => same(f) && !f.toLowerCase().endsWith(".part"));
 	}
 
 	/** The cover for the Downloads page, kept next to the files so it shows offline. */

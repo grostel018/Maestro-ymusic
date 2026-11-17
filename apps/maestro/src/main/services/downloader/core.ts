@@ -1,7 +1,8 @@
 // Offline downloads (spec 2026-11-17 §5): the pure parts of running yt-dlp — names, arguments, output parsing.
 
 export type DownloadJob = { videoId: string; title: string; artist: string; album?: string; artUrl?: string; durationSec?: number };
-export type DownloadPaths = { ffmpeg: string; electron: string; cookies: string | null; outDir: string };
+/** `jsRuntime`: yt-dlp's `--js-runtimes` value, e.g. "deno:C:/…/deno.exe" (YouTube's challenges need one). */
+export type DownloadPaths = { ffmpeg: string; jsRuntime: string; cookies: string | null; outDir: string };
 
 const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
 const ILLEGAL = /[<>:"/\\|?*\u0000-\u001f]/g;
@@ -23,10 +24,14 @@ export function safeFileName(artist: string, title: string, ext: string): string
 }
 
 /** yt-dlp arguments for one song, as an array (never through a shell). */
-export function buildArgs(job: DownloadJob, paths: DownloadPaths): string[] {
+export function buildArgs(job: DownloadJob, paths: DownloadPaths, opts: { withId?: boolean } = {}): string[] {
 	if (!isVideoId(job.videoId)) throw new Error(`invalid video id: ${String(job.videoId)}`);
-	const base = safeFileName(job.artist, job.title, "x").slice(0, -2);
-	const outDir = paths.outDir.replace(/[\\/]+$/, "");
+	let base = safeFileName(job.artist, job.title, "x").slice(0, -2);
+	// Two songs with the same artist and title (single vs album, explicit vs clean) get the id in the name.
+	if (opts.withId) base = `${base} [${job.videoId}]`;
+	// `-o` is a yt-dlp template: a literal % must be doubled.
+	base = base.replace(/%/g, "%%");
+	const outDir = paths.outDir.replace(/[\\/]+$/, "").replace(/%/g, "%%");
 	const args = [
 		`https://music.youtube.com/watch?v=${job.videoId}`,
 		"--no-playlist",
@@ -44,9 +49,8 @@ export function buildArgs(job: DownloadJob, paths: DownloadPaths): string[] {
 		"--ffmpeg-location",
 		paths.ffmpeg,
 		"--js-runtimes",
-		`node:${paths.electron}`,
+		paths.jsRuntime,
 		"--no-mtime",
-		"--no-part",
 		"--progress",
 		"--newline",
 		"--progress-template",
@@ -75,6 +79,9 @@ export function parseFinalPath(line: string): string | null {
 
 /** The hash of `name` in a `sha256sum` list ("<hash>  name" or "<hash> *name"). */
 export function parseSha256Sums(text: string, name: string): string | null {
+	// Some releases publish one `<asset>.sha256sum` file holding just the hash.
+	const bare = text.trim();
+	if (/^[a-f0-9]{64}$/i.test(bare)) return bare.toLowerCase();
 	for (const line of text.split(/\r?\n/)) {
 		const m = /^([a-f0-9]{64})\s+\*?(.+)$/i.exec(line.trim());
 		if (m && m[2].trim() === name) return m[1].toLowerCase();

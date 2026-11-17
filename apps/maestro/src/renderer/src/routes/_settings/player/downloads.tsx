@@ -52,7 +52,7 @@ function DownloadsSettingsPage() {
 						</Button>
 					</div>
 					<p className="text-xs text-muted-foreground">
-						The first download also fetches the downloader (yt-dlp and ffmpeg, about 100 MB) from their official releases. It is checked against their
+						The first download also fetches the downloader (yt-dlp, ffmpeg and Deno, about 150 MB) from their official releases. It is checked against their
 						published checksums and keeps itself up to date.
 					</p>
 					{note && <p className="text-xs">{note}</p>}

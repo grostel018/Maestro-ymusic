@@ -34,6 +34,16 @@ describe("downloadVerified", () => {
 	});
 });
 
+describe("downloadVerified and a failing disk", () => {
+	it("rejects instead of crashing when the file cannot be written", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "maestro-bin-"));
+		const fetch = fakeFetch({ "https://x/a.exe": "hello", "https://x/sums": `${sha("hello")}  a.exe
+` });
+		// The destination's folder does not exist: the write stream errors.
+		await expect(downloadVerified({ url: "https://x/a.exe", sumsUrl: "https://x/sums", name: "a.exe" }, join(dir, "missing", "a.exe"), { fetch })).rejects.toBeInstanceOf(BinaryError);
+	});
+});
+
 describe("updateDue", () => {
 	it("updates yt-dlp at most once a day", () => {
 		const day = 24 * 60 * 60 * 1000;

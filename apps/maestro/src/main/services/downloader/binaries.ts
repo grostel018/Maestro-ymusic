@@ -21,9 +21,16 @@ export const FFMPEG: Asset = {
 	name: "ffmpeg-master-latest-win64-gpl.zip",
 };
 
+/** yt-dlp's JavaScript runtime for YouTube's challenges (Maestro's own exe can't run as Node: the RunAsNode fuse is off). */
+export const DENO: Asset = {
+	url: "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip",
+	sumsUrl: "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip.sha256sum",
+	name: "deno-x86_64-pc-windows-msvc.zip",
+};
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export type Progress = (p: { name: "yt-dlp" | "ffmpeg"; percent: number }) => void;
+export type Progress = (p: { name: "yt-dlp" | "ffmpeg" | "deno"; percent: number }) => void;
 type FetchDeps = { fetch: typeof fetch; onProgress?: (percent: number) => void };
 
 /** Downloads `asset` to `dest` (through a `.partial` file) and checks its hash; nothing is left behind on failure. */
@@ -40,17 +47,29 @@ export async function downloadVerified(asset: Asset, dest: string, deps: FetchDe
 		const total = Number(res.headers.get("content-length")) || 0;
 		const hash = createHash("sha256");
 		const out = createWriteStream(partial);
+		// A full disk or a missing folder must reject, not throw an uncaught 'error' in the main process.
+		let failure: Error | null = null;
+		const failed = new Promise<never>((_, reject) =>
+			out.once("error", (err) => {
+				failure = err;
+				reject(err);
+			}),
+		);
+		failed.catch(() => undefined);
 		let done = 0;
 		try {
 			for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {
+				if (failure) throw failure;
 				hash.update(chunk);
 				done += chunk.length;
-				if (!out.write(chunk)) await new Promise<void>((r) => out.once("drain", () => r()));
+				if (!out.write(chunk)) await Promise.race([new Promise<void>((r) => out.once("drain", () => r())), failed]);
 				if (total) deps.onProgress?.(Math.round((done / total) * 100));
 			}
 		} finally {
-			await new Promise<void>((resolve, reject) => out.end((err?: Error | null) => (err ? reject(err) : resolve())));
+			if (!failure) await Promise.race([new Promise<void>((resolve, reject) => out.end((err?: Error | null) => (err ? reject(err) : resolve()))), failed]);
+			else out.destroy();
 		}
+		if (failure) throw failure;
 		if (hash.digest("hex") !== expected) throw new BinaryError(`checksum mismatch for ${asset.name}`);
 		await fs.rename(partial, dest);
 	} catch (err) {
@@ -80,33 +99,44 @@ async function findFile(dir: string, name: string): Promise<string | null> {
 }
 
 /** Paths to yt-dlp and to the folder holding ffmpeg/ffprobe; downloads whatever is missing. */
-export async function ensureBinaries(dir: string, deps: { fetch: typeof fetch; onProgress?: Progress }): Promise<{ ytDlp: string; ffmpeg: string }> {
+/** Downloads a zip, takes `exes` out of it into `destDir`. */
+async function installZip(asset: Asset, dir: string, destDir: string, exes: string[], deps: FetchDeps): Promise<void> {
+	const zip = join(dir, asset.name);
+	const tmp = join(dir, `${asset.name}-unpack`);
+	try {
+		await downloadVerified(asset, zip, deps);
+		await fs.rm(tmp, { recursive: true, force: true });
+		await fs.mkdir(tmp, { recursive: true });
+		await unzip(zip, tmp);
+		await fs.mkdir(destDir, { recursive: true });
+		for (const exe of exes) {
+			const found = await findFile(tmp, exe);
+			if (!found) throw new BinaryError(`${exe} missing from ${asset.name}`);
+			await fs.rm(join(destDir, exe), { force: true });
+			await fs.rename(found, join(destDir, exe));
+		}
+	} finally {
+		await fs.rm(tmp, { recursive: true, force: true }).catch(() => undefined);
+		await fs.rm(zip, { force: true }).catch(() => undefined);
+	}
+}
+
+export async function ensureBinaries(dir: string, deps: { fetch: typeof fetch; onProgress?: Progress }): Promise<{ ytDlp: string; ffmpeg: string; deno: string }> {
 	await fs.mkdir(dir, { recursive: true });
 	const ytDlp = join(dir, YT_DLP.name);
 	const ffmpegDir = join(dir, "ffmpeg");
 	if (!existsSync(ytDlp)) {
 		await downloadVerified(YT_DLP, ytDlp, { fetch: deps.fetch, onProgress: (percent) => deps.onProgress?.({ name: "yt-dlp", percent }) });
 	}
-	if (!existsSync(join(ffmpegDir, "ffmpeg.exe"))) {
-		const zip = join(dir, FFMPEG.name);
-		const tmp = join(dir, "ffmpeg-unpack");
-		try {
-			await downloadVerified(FFMPEG, zip, { fetch: deps.fetch, onProgress: (percent) => deps.onProgress?.({ name: "ffmpeg", percent }) });
-			await fs.rm(tmp, { recursive: true, force: true });
-			await fs.mkdir(tmp, { recursive: true });
-			await unzip(zip, tmp);
-			await fs.mkdir(ffmpegDir, { recursive: true });
-			for (const exe of ["ffmpeg.exe", "ffprobe.exe"]) {
-				const found = await findFile(tmp, exe);
-				if (!found) throw new BinaryError(`${exe} missing from the ffmpeg build`);
-				await fs.rename(found, join(ffmpegDir, exe));
-			}
-		} finally {
-			await fs.rm(tmp, { recursive: true, force: true }).catch(() => undefined);
-			await fs.rm(zip, { force: true }).catch(() => undefined);
-		}
+	// Both are needed (ffprobe for the cover); a half-finished install is redone.
+	if (!existsSync(join(ffmpegDir, "ffmpeg.exe")) || !existsSync(join(ffmpegDir, "ffprobe.exe"))) {
+		await installZip(FFMPEG, dir, ffmpegDir, ["ffmpeg.exe", "ffprobe.exe"], { fetch: deps.fetch, onProgress: (percent) => deps.onProgress?.({ name: "ffmpeg", percent }) });
 	}
-	return { ytDlp, ffmpeg: ffmpegDir };
+	const deno = join(dir, "deno.exe");
+	if (!existsSync(deno)) {
+		await installZip(DENO, dir, dir, ["deno.exe"], { fetch: deps.fetch, onProgress: (percent) => deps.onProgress?.({ name: "deno", percent }) });
+	}
+	return { ytDlp, ffmpeg: ffmpegDir, deno };
 }
 
 export const updateDue = (lastMs: number | null, now: number): boolean => lastMs === null || now - lastMs >= DAY_MS;

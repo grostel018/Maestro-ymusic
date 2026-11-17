@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeViewBounds, createFullscreenRestore, isGoogleSignInUrl, isOfflineLoadError, isReachableOnDisplays, isYoutubeViewUrl, nextSavedWindowState } from "./layout";
+import { computeViewBounds, createFullscreenRestore, isGoogleSignInUrl, isOfflineLoadError, isReachableOnDisplays, retryRequested, isYoutubeViewUrl, nextSavedWindowState } from "./layout";
 
 describe("YouTube view navigation", () => {
 	it("recognises Google sign-in hosts, not look-alikes", () => {
@@ -115,5 +115,14 @@ describe("isOfflineLoadError", () => {
 	it("ignores aborted loads and sub-frames", () => {
 		expect(isOfflineLoadError(-3, true)).toBe(false);
 		expect(isOfflineLoadError(-106, false)).toBe(false);
+	});
+});
+
+describe("retryRequested", () => {
+	it("finds the retry flag whether or not an IPC event comes first", () => {
+		expect(retryRequested([{ retry: true }])).toBe(true);
+		expect(retryRequested([{ sender: {} }, { retry: true }])).toBe(true);
+		expect(retryRequested([{ retry: false }])).toBe(false);
+		expect(retryRequested([])).toBe(false);
 	});
 });

@@ -1,53 +1,40 @@
-// `maestro-media://file/<path inside the downloads folder>`: plays downloaded songs in the offline player. Anything
-// that resolves outside the downloads folder is refused (spec 2026-11-17 §5, Security).
+// `maestro-media://song/<videoId>` and `maestro-media://art/<videoId>`: plays downloaded songs in the offline player.
+// URLs name a download by its video id, never by a path, so nothing outside the download index can be served, and
+// songs kept in an older downloads folder still play (spec 2026-11-17 §5, Security).
 import { createReadStream, promises as fs } from "node:fs";
-import { extname, isAbsolute, relative, resolve, sep } from "node:path";
+import { extname } from "node:path";
 import { Readable } from "node:stream";
 import type { Session } from "electron";
 
 export const MEDIA_SCHEME = "maestro-media";
-const HOST = "file";
+export type MediaKind = "song" | "art";
 
+const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
 const MIME: Record<string, string> = { ".m4a": "audio/mp4", ".mp4": "audio/mp4", ".opus": "audio/ogg", ".ogg": "audio/ogg", ".webm": "audio/webm", ".mp3": "audio/mpeg", ".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
 
-function inside(root: string, path: string): boolean {
-	const rel = relative(resolve(root), path);
-	return !!rel && !rel.startsWith("..") && !isAbsolute(rel);
-}
+export const mediaUrl = (kind: MediaKind, videoId: string) => `${MEDIA_SCHEME}://${kind}/${videoId}`;
 
-/** The file a media URL points at, or null when it is not one of ours or leaves `root`. */
-export function resolveMediaPath(url: string, root: string): string | null {
+/** The download a media URL names, or null when it is not one of ours. */
+export function parseMediaUrl(url: string): { kind: MediaKind; videoId: string } | null {
 	let parsed: URL;
 	try {
 		parsed = new URL(url);
 	} catch {
 		return null;
 	}
-	if (parsed.protocol !== `${MEDIA_SCHEME}:` || parsed.hostname !== HOST) return null;
-	let rel: string;
-	try {
-		rel = decodeURIComponent(parsed.pathname.replace(/^\/+/, ""));
-	} catch {
-		return null;
-	}
-	if (!rel || isAbsolute(rel) || /^[a-z]:/i.test(rel)) return null;
-	const full = resolve(root, rel);
-	return inside(root, full) ? full : null;
+	if (parsed.protocol !== `${MEDIA_SCHEME}:`) return null;
+	const kind = parsed.hostname;
+	if (kind !== "song" && kind !== "art") return null;
+	const videoId = parsed.pathname.replace(/^\/+/, "");
+	return VIDEO_ID.test(videoId) ? { kind, videoId } : null;
 }
 
-/** URL for a file inside `root`, or null. */
-export function mediaUrl(path: string, root: string): string | null {
-	const full = resolve(path);
-	if (!inside(root, full)) return null;
-	const rel = relative(resolve(root), full).split(sep).join("/");
-	return `${MEDIA_SCHEME}://${HOST}/${encodeURIComponent(rel)}`;
-}
-
-/** Serves downloaded files on `session`, with Range support so the player can seek. */
-export function registerMediaProtocol(session: Session, getRoot: () => string): void {
+/** Serves downloads on `session` (`lookup`: the indexed file for an id), with Range support so the player can seek. */
+export function registerMediaProtocol(session: Session, lookup: (kind: MediaKind, videoId: string) => string | null | undefined): void {
 	if (session.protocol.isProtocolHandled(MEDIA_SCHEME)) return;
 	session.protocol.handle(MEDIA_SCHEME, async (request) => {
-		const path = resolveMediaPath(request.url, getRoot());
+		const target = parseMediaUrl(request.url);
+		const path = target ? lookup(target.kind, target.videoId) : null;
 		if (!path) return new Response("Not found", { status: 404 });
 		let size: number;
 		try {

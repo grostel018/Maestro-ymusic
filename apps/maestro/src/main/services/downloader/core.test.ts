@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildArgs, type DownloadJob, isVideoId, netscapeCookies, parseFinalPath, parseProgress, parseSha256Sums, safeFileName } from "./core";
 
 const job: DownloadJob = { videoId: "dQw4w9WgXcQ", title: "Never Gonna Give You Up", artist: "Rick Astley" };
-const paths = { ffmpeg: "C:/bin/ffmpeg", electron: "C:/app/Maestro.exe", cookies: null, outDir: "C:/Music/Maestro" };
+const paths = { ffmpeg: "C:/bin/ffmpeg", jsRuntime: "deno:C:/bin/deno.exe", cookies: null, outDir: "C:/Music/Maestro" };
 
 describe("isVideoId", () => {
 	it("accepts 11-character ids only", () => {
@@ -36,7 +36,9 @@ describe("buildArgs", () => {
 		expect(args).toContain("--embed-metadata");
 		expect(args).toContain("--embed-thumbnail");
 		expect(args[args.indexOf("-f") + 1]).toBe("bestaudio[ext=m4a]/bestaudio");
-		expect(args[args.indexOf("--js-runtimes") + 1]).toBe("node:C:/app/Maestro.exe");
+		expect(args[args.indexOf("--js-runtimes") + 1]).toBe("deno:C:/bin/deno.exe");
+		// A cut-off download must stay a .part file, never look finished.
+		expect(args).not.toContain("--no-part");
 		expect(args[args.indexOf("--ffmpeg-location") + 1]).toBe("C:/bin/ffmpeg");
 		expect(args[args.indexOf("-o") + 1]).toBe("C:/Music/Maestro/Rick Astley - Never Gonna Give You Up.%(ext)s");
 	});
@@ -44,6 +46,14 @@ describe("buildArgs", () => {
 		expect(buildArgs(job, paths)).not.toContain("--cookies");
 		const args = buildArgs(job, { ...paths, cookies: "C:/tmp/c.txt" });
 		expect(args[args.indexOf("--cookies") + 1]).toBe("C:/tmp/c.txt");
+	});
+	it("adds the video id to the name when another song already has it", () => {
+		const args = buildArgs(job, paths, { withId: true });
+		expect(args[args.indexOf("-o") + 1]).toBe("C:/Music/Maestro/Rick Astley - Never Gonna Give You Up [dQw4w9WgXcQ].%(ext)s");
+	});
+	it("keeps a % in a title from being read as a template field", () => {
+		const args = buildArgs({ ...job, title: "100%(live)" }, paths);
+		expect(args[args.indexOf("-o") + 1]).toBe("C:/Music/Maestro/Rick Astley - 100%%(live).%(ext)s");
 	});
 	it("refuses an invalid id", () => {
 		expect(() => buildArgs({ ...job, videoId: "../../x" }, paths)).toThrow();
@@ -67,6 +77,10 @@ describe("parseSha256Sums", () => {
 		const text = `${"a".repeat(64)}  yt-dlp\n${"b".repeat(64)}  yt-dlp.exe\n`;
 		expect(parseSha256Sums(text, "yt-dlp.exe")).toBe("b".repeat(64));
 		expect(parseSha256Sums(text, "missing.exe")).toBeNull();
+	});
+	it("accepts a checksum file holding only the hash", () => {
+		expect(parseSha256Sums(`${"d".repeat(64)}
+`, "deno.zip")).toBe("d".repeat(64));
 	});
 	it("accepts the binary-mode marker", () => {
 		expect(parseSha256Sums(`${"c".repeat(64)} *ffmpeg.zip`, "ffmpeg.zip")).toBe("c".repeat(64));
