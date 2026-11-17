@@ -232,3 +232,14 @@ in `docs/superpowers/plans/2026-10-25-phase0-1-ledger.md`.
 
 ## 2026-11-01: Native caption buttons on Windows
 The main window uses titleBarOverlay on Windows instead of custom minimize, maximize and close buttons. Only the native maximize button brings Windows 11's Snap Layouts menu. The toolbar reserves 146 px on the right for them. Minimum width dropped to 640 so half-screen snap works at 150 % scale; below about 620 px YouTube Music switches to a phone layout.
+
+## 2026-11-17: One active player for integrations
+- **Decision:** main follows the player that last started playing (YouTube Music page or the offline player). Tray,
+  Discord, Last.fm, stats, the API, OBS and Stream Deck read that one, and their commands go to it. Offline songs use the
+  online track shape plus `meta.source: "offline"` and YouTube's public thumbnail.
+- **Why:** one source for every integration, and the API only grows a field, so existing clients keep working.
+
+## 2026-11-17: Sleep timer and speed are per player
+- **Decision:** the offline player has its own sleep timer and speed; settings (keep pitch, speaker, volume ratio,
+  autoplay) are shared.
+- **Why:** moving the online timer's live state into main would rewrite working online code for an edge case.
