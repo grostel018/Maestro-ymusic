@@ -81,7 +81,9 @@ export async function downloadVerified(asset: Asset, dest: string, deps: FetchDe
 /** Windows' own tar (bsdtar) reads zip files. */
 function unzip(zip: string, destDir: string): Promise<void> {
 	return new Promise((resolve, reject) => {
-		const child = spawn("tar", ["-xf", zip, "-C", destDir], { windowsHide: true });
+		// Windows' own bsdtar by full path: a GNU tar earlier on PATH (Git for Windows, MSYS) can't read zip files.
+		const tar = process.platform === "win32" ? join(process.env.SystemRoot ?? "C:\\Windows", "System32", "tar.exe") : "tar";
+		const child = spawn(tar, ["-xf", zip, "-C", destDir], { windowsHide: true });
 		child.on("error", reject);
 		child.on("exit", (code) => (code === 0 ? resolve() : reject(new BinaryError(`unzip failed (${code})`))));
 	});

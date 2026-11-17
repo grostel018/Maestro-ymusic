@@ -6,7 +6,7 @@ import { fetchYtmLyrics, lyricsBrowseId, parseYtmLyrics } from "./ytm-lyrics";
 
 describe("lyricsBrowseId", () => {
 	it("finds the Lyrics tab's browse id", () => {
-		expect(lyricsBrowseId(nextWithLyrics)).toBe("MPLYt_abc123XYZ-1");
+		expect(lyricsBrowseId(nextWithLyrics)).toBe("MPLYt_6AEOVn4k62q");
 	});
 	it("is null when the Lyrics tab is unselectable", () => {
 		expect(lyricsBrowseId(nextNoLyrics)).toBeNull();
@@ -21,7 +21,7 @@ describe("parseYtmLyrics", () => {
 	it("returns the text and the source without its prefix", () => {
 		expect(parseYtmLyrics(browseLyrics)).toEqual({
 			text: "First line of the song\nSecond line of the song\nThird line of the song",
-			source: "LyricFind",
+			source: "Musixmatch",
 		});
 	});
 	it("is null without a description shelf", () => {
@@ -34,8 +34,8 @@ describe("fetchYtmLyrics", () => {
 		const fetch = vi.fn(async (path: string) => (path === "/next" ? nextWithLyrics : browseLyrics));
 		const res = await fetchYtmLyrics("aaaaaaaaaaa", fetch);
 		expect(fetch).toHaveBeenNthCalledWith(1, "/next", expect.objectContaining({ videoId: "aaaaaaaaaaa" }));
-		expect(fetch).toHaveBeenNthCalledWith(2, "/browse", { browseId: "MPLYt_abc123XYZ-1" });
-		expect(res?.source).toBe("LyricFind");
+		expect(fetch).toHaveBeenNthCalledWith(2, "/browse", { browseId: "MPLYt_6AEOVn4k62q" });
+		expect(res?.source).toBe("Musixmatch");
 	});
 	it("is null without a lyrics tab, and never calls /browse", async () => {
 		const fetch = vi.fn(async () => nextNoLyrics);
