@@ -103,3 +103,20 @@ export function isOfflineLoadError(errorCode: number, isMainFrame: boolean): boo
 export function retryRequested(args: unknown[]): boolean {
 	return args.some((a) => !!a && typeof a === "object" && (a as { retry?: unknown }).retry === true);
 }
+
+/**
+ * YouTube Music finished loading while Downloads is open (offline player parity spec). Downloads closes only when it
+ * was opened for lack of network and nothing was played there; otherwise it stays and keeps playing.
+ */
+export function downloadsOnYtmLoaded(s: { openedForOffline: boolean; hasQueue: boolean }): "close" | "stay-and-announce" | "stay" {
+	if (!s.openedForOffline) return "stay";
+	return s.hasQueue ? "stay-and-announce" : "close";
+}
+
+/** The `{ hasQueue, playing }` of a `downloads:player` event, wherever serverMain put it among the arguments. */
+export function playerReport(args: unknown[]): { hasQueue: boolean; playing: boolean } | null {
+	const a = args.find((x) => !!x && typeof x === "object" && typeof (x as { hasQueue?: unknown }).hasQueue === "boolean") as
+		| { hasQueue: boolean; playing?: unknown }
+		| undefined;
+	return a ? { hasQueue: a.hasQueue, playing: a.playing === true } : null;
+}

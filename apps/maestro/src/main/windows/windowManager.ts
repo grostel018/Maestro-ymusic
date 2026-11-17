@@ -11,7 +11,7 @@ import { app, BrowserWindow, BrowserWindowConstructorOptions, shell, WebContents
 import { debounce } from "lodash-es";
 import { join } from "path";
 import appIconPath from "~/build/favicon.ico?asset";
-import { computeViewBounds, createFullscreenRestore, isGoogleSignInUrl, isOfflineLoadError, isYoutubeViewUrl, retryRequested } from "./layout";
+import { computeViewBounds, createFullscreenRestore, downloadsOnYtmLoaded, isGoogleSignInUrl, isOfflineLoadError, isYoutubeViewUrl, playerReport, retryRequested } from "./layout";
 import { createWindowContext } from "./mappedWindow";
 import { createApiView, createView, googleLoginPopup } from "./view";
 import { pushWindowStates } from "./webContentUtils";
@@ -72,6 +72,8 @@ export class WindowManager {
 	private downloadsView: WebContentsView | null = null;
 	/** Downloads was opened because YouTube Music could not load: close it once YouTube loads again. */
 	private downloadsForOffline = false;
+	/** The offline player has a queue (playing or paused): Downloads must not close on its own. */
+	private downloadsHasQueue = false;
 	private isGoogleLoginProcessing = false;
 	private userAgentResolved: string | null = null;
 	/** YouTube Music's own fullscreen (HTML fullscreen) is active: the toolbar is hidden. */
@@ -242,10 +244,20 @@ export class WindowManager {
 		this.applyLayout();
 	}
 
+	/** Back to YouTube Music while the offline player keeps its queue: detach the view but keep it alive. */
+	private hideDownloads() {
+		const view = this.downloadsView;
+		this.downloadsForOffline = false;
+		if (view && this.mainWindow && !this.mainWindow.isDestroyed() && this.mainWindow.contentView.children.includes(view)) {
+			this.mainWindow.contentView.removeChildView(view);
+		}
+	}
+
 	private closeDownloads(retry: boolean) {
 		const view = this.downloadsView;
 		this.downloadsView = null;
 		this.downloadsForOffline = false;
+		this.downloadsHasQueue = false;
 		if (view && this.mainWindow && !this.mainWindow.isDestroyed()) {
 			if (this.mainWindow.contentView.children.includes(view)) this.mainWindow.contentView.removeChildView(view);
 			// Closing the page stops its player.
@@ -270,7 +282,14 @@ export class WindowManager {
 			void this.openDownloads(true);
 		});
 		view.webContents.on("did-finish-load", () => {
-			if (this.downloadsForOffline && !loadFailed) this.closeDownloads(false);
+			if (!this.downloadsForOffline || loadFailed) return;
+			const next = downloadsOnYtmLoaded({ openedForOffline: true, hasQueue: this.downloadsHasQueue });
+			if (next === "close") this.closeDownloads(false);
+			else if (next === "stay-and-announce") {
+				// Keep playing; the page shows "You're back online".
+				this.downloadsForOffline = false;
+				serverMain.emit("downloads:online", { at: Date.now() });
+			}
 		});
 
 		let lastLocation: string;
@@ -397,6 +416,11 @@ export class WindowManager {
 		serverMain.on("app.loadEnd", handleLoadEnd);
 		serverMain.on("downloads:open", () => void this.openDownloads(false));
 		serverMain.on("downloads:close", (...args: unknown[]) => this.closeDownloads(retryRequested(args)));
+		serverMain.on("downloads:hide", () => this.hideDownloads());
+		serverMain.on("downloads:player", (...args: unknown[]) => {
+			const report = playerReport(args);
+			if (report) this.downloadsHasQueue = report.hasQueue;
+		});
 		serverMain.on("app.loadStart", handleLoadStart);
 	}
 	private setupWindowEvents() {

@@ -123,6 +123,10 @@ function DownloadsPage() {
 	const showInFolder = trpc.downloads.showInFolder.useMutation();
 	const openFolder = trpc.downloads.openFolder.useMutation();
 	const closePage = trpc.downloads.closePage.useMutation();
+	const hidePage = trpc.downloads.hidePage.useMutation();
+	const reportPlayer = trpc.downloads.reportPlayer.useMutation();
+	const [backOnline, setBackOnline] = useState(false);
+	trpc.downloads.onOnline.useSubscription(undefined, { onData: () => setBackOnline(true) });
 	const pauseYtm = trpc.track.pause.useMutation();
 
 	const items = (list.data ?? []) as Item[];
@@ -183,6 +187,12 @@ function DownloadsPage() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [order.length]);
 
+	// Main keeps Downloads open while it has a queue (YouTube Music coming back must not stop the music).
+	useEffect(() => {
+		reportPlayer.mutate({ hasQueue: order.length > 0, playing });
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [order.length > 0, playing]);
+
 	useEffect(() => {
 		if (audio.current) {
 			audio.current.volume = volume;
@@ -199,7 +209,15 @@ function DownloadsPage() {
 	};
 	const back = () => {
 		if (view.page === "group") setView({ page: "library", tab: groups.find((g) => g.key === view.key)?.kind === "playlist" ? "playlists" : "albums" });
-		else closePage.mutate({ retry: !online });
+		else leave();
+	};
+	/** Back to YouTube Music. With a queue the page is only hidden, so the queue and position survive. */
+	const leave = () => {
+		setBackOnline(false);
+		if (order.length) {
+			audio.current?.pause();
+			hidePage.mutate();
+		} else closePage.mutate({ retry: !online });
 	};
 
 	const q = query.trim().toLowerCase();
@@ -308,6 +326,19 @@ function DownloadsPage() {
 					<span className="mr-auto">You're offline. Your downloads still play.</span>
 					<Button variant="outline" size="xs" onClick={() => closePage.mutate({ retry: true })}>
 						<RefreshCwIcon /> Try YouTube Music again
+					</Button>
+				</div>
+			)}
+
+			{online && backOnline && (
+				<div role="status" className="mx-6 mb-2 flex items-center gap-2 rounded-lg bg-foreground/[0.07] px-4 py-2 text-sm">
+					<RefreshCwIcon className="size-4" />
+					<span className="mr-auto">You're back online.</span>
+					<Button variant="outline" size="xs" onClick={leave}>
+						Go to YouTube Music
+					</Button>
+					<Button variant="ghost" size="icon-xs" aria-label="Dismiss" title="Dismiss" onClick={() => setBackOnline(false)}>
+						<XIcon />
 					</Button>
 				</div>
 			)}

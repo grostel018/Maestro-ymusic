@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeViewBounds, createFullscreenRestore, isGoogleSignInUrl, isOfflineLoadError, isReachableOnDisplays, retryRequested, isYoutubeViewUrl, nextSavedWindowState } from "./layout";
+import { computeViewBounds, createFullscreenRestore, downloadsOnYtmLoaded, isGoogleSignInUrl, isOfflineLoadError, isReachableOnDisplays, isYoutubeViewUrl, nextSavedWindowState, retryRequested } from "./layout";
 
 describe("YouTube view navigation", () => {
 	it("recognises Google sign-in hosts, not look-alikes", () => {
@@ -124,5 +124,27 @@ describe("retryRequested", () => {
 		expect(retryRequested([{ sender: {} }, { retry: true }])).toBe(true);
 		expect(retryRequested([{ retry: false }])).toBe(false);
 		expect(retryRequested([])).toBe(false);
+	});
+});
+
+describe("downloadsOnYtmLoaded", () => {
+	it("closes Downloads only when it was opened for offline and nothing was played", () => {
+		expect(downloadsOnYtmLoaded({ openedForOffline: true, hasQueue: false })).toBe("close");
+		expect(downloadsOnYtmLoaded({ openedForOffline: true, hasQueue: true })).toBe("stay-and-announce");
+		expect(downloadsOnYtmLoaded({ openedForOffline: false, hasQueue: false })).toBe("stay");
+		expect(downloadsOnYtmLoaded({ openedForOffline: false, hasQueue: true })).toBe("stay");
+	});
+
+	it("flapping connection keeps downloads", () => {
+		// fail → Downloads opened for offline; finish → decision; repeated while a queue exists.
+		let openedForOffline = false;
+		const decisions: string[] = [];
+		for (let i = 0; i < 5; i++) {
+			openedForOffline = true; // did-fail-load → openDownloads(true)
+			const d = downloadsOnYtmLoaded({ openedForOffline, hasQueue: true });
+			decisions.push(d);
+			if (d !== "stay") openedForOffline = false;
+		}
+		expect(decisions).not.toContain("close");
 	});
 });

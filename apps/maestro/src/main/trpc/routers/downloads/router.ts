@@ -1,5 +1,5 @@
-import { fromIpcEvent } from "@main/trpc/fromIpcEvent";
 import { serverMain } from "@main/ipc/serverEvents";
+import { fromIpcEvent } from "@main/trpc/fromIpcEvent";
 import { provider } from "@main/trpc/provider";
 import { publicProcedure, router } from "@shared/trpc/trpc";
 import { z } from "zod";
@@ -31,6 +31,14 @@ export const downloadsRouter = router({
 	openPage: publicProcedure.mutation(() => void serverMain.emit("downloads:open")),
 	/** `retry`: load YouTube Music again (after being offline). */
 	closePage: publicProcedure.input(z.object({ retry: z.boolean().optional() })).mutation(({ input }) => void serverMain.emit("downloads:close", { retry: !!input.retry })),
+	/** Back to YouTube Music, keeping the offline player's queue and position (the page pauses first). */
+	hidePage: publicProcedure.mutation(() => void serverMain.emit("downloads:hide")),
+	/** The offline player's state, so main knows whether Downloads may close when YouTube Music comes back. */
+	reportPlayer: publicProcedure
+		.input(z.object({ hasQueue: z.boolean(), playing: z.boolean() }))
+		.mutation(({ input }) => void serverMain.emit("downloads:player", input)),
+	/** YouTube Music loaded again while Downloads stayed open. */
+	onOnline: publicProcedure.subscription(() => fromIpcEvent<{ at: number }>("downloads:online")),
 	onStatus: publicProcedure.subscription(() => fromIpcEvent<DownloadStatus>("downloads:status")),
 	onChange: publicProcedure.subscription(() => fromIpcEvent<{ statuses: DownloadStatus[]; downloaded: string[] }>("downloads:all")),
 });
