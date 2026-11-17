@@ -2,7 +2,7 @@
 // menu, "Download all" on playlist and album pages, and a Downloads entry in the sidebar. Downloads run in the main
 // process (`downloads:add`); its state comes back as `downloads:status` / `downloads:all`.
 import { hdArt } from "@shared/track/thumbnail";
-import { jobFromRow, jobsFromRows, type PageDownloadJob } from "./downloads.logic";
+import { jobFromRow, jobsFromPage, type PageDownloadJob } from "./downloads.logic";
 import { getPagePlayerApi } from "./world0/context";
 import type { RendererPluginRegistration } from "./world0/types";
 
@@ -18,7 +18,16 @@ const ICON_DONE = "M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z";
 type Status = { videoId: string; state: "queued" | "binaries" | "downloading" | "done" | "error"; percent: number; error?: string };
 type Player = { getPlayerResponse?: () => { videoDetails?: { videoId?: string; title?: string; author?: string; lengthSeconds?: string; thumbnail?: { thumbnails?: { url: string }[] } } } };
 
+const ROW_SELECTOR = "ytmusic-playlist-shelf-renderer ytmusic-responsive-list-item-renderer, ytmusic-shelf-renderer ytmusic-responsive-list-item-renderer";
+const CHECK_SVG = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='white' d='M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.5 14.2-4.2-4.2 1.4-1.4 2.8 2.8 6.3-6.3 1.4 1.4-7.7 7.7z'/></svg>";
+
 const CSS = `
+/* Songs already downloaded get a small check, like streaming apps; songs on their way get a faint pulse. */
+[data-ytmd-dl] .fixed-columns::before { content: ""; display: inline-block; width: 16px; height: 16px; margin-right: 12px; vertical-align: middle; background: var(--ytmusic-text-secondary, #aaa); -webkit-mask: url("${CHECK_SVG}") center / contain no-repeat; }
+[data-ytmd-dl="done"] .fixed-columns::before { background: var(--ytmusic-text-primary, #fff); }
+[data-ytmd-dl="busy"] .fixed-columns::before { opacity: .5; }
+@media (prefers-reduced-motion: no-preference) { [data-ytmd-dl="busy"] .fixed-columns::before { animation: ytmd-dl-pulse 1.2s ease-in-out infinite; } }
+@keyframes ytmd-dl-pulse { 50% { opacity: .15; } }
 #${BAR_ID} { position: relative; width: 40px; height: 40px; border: 0; background: none; color: var(--ytmusic-text-secondary, #aaa); cursor: pointer; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
 #${BAR_ID}:hover { color: var(--ytmusic-text-primary, #fff); }
 #${BAR_ID} svg { width: 22px; height: 22px; fill: currentColor; }
@@ -58,6 +67,14 @@ function currentJob(): PageDownloadJob | null {
 		durationSec: Number(details.lengthSeconds) || undefined,
 		artUrl: art ? hdArt(art) : undefined,
 	};
+}
+
+/** The album (`/browse/MPRE…`) or playlist (`/playlist?list=…` → `VL…`) id of the open page. */
+function pageBrowseId(): string {
+	const browse = /^\/browse\/([A-Za-z0-9_-]+)/.exec(location.pathname)?.[1];
+	if (browse) return browse;
+	const list = new URLSearchParams(location.search).get("list");
+	return list ? `VL${list}` : "";
 }
 
 /** Polymer elements carry their renderer JSON on `.data`. */
@@ -111,6 +128,18 @@ const downloadsRenderer: RendererPluginRegistration = {
 			btn.setAttribute("aria-label", label);
 		};
 
+		/** Marks downloaded and downloading songs in YouTube Music's own lists. */
+		const markRows = () => {
+			for (const row of document.querySelectorAll<HTMLElement>(ROW_SELECTOR)) {
+				const id = jobFromRow(dataOf(row))?.videoId;
+				const status = id ? statuses.get(id) : undefined;
+				const state = id && downloaded.has(id) ? "done" : status && (status.state === "queued" || status.state === "binaries" || status.state === "downloading") ? "busy" : "";
+				if ((row.dataset.ytmdDl ?? "") === state) continue;
+				if (state) row.dataset.ytmdDl = state;
+				else delete row.dataset.ytmdDl;
+			}
+		};
+
 		const mount = () => {
 			if (!document.getElementById(BAR_ID)) {
 				const likes = document.querySelector("ytmusic-player-bar ytmusic-like-button-renderer");
@@ -133,6 +162,7 @@ const downloadsRenderer: RendererPluginRegistration = {
 				}
 			}
 			renderBar();
+			markRows();
 
 			// "Download all" on playlist and album pages.
 			const onList = /^\/(playlist|browse\/MPRE)/.test(location.pathname);
@@ -147,8 +177,10 @@ const downloadsRenderer: RendererPluginRegistration = {
 					btn.append(svg(ICON_DOWNLOAD), document.createTextNode("Download all"));
 					btn.title = "Download every song on this page (songs further down load as you scroll)";
 					btn.addEventListener("click", () => {
-						const rows = [...document.querySelectorAll("ytmusic-playlist-shelf-renderer ytmusic-responsive-list-item-renderer, ytmusic-shelf-renderer ytmusic-responsive-list-item-renderer")].map(dataOf);
-						const jobs = jobsFromRows(rows).filter((j) => !downloaded.has(j.videoId));
+						const rows = [...document.querySelectorAll(ROW_SELECTOR)].map(dataOf);
+						// Album rows have no artist or cover of their own: the page header gives them.
+						const header = dataOf(document.querySelector("ytmusic-responsive-header-renderer"));
+						const jobs = jobsFromPage(header, rows, pageBrowseId()).filter((j) => !downloaded.has(j.videoId));
 						add(jobs);
 						btn.lastChild!.textContent = jobs.length ? `Downloading ${jobs.length}` : "All downloaded";
 						btn.disabled = true;
@@ -231,6 +263,7 @@ const downloadsRenderer: RendererPluginRegistration = {
 				statuses.set(status.videoId, status);
 				if (status.state === "done") downloaded.add(status.videoId);
 				renderBar();
+				markRows();
 			}) ?? (() => undefined);
 		const offAll =
 			ctx.ytmd?.on("downloads:all", (payload) => {
@@ -240,6 +273,7 @@ const downloadsRenderer: RendererPluginRegistration = {
 				statuses.clear();
 				for (const s of p.statuses ?? []) statuses.set(s.videoId, s);
 				renderBar();
+				markRows();
 			}) ?? (() => undefined);
 		ctx.ytmd?.emit("downloads:status-request");
 
@@ -257,6 +291,7 @@ const downloadsRenderer: RendererPluginRegistration = {
 			offStatus();
 			offAll();
 			for (const id of [BAR_ID, MENU_ID, ALL_ID, GUIDE_ID, STYLE_ID]) document.getElementById(id)?.remove();
+			for (const row of document.querySelectorAll<HTMLElement>("[data-ytmd-dl]")) delete row.dataset.ytmdDl;
 		};
 	},
 };

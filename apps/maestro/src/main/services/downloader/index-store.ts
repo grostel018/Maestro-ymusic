@@ -1,6 +1,7 @@
 // The list of downloaded songs (`userData/downloads.json`), so the Downloads page works with no network.
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import type { DownloadCollection } from "./core";
 
 export type DownloadEntry = {
 	videoId: string;
@@ -12,6 +13,9 @@ export type DownloadEntry = {
 	file: string;
 	art?: string;
 	addedAt: number;
+	trackNumber?: number;
+	/** The album or playlist it came from; Downloads groups songs by it. */
+	collection?: DownloadCollection;
 };
 
 export type DownloadIndex = {

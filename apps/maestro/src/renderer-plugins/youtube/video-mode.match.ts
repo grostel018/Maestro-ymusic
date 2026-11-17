@@ -82,7 +82,8 @@ export function parseItem(item: Obj): SearchHit | null {
 		title,
 		artist: artists.length ? artists.join(", ") : (segments[0] ?? ""),
 		album: typeof album === "string" ? album : undefined,
-		durationSec: parseDuration(segments.at(-1) ?? ""),
+		// Album and playlist rows put the length in a fixed column instead of the subtitle.
+		durationSec: parseDuration(segments.at(-1) ?? "") ?? parseDuration(runsText(r.fixedColumns?.[0]?.musicResponsiveListItemFixedColumnRenderer?.text?.runs).trim()),
 		type: watch?.watchEndpointMusicSupportedConfigs?.watchEndpointMusicConfig?.musicVideoType,
 		art: largestArt(thumbs.at(-1)?.url),
 	};

@@ -1,6 +1,16 @@
 // Offline downloads (spec 2026-11-17 §5): the pure parts of running yt-dlp — names, arguments, output parsing.
 
-export type DownloadJob = { videoId: string; title: string; artist: string; album?: string; artUrl?: string; durationSec?: number };
+export type DownloadCollection = { id: string; kind: "album" | "playlist"; title: string; artist?: string; artUrl?: string };
+export type DownloadJob = {
+	videoId: string;
+	title: string;
+	artist: string;
+	album?: string;
+	artUrl?: string;
+	durationSec?: number;
+	trackNumber?: number;
+	collection?: DownloadCollection;
+};
 /** `jsRuntime`: yt-dlp's `--js-runtimes` value, e.g. "deno:C:/…/deno.exe" (YouTube's challenges need one). */
 export type DownloadPaths = { ffmpeg: string; jsRuntime: string; cookies: string | null; outDir: string };
 

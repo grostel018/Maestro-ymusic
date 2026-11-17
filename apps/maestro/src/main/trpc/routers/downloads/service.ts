@@ -25,13 +25,21 @@ function cleanJob(raw: unknown): DownloadJob | null {
 	const str = (v: unknown, max = 300) => (typeof v === "string" ? v.slice(0, max) : "");
 	const title = str(j.title).trim();
 	if (!title) return null;
+	const https = (u: unknown) => (typeof u === "string" && /^https:\/\//.test(u) ? u.slice(0, 2000) : undefined);
+	const c = j.collection;
+	const collection =
+		c && typeof c.id === "string" && /^[A-Za-z0-9_-]{2,200}$/.test(c.id) && (c.kind === "album" || c.kind === "playlist") && str(c.title).trim()
+			? { id: c.id, kind: c.kind, title: str(c.title).trim(), artist: str(c.artist).trim() || undefined, artUrl: https(c.artUrl) }
+			: undefined;
 	return {
 		videoId: j.videoId,
 		title,
 		artist: str(j.artist).trim(),
 		album: str(j.album).trim() || undefined,
-		artUrl: /^https:\/\//.test(str(j.artUrl, 2000)) ? str(j.artUrl, 2000) : undefined,
+		artUrl: https(j.artUrl),
 		durationSec: typeof j.durationSec === "number" && j.durationSec > 0 ? Math.round(j.durationSec) : undefined,
+		trackNumber: typeof j.trackNumber === "number" && Number.isInteger(j.trackNumber) && j.trackNumber > 0 ? j.trackNumber : undefined,
+		collection,
 	};
 }
 
@@ -256,7 +264,18 @@ export default class DownloadsProvider extends BaseProvider implements AfterInit
 			);
 			const art = await this.saveArt(job).catch(() => undefined);
 			this.failedJobs.delete(job.videoId);
-			this.index.add({ videoId: job.videoId, title: job.title, artist: job.artist, album: job.album, durationSec: job.durationSec, file, art, addedAt: Date.now() });
+			this.index.add({
+				videoId: job.videoId,
+				title: job.title,
+				artist: job.artist,
+				album: job.album,
+				durationSec: job.durationSec,
+				trackNumber: job.trackNumber,
+				collection: job.collection,
+				file,
+				art,
+				addedAt: Date.now(),
+			});
 			this.setStatus(job, "done", 100);
 			this.pushAll();
 		} catch (err) {
