@@ -334,7 +334,7 @@ The order is in `docs/superpowers/plans/2026-11-01-road-to-release.md`.
 | # | Feature | Inspired by | Reuse | Notes |
 |---|---|---|---|---|
 | G1 | **Listen Together (Jam)** | Spotify Jam, Metrolist | Pear `music-together` (peerjs, MIT) | Room code, host controls the queue |
-| G2 | **Offline downloads** | Metrolist, Spotify | Pear `downloader` (MIT) or yt-dlp | Personal use; a "Downloaded" library |
+| G2 | **Offline downloads** | Metrolist, Spotify | Pear `downloader` (MIT) or yt-dlp | Personal use; a "Downloaded" library. Offline player parity (owner, 2026-11-17): 5 phases, `IMPROVEMENTS.md` 147–151, spec `specs/2026-11-17-offline-player-parity-design.md` |
 | G3 | **Listening stats / "Wrapped"** | Spotify Wrapped, Apple Replay | Built from track events | Top tracks, artists, hours; yearly recap page |
 | G4 | **Smart shuffle / radio from song** | Spotify Smart Shuffle, Deezer Flow | YTM radio endpoints via youtubei.js | Mix of liked songs + recommendations |
 | G5 | **SponsorBlock for music videos** | — | Pear `sponsorblock` (MIT, uses the public API) | Skips non-music intros and outros |

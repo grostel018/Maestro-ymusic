@@ -24,7 +24,7 @@ The ordered list of improvements still to make. Work top to bottom unless someth
 | Tier 5 - Low value for now | 0 |
 | **Total open** | **41** |
 
-Done: 26. Next free ID: 147.
+Done: 26. Next free ID: 152.
 
 ## Owner requests (2026-11-17)
 
@@ -51,6 +51,11 @@ Done: 26. Next free ID: 147.
 | 136 | Docs | Bug report template pointed at ytmdesktop2 paths | done |
 | 137 | Docs | AGENTS.md and TESTING.md still asked for a 3–5 min smoke run per phase | done: one ~1 min run at the very end |
 | 138 | Brand | Keychain service name, dev profile folder and Linux ids (MPRIS, package) still say ytmdesktop2 | todo: renaming loses saved logins and media keys (risky, not done) |
+| 147 | Offline | Offline player phase 1: repeat, shuffle toggle, up next, autoplay, saved queue, speed, speaker, shortcuts, sleep timer (incl. after N songs); keeps playing when the connection returns; tray/Discord/Last.fm/stats/API follow it (spec 2026-11-17-offline-player-parity-design.md) | todo: plan 2026-11-17-offline-player-phase-1.md |
+| 148 | Offline | Offline phase 2: Audio Lab offline (EQ, effects, vocal reduction, loudness saved at download, crossfade, skip silence, visualizer, artwork background) | todo |
+| 149 | Offline | Offline phase 3: lyrics and karaoke offline (lyrics saved at download, click-to-seek, per-song timing, own lyrics, facts copy) | todo |
+| 150 | Offline | Offline phase 4: bad connections (keep what you stream cache with size limit, smart downloads, resumable downloads, quality, likes sync, local playlists) | todo |
+| 151 | Offline | Offline phase 5: optional video downloads (quality, Song/Video switch, video controls, SponsorBlock saved) | todo |
 
 ## Owner requests (2026-10-30)
 
