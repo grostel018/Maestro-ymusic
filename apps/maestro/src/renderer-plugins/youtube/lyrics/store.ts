@@ -225,7 +225,7 @@ export function createLyricsStore(deps: LyricsStoreDeps = {}) {
 						retryTimer = setTimeout(() => {
 							if (gen === generation) void this.fetchForTrack(info, options, true);
 						}, RETRY_DELAYS_MS[tries - 1]);
-					} else cache.set(info.videoId, outcome);
+					} else retries.delete(info.videoId); // out of retries: show it, but don't remember the miss (a hiccup, not "no lyrics")
 					return;
 				}
 				retries.delete(info.videoId);

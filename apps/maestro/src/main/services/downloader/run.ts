@@ -1,12 +1,13 @@
 // Runs yt-dlp for one song. The YouTube session's cookies go to a per-run file that is always deleted afterwards
 // and never logged; an error that looks like an outdated yt-dlp triggers one update and one retry.
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
-import { randomUUID } from "node:crypto";
 import type { Session } from "electron";
 import { forceUpdateYtDlp } from "./binaries";
 import { buildArgs, type DownloadJob, looksOutdated, netscapeCookies, parseFinalPath, parseProgress } from "./core";
+import { ytDlpGate } from "./ytdlp-gate";
 
 export type RunPaths = { ytDlp: string; ffmpeg: string; jsRuntime: string; outDir: string; tmpDir: string; stampFile: string; withId?: boolean };
 
@@ -61,13 +62,14 @@ function once(job: DownloadJob, paths: RunPaths, cookies: string | null, onProgr
 export async function runDownload(job: DownloadJob, paths: RunPaths, session: Session | null, onProgress: (p: number) => void, signal: AbortSignal): Promise<string> {
 	const cookies = session ? await writeCookies(session, paths.tmpDir).catch(() => null) : null;
 	try {
+		// yt-dlp never updates itself while a download uses it (ytDlpGate).
 		try {
-			return await once(job, paths, cookies, onProgress, signal);
+			return await ytDlpGate.use(() => once(job, paths, cookies, onProgress, signal));
 		} catch (err) {
 			const stderr = (err as { stderr?: string }).stderr ?? "";
 			if (signal.aborted || !looksOutdated(stderr)) throw err;
-			await forceUpdateYtDlp(paths.ytDlp, paths.stampFile);
-			return await once(job, paths, cookies, onProgress, signal);
+			await ytDlpGate.update(() => forceUpdateYtDlp(paths.ytDlp, paths.stampFile));
+			return await ytDlpGate.use(() => once(job, paths, cookies, onProgress, signal));
 		}
 	} finally {
 		if (cookies) await fs.rm(cookies, { force: true }).catch(() => undefined);

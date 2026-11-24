@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import nextCounterpart from "./fixtures/next-counterpart.json";
 import clear from "./fixtures/search-songs-clear.json";
-import { createMatchCache, createVersionFinder, NEXT_TTL_MS, SEARCH_HIT_TTL_MS, SEARCH_MISS_TTL_MS, type SearchFetch } from "./video-mode.search";
+import { createMatchCache, createVersionFinder, MAX_PINS, NEXT_TTL_MS, SEARCH_HIT_TTL_MS, SEARCH_MISS_TTL_MS, type SearchFetch } from "./video-mode.search";
 
 const DAY = 24 * 60 * 60 * 1000;
 /** `/next` knows no pair, so every lookup goes on to `/search` (counted by `search`). */
@@ -41,6 +41,16 @@ describe("createMatchCache", () => {
 		expect(cache.get("song:a")).toBeUndefined();
 		expect(NEXT_TTL_MS).toBe(30 * DAY);
 	});
+	it("keeps at most MAX_PINS pins, dropping the oldest", () => {
+		const storage = memoryStorage();
+		const cache = createMatchCache(storage);
+		for (let i = 0; i <= MAX_PINS; i++) cache.pin(`video:${i}`);
+		const reloaded = createMatchCache(storage);
+		expect(reloaded.isPinned("video:0")).toBe(false);
+		expect(reloaded.isPinned(`video:${MAX_PINS}`)).toBe(true);
+		expect(reloaded.isPinned("video:1")).toBe(true);
+	});
+
 	it("pins a wrong video as no video, for good, until unpinned", () => {
 		let now = 1000;
 		const storage = memoryStorage();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildArgs, type DownloadJob, isVideoId, netscapeCookies, parseFinalPath, parseProgress, parseSha256Sums, safeFileName } from "./core";
+import { buildArgs, type DownloadJob, isVideoId, isYoutubeImageUrl, netscapeCookies, parseFinalPath, parseProgress, parseSha256Sums, safeFileName } from "./core";
 
 const job: DownloadJob = { videoId: "dQw4w9WgXcQ", title: "Never Gonna Give You Up", artist: "Rick Astley" };
 const paths = { ffmpeg: "C:/bin/ffmpeg", jsRuntime: "deno:C:/bin/deno.exe", cookies: null, outDir: "C:/Music/Maestro" };
@@ -104,5 +104,22 @@ describe("netscapeCookies", () => {
 		expect(text.startsWith("# Netscape HTTP Cookie File")).toBe(true);
 		expect(text).toContain(".youtube.com\tTRUE\t/\tTRUE\t2000000000\tSID\tv1");
 		expect(text).not.toContain("example.com");
+	});
+});
+
+describe("isYoutubeImageUrl", () => {
+	it("accepts YouTube's own image servers over https", () => {
+		expect(isYoutubeImageUrl("https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg")).toBe(true);
+		expect(isYoutubeImageUrl("https://lh3.googleusercontent.com/abc=w544-h544")).toBe(true);
+		expect(isYoutubeImageUrl("https://yt3.ggpht.com/abc=s176")).toBe(true);
+	});
+
+	it("rejects anything else", () => {
+		expect(isYoutubeImageUrl("http://i.ytimg.com/vi/x/hq.jpg")).toBe(false);
+		expect(isYoutubeImageUrl("https://evil.example/i.ytimg.com.jpg")).toBe(false);
+		expect(isYoutubeImageUrl("https://i.ytimg.com.evil.example/a.jpg")).toBe(false);
+		expect(isYoutubeImageUrl("https://127.0.0.1/a.jpg")).toBe(false);
+		expect(isYoutubeImageUrl("https://user@i.ytimg.com:8443/a.jpg")).toBe(false);
+		expect(isYoutubeImageUrl("not a url")).toBe(false);
 	});
 });

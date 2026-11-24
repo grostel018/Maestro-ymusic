@@ -130,6 +130,8 @@ function DownloadsPage() {
 	const openFolder = trpc.downloads.openFolder.useMutation();
 	const closePage = trpc.downloads.closePage.useMutation();
 	const hidePage = trpc.downloads.hidePage.useMutation();
+	/** Reload YouTube Music behind Downloads, so the offline song keeps playing; the "back online" bar follows. */
+	const retryOnline = trpc.downloads.retryOnline.useMutation();
 	const reportPlayer = trpc.downloads.reportPlayer.useMutation();
 	const [backOnline, setBackOnline] = useState(false);
 	trpc.downloads.onOnline.useSubscription(undefined, { onData: () => setBackOnline(true) });
@@ -295,7 +297,7 @@ function DownloadsPage() {
 				<div role="status" className="mx-6 mb-2 flex items-center gap-2 rounded-lg bg-foreground/[0.07] px-4 py-2 text-sm">
 					<WifiOffIcon className="size-4" />
 					<span className="mr-auto">You're offline. Your downloads still play.</span>
-					<Button variant="outline" size="xs" onClick={() => closePage.mutate({ retry: true })}>
+					<Button variant="outline" size="xs" onClick={() => (player.q ? retryOnline.mutate() : closePage.mutate({ retry: true }))}>
 						<RefreshCwIcon /> Try YouTube Music again
 					</Button>
 				</div>

@@ -48,6 +48,8 @@ export const downloadsRouter = router({
 			}),
 		)
 		.mutation(({ ctx, input }) => provider(ctx, "downloads").saveQueue(input)),
+	/** Load YouTube Music again behind Downloads (Downloads stays, its song keeps playing). */
+	retryOnline: publicProcedure.mutation(() => void serverMain.emit("downloads:retry")),
 	/** Back to YouTube Music, keeping the offline player's queue and position (the page pauses first). */
 	hidePage: publicProcedure.mutation(() => void serverMain.emit("downloads:hide")),
 	/** The offline player's state, so main knows whether Downloads may close when YouTube Music comes back. */

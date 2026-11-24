@@ -125,3 +125,15 @@ export function netscapeCookies(cookies: CookieLike[]): string {
 export function looksOutdated(stderr: string): boolean {
 	return /Unable to extract|nsig|signature|Sign in to confirm|Requested format is not available|HTTP Error 403/i.test(stderr);
 }
+
+/** YouTube's own image servers: the only places cover art is fetched from (no other host, port or credentials). */
+const IMAGE_HOSTS = [/\.ytimg\.com$/, /\.googleusercontent\.com$/, /\.ggpht\.com$/];
+export function isYoutubeImageUrl(url: string): boolean {
+	let u: URL;
+	try {
+		u = new URL(url);
+	} catch {
+		return false;
+	}
+	return u.protocol === "https:" && !u.port && !u.username && !u.password && IMAGE_HOSTS.some((re) => re.test(u.hostname));
+}

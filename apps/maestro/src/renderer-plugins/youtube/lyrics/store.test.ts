@@ -4,6 +4,7 @@ vi.mock("./providers/search", () => ({
 	searchLyricsDetailed: vi.fn(async () => ({ result: null })),
 }));
 
+import { searchLyricsDetailed } from "./providers/search";
 import { createLyricsStore, type LyricsStoreSnapshot } from "./store";
 import type { TrackSearchInfo } from "./types";
 
@@ -49,5 +50,30 @@ describe("lyrics store and YouTube Music's lyrics", () => {
 		const store = createLyricsStore({ fetchYtm: async () => null });
 		await store.fetchForTrack(info(A), opts);
 		expect(store.applyCacheIfPresent(B)).toBe(false);
+	});
+});
+
+describe("lyrics after a network hiccup", () => {
+	it("does not remember 'no lyrics' when the providers failed", async () => {
+		vi.useFakeTimers();
+		try {
+			const search = vi.mocked(searchLyricsDetailed);
+			search.mockClear();
+			search.mockImplementation(async () => ({ result: null, failed: true }) as never);
+			const store = createLyricsStore({ fetchYtm: async () => null });
+			await store.fetchForTrack(info(A), opts);
+			// both background retries fail too
+			await vi.advanceTimersByTimeAsync(6000);
+			await vi.advanceTimersByTimeAsync(20000);
+			const calls = search.mock.calls.length;
+			expect(calls).toBe(3);
+			// later (network back): the same song asks the providers again instead of a cached miss
+			search.mockImplementation(async () => ({ result: null }) as never);
+			await store.fetchForTrack(info(A), opts);
+			expect(search.mock.calls.length).toBe(calls + 1);
+		} finally {
+			vi.mocked(searchLyricsDetailed).mockImplementation(async () => ({ result: null }) as never);
+			vi.useRealTimers();
+		}
 	});
 });

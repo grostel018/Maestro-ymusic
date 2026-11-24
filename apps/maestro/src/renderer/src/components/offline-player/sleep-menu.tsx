@@ -49,7 +49,10 @@ export function useSleepTimer(audioRef: RefObject<HTMLAudioElement | null>) {
 	const onBoundary = useCallback(
 		(b: Boundary) => {
 			const r = onSongBoundary(timerRef.current, b);
-			if (r.timer !== timerRef.current) setTimer(r.timer);
+			if (r.timer !== timerRef.current) {
+				timerRef.current = r.timer; // before the re-render, so a second boundary in the same tick counts too
+				setTimer(r.timer);
+			}
 			if (r.stop) {
 				fadeStart.current = null;
 				setGain(1);

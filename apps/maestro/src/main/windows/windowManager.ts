@@ -418,6 +418,11 @@ export class WindowManager {
 		serverMain.on("downloads:open", () => void this.openDownloads(false));
 		serverMain.on("downloads:close", (...args: unknown[]) => this.closeDownloads(retryRequested(args)));
 		serverMain.on("downloads:hide", () => this.hideDownloads());
+		// No loading screen: it would cover Downloads, which keeps playing while YouTube Music tries again.
+		serverMain.on("downloads:retry", () => {
+			if (!this.views) return;
+			void this.views.youtubeView.webContents.loadURL(defaultUrl).catch(() => undefined);
+		});
 		serverMain.on("downloads:player", (...args: unknown[]) => {
 			const report = playerReport(args);
 			if (report) this.downloadsHasQueue = report.hasQueue;

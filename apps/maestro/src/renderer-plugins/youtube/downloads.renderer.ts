@@ -123,7 +123,11 @@ const downloadsRenderer: RendererPluginRegistration = {
 						? `Download failed (${status?.error ?? "error"}): try again`
 						: state === "idle"
 							? "Download this song"
-							: `Downloading${status?.percent ? ` ${status.percent}%` : "…"}`;
+							: state === "binaries"
+								? "Setting up downloads (first time only, about a minute)…"
+								: state === "queued"
+									? "Waiting to download…"
+									: `Downloading${status?.percent ? ` ${status.percent}%` : "…"}`;
 			btn.title = label;
 			btn.setAttribute("aria-label", label);
 		};
@@ -140,7 +144,20 @@ const downloadsRenderer: RendererPluginRegistration = {
 			}
 		};
 
+		// The bar button follows the playing song at once, not at the next 2 s remount.
+		type PlayerEvents = { addEventListener?: (e: string, f: () => void) => void; removeEventListener?: (e: string, f: () => void) => void };
+		let hooked: PlayerEvents | null = null;
+		const onSongChange = () => renderBar();
+		const hookPlayer = () => {
+			const api = getPagePlayerApi() as PlayerEvents | null;
+			if (!api || api === hooked) return;
+			hooked?.removeEventListener?.("onVideoDataChange", onSongChange);
+			api.addEventListener?.("onVideoDataChange", onSongChange);
+			hooked = api;
+		};
+
 		const mount = () => {
+			hookPlayer();
 			if (!document.getElementById(BAR_ID)) {
 				const likes = document.querySelector("ytmusic-player-bar ytmusic-like-button-renderer");
 				const controls =
@@ -285,6 +302,7 @@ const downloadsRenderer: RendererPluginRegistration = {
 
 		return () => {
 			window.clearInterval(remount);
+			hooked?.removeEventListener?.("onVideoDataChange", onSongChange);
 			observer.disconnect();
 			document.removeEventListener("click", onClick, true);
 			document.removeEventListener("contextmenu", contextMenu, true);

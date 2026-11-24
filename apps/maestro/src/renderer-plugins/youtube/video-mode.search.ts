@@ -17,6 +17,8 @@ export const SEARCH_TIMEOUT_MS = 4000;
 /** v2: v1 entries came from looser matching and may hold wrong picks, so they are dropped. */
 const STORAGE_KEY = "ytmd-av-matches-v2";
 const MAX_ENTRIES = 500;
+/** "Wrong version?" pins kept; the oldest go first. */
+export const MAX_PINS = 300;
 
 export type MatchSource = "next" | "search";
 type Entry = [at: number, match: VersionMatch | null, source: MatchSource];
@@ -56,6 +58,7 @@ export function createMatchCache(storage: StorageLike | null, now: () => number 
 	}
 	const save = () => {
 		while (entries.size > MAX_ENTRIES) entries.delete(entries.keys().next().value as string);
+		while (pins.size > MAX_PINS) pins.delete(pins.values().next().value as string);
 		try {
 			storage?.setItem(STORAGE_KEY, JSON.stringify({ e: Object.fromEntries(entries), p: [...pins] } satisfies Saved));
 		} catch {
@@ -79,6 +82,7 @@ export function createMatchCache(storage: StorageLike | null, now: () => number 
 			save();
 		},
 		pin(key) {
+			pins.delete(key);
 			pins.add(key);
 			entries.delete(key);
 			save();

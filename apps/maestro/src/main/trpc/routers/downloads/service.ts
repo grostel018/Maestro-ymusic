@@ -4,9 +4,10 @@ import path from "node:path";
 import { AfterInit, BaseProvider } from "@main/core/baseProvider";
 import { serverMain } from "@main/ipc/serverEvents";
 import { ensureBinaries, updateYtDlp } from "@main/services/downloader/binaries";
-import { type DownloadJob, isVideoId, safeFileName } from "@main/services/downloader/core";
+import { type DownloadJob, isVideoId, isYoutubeImageUrl, safeFileName } from "@main/services/downloader/core";
 import { createIndex, type DownloadEntry, type DownloadIndex } from "@main/services/downloader/index-store";
 import { runDownload } from "@main/services/downloader/run";
+import { ytDlpGate } from "@main/services/downloader/ytdlp-gate";
 import { mediaUrl, registerMediaProtocol } from "@main/services/mediaProtocol";
 import { YtmClient } from "@main/ytm/ytm-client";
 import { app, dialog, session as electronSession, shell } from "electron";
@@ -25,7 +26,7 @@ function cleanJob(raw: unknown): DownloadJob | null {
 	const str = (v: unknown, max = 300) => (typeof v === "string" ? v.slice(0, max) : "");
 	const title = str(j.title).trim();
 	if (!title) return null;
-	const https = (u: unknown) => (typeof u === "string" && /^https:\/\//.test(u) ? u.slice(0, 2000) : undefined);
+	const https = (u: unknown) => (typeof u === "string" && u.length <= 2000 && isYoutubeImageUrl(u) ? u : undefined);
 	const c = j.collection;
 	const collection =
 		c && typeof c.id === "string" && /^[A-Za-z0-9_-]{2,200}$/.test(c.id) && (c.kind === "album" || c.kind === "playlist") && str(c.title).trim()
@@ -109,7 +110,7 @@ export default class DownloadsProvider extends BaseProvider implements AfterInit
 			return kind === "song" ? entry?.file : entry?.art;
 		});
 		const ytDlp = path.join(this.binDir, "yt-dlp.exe");
-		if (existsSync(ytDlp)) void updateYtDlp(ytDlp, path.join(this.binDir, ".last-update"));
+		if (existsSync(ytDlp)) void ytDlpGate.update(() => updateYtDlp(ytDlp, path.join(this.binDir, ".last-update")));
 	}
 
 	folder() {
@@ -321,8 +322,8 @@ export default class DownloadsProvider extends BaseProvider implements AfterInit
 
 	/** The cover for the Downloads page, kept next to the files so it shows offline. */
 	private async saveArt(job: DownloadJob): Promise<string | undefined> {
-		if (!job.artUrl) return undefined;
-		const res = await fetch(job.artUrl);
+		if (!job.artUrl || !isYoutubeImageUrl(job.artUrl)) return undefined;
+		const res = await fetch(job.artUrl, { redirect: "error" });
 		if (!res.ok) return undefined;
 		const dir = path.join(this.folderPath, ART_DIR);
 		await mkdir(dir, { recursive: true });

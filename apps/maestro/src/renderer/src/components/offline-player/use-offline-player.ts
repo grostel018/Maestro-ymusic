@@ -118,10 +118,11 @@ export function useOfflinePlayer(
 
 	/** Move on at a song boundary: the sleep timer may stop here; at the end, autoplay or stop. */
 	const advance = useCallback(
-		(reason: "ended" | "skip") => {
+		(reason: "ended" | "skip" | "error") => {
 			const state = qRef.current;
 			if (!state) return;
-			if (boundaryRef.current?.(reason)) {
+			// A file that won't play is passed over: it doesn't count toward "sleep after N songs".
+			if (reason !== "error" && boundaryRef.current?.(reason)) {
 				audioRef.current?.pause();
 				const n = qNext(state, "skip");
 				if (n) {
@@ -130,7 +131,7 @@ export function useOfflinePlayer(
 				}
 				return;
 			}
-			const n = qNext(state, reason) ?? autoplayFrom(state);
+			const n = qNext(state, reason === "error" ? "skip" : reason) ?? autoplayFrom(state);
 			if (!n) {
 				audioRef.current?.pause();
 				setPlaying(false);
@@ -211,10 +212,15 @@ export function useOfflinePlayer(
 	}, []);
 	const jumpTo = useCallback(
 		(i: number) => {
+			const state = qRef.current;
+			if (!state) return;
+			const to = Math.max(0, Math.min(i, state.order.length - 1));
 			wantPlay.current = true;
-			update((s) => ({ ...s, pos: Math.max(0, Math.min(i, s.order.length - 1)) }));
+			// The same song: the load effect won't run again, so play it here.
+			if (to === state.pos) void audioRef.current?.play().catch(() => setPlaying(false));
+			else setQ({ ...state, pos: to });
 		},
-		[update],
+		[audioRef],
 	);
 
 	// Load the current song.
@@ -317,7 +323,9 @@ export function useOfflinePlayer(
 		[current, reportTrack, volume, muted],
 	);
 	// eslint-disable-next-line react-hooks/exhaustive-deps -- only on these changes
-	useEffect(() => report(true), [current?.videoId, playing, volume, muted]);
+	useEffect(() => report(true), [current?.videoId, playing]);
+	// eslint-disable-next-line react-hooks/exhaustive-deps -- volume goes out with the next throttled report
+	useEffect(() => report(), [volume, muted]);
 
 	// Seconds actually played, for Your stats.
 	const listen = useRef({ id: "", sec: 0, last: 0 });
@@ -389,7 +397,7 @@ export function useOfflinePlayer(
 		onError: () => {
 			if (!qRef.current) return;
 			failures.current += 1;
-			if (failures.current < qRef.current.order.length) advance("skip");
+			if (failures.current < qRef.current.order.length) advance("error");
 			else setPlaying(false);
 		},
 	};
