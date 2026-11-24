@@ -1,7 +1,7 @@
 {
 	"name": "maestro",
 	"description": "Unofficial YouTube Music desktop client with Discord RPC, Theming, Last.fm, Streamdeck, and local API.",
-	"version": "0.0.0",
+	"version": "0.0.2",
 	"private": false,
 	"author": "Venipa <admin@venipa.net>",
 	"homepage": "https://github.com/grostel018/Maestro-ymusic",
