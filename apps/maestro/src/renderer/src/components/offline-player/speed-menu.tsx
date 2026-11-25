@@ -19,16 +19,16 @@ export function SpeedMenu({ rate, onRate }: { rate: number; onRate: (r: number) 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger
-				render={<Button variant="ghost" size="sm" aria-label={`Playback speed ${fmt(rate)}`} title="Playback speed" className={cn("w-11 px-0 tabular-nums", rate !== 1 && "text-primary")} />}
+				render={<Button variant="ghost" size="icon-sm" aria-label={`Playback speed ${fmt(rate)}`} title="Playback speed" className={cn("w-9 text-xs tabular-nums", rate !== 1 && "text-primary")} />}
 			>
 				{fmt(rate)}
 			</PopoverTrigger>
-			<PopoverContent side="top" className="w-36 gap-0.5 p-1.5">
+			<PopoverContent side="top" className="w-36 gap-0.5 rounded-xl p-1">
 				{SPEEDS.map((s) => (
 					<button
 						key={s}
 						type="button"
-						className={cn("w-full rounded px-2 py-1.5 text-left text-sm tabular-nums hover:bg-foreground/5", s === rate && "text-primary")}
+						className={cn("flex h-8 w-full items-center rounded-md px-2 text-left text-sm hover:bg-foreground/5 tabular-nums", s === rate && "bg-foreground/[0.07] font-medium")}
 						onClick={() => {
 							onRate(s);
 							setOpen(false);

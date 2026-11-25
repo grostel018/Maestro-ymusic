@@ -11,9 +11,9 @@ export function QueuePanel({ player, onClose }: { player: OfflinePlayer; onClose
 	if (!q) return null;
 	return (
 		<aside aria-label="Up next" className="flex w-80 shrink-0 flex-col border-l border-foreground/10">
-			<div className="flex items-center gap-2 px-4 pt-4 pb-2">
-				<h2 className="mr-auto text-sm font-semibold">Up next</h2>
-				<span className="text-xs text-muted-foreground">
+			<div className="flex h-12 items-center gap-2 px-4 pt-2">
+				<h2 className="mr-auto text-sm font-medium">Up next</h2>
+				<span className="font-mono text-xs tabular-nums text-muted-foreground">
 					{q.pos + 1} / {q.order.length}
 				</span>
 				<Button variant="ghost" size="icon-xs" aria-label="Close Up next" onClick={onClose}>
@@ -39,7 +39,7 @@ export function QueuePanel({ player, onClose }: { player: OfflinePlayer; onClose
 						>
 							<GripVerticalIcon className="size-3.5 shrink-0 cursor-grab text-muted-foreground" aria-hidden />
 							<button type="button" className="min-w-0 flex-1 text-left" onClick={() => player.jumpTo(i)} aria-label={`Play ${item.title}`}>
-								<div className={cn("truncate text-sm", isCurrent && "font-medium text-primary")}>{item.title}</div>
+								<div className={cn("truncate text-sm", isCurrent && "font-medium")}>{item.title}</div>
 								<div className="truncate text-xs text-muted-foreground">{item.artist}</div>
 							</button>
 							<Button

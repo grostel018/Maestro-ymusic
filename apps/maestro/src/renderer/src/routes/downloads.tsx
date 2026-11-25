@@ -112,7 +112,8 @@ function DownloadsPage() {
 	const list = trpc.downloads.list.useQuery();
 	const status = trpc.downloads.status.useQuery();
 	const online = useOnline();
-	const [view, setView] = useState<View>({ page: "library", tab: "albums" });
+	/** null until the user picks a tab: open on the first tab that has something (no empty Albums screen). */
+	const [picked, setView] = useState<View | null>(null);
 	const [query, setQuery] = useState("");
 	const [confirming, setConfirming] = useState<string | null>(null);
 	const refresh = useCallback(() => {
@@ -138,6 +139,7 @@ function DownloadsPage() {
 
 	const items = (list.data ?? []) as Item[];
 	const groups = useMemo(() => groupItems(items), [items]);
+	const view: View = picked ?? { page: "library", tab: groups.some((g) => g.kind === "album") ? "albums" : groups.some((g) => g.kind === "playlist") ? "playlists" : "songs" };
 	const inProgress = (status.data ?? []).filter((s) => s.state !== "done" && s.state !== "error");
 	const failed = (status.data ?? []).filter((s) => s.state === "error");
 	const commonError = failed.length > 1 && failed.every((f) => f.error === failed[0].error) ? failed[0].error : null;
@@ -284,9 +286,9 @@ function DownloadsPage() {
 					<ArrowLeftIcon />
 				</Button>
 				<h1 className="mr-auto text-xl font-semibold">Downloads</h1>
-				<label className="flex h-9 w-72 max-w-[40vw] items-center gap-2 rounded-full bg-foreground/[0.07] px-3 text-sm focus-within:bg-foreground/10">
+				<label className="flex h-9 w-72 max-w-[40vw] items-center gap-2 rounded-lg bg-foreground/[0.07] px-3 text-sm focus-within:bg-foreground/10">
 					<SearchIcon className="size-4 text-muted-foreground" />
-					<input className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground" placeholder="Search your downloads" value={query} onChange={(e) => setQuery(e.target.value)} />
+					<input className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} />
 				</label>
 				<Button variant="ghost" size="sm" onClick={() => openFolder.mutate()} title="Open the downloads folder">
 					<FolderOpenIcon /> Folder
@@ -402,15 +404,15 @@ function DownloadsPage() {
 										type="button"
 										role="tab"
 										aria-selected={active}
-										className={cn("h-8 rounded-full px-4 text-sm font-medium capitalize transition-colors", active ? "bg-foreground text-background" : "bg-foreground/[0.07] hover:bg-foreground/10")}
+										className={cn("h-8 rounded-lg px-3 text-sm font-medium capitalize transition-colors", active ? "bg-foreground text-background" : "bg-foreground/[0.07] hover:bg-foreground/10")}
 										onClick={() => setView({ page: "library", tab })}
 									>
 										{tab}
 									</button>
 								);
 							})}
-							<span className="ml-auto text-xs text-muted-foreground">
-								{songs(items.length)} • {fmtSize(totalSize)}
+							<span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">
+								{songs(items.length)} · {fmtSize(totalSize)}
 							</span>
 						</div>
 
@@ -487,28 +489,28 @@ function GroupPage({ group, onPlay, onRemoveAll, children }: { group: Group; onP
 					<Cover src={group.art} className="size-52 shrink-0 rounded-lg shadow-2xl" />
 					<div className="min-w-0 flex-1">
 						<p className="text-sm text-muted-foreground">{group.kind === "album" ? "Album" : "Playlist"}</p>
-						<h2 className="mt-1 line-clamp-2 text-3xl font-bold leading-tight">{group.title}</h2>
+						<h2 className="mt-1 line-clamp-2 text-3xl font-semibold leading-tight">{group.title}</h2>
 						<p className="mt-2 text-sm text-muted-foreground">
 							{[group.artist, songs(group.items.length), length ? fmtLength(length) : null].filter(Boolean).join(" • ")}
 						</p>
 						<div className="mt-5 flex flex-wrap items-center gap-2">
-							<Button variant="accent" size="lg" className="rounded-full px-5" onClick={() => onPlay(false)}>
+							<Button variant="accent" size="lg" className="px-4" onClick={() => onPlay(false)}>
 								<PlayIcon className="fill-current" /> Play
 							</Button>
-							<Button variant="outline" size="lg" className="rounded-full px-5" onClick={() => onPlay(true)}>
+							<Button variant="outline" size="lg" className="px-4" onClick={() => onPlay(true)}>
 								<ShuffleIcon /> Shuffle
 							</Button>
 							{confirm ? (
 								<>
-									<Button variant="destructive" size="lg" className="rounded-full px-5" onClick={onRemoveAll}>
+									<Button variant="destructive" size="lg" className="px-4" onClick={onRemoveAll}>
 										Delete {songs(group.items.length)}
 									</Button>
-									<Button variant="ghost" size="lg" className="rounded-full" onClick={() => setConfirm(false)}>
+									<Button variant="ghost" size="lg" onClick={() => setConfirm(false)}>
 										Keep
 									</Button>
 								</>
 							) : (
-								<Button variant="ghost" size="lg" className="rounded-full" onClick={() => setConfirm(true)}>
+								<Button variant="ghost" size="lg" onClick={() => setConfirm(true)}>
 									<Trash2Icon /> Remove download
 								</Button>
 							)}

@@ -113,7 +113,7 @@ export function PlayerBar({
 					<span className="w-9">{fmtTime(time.total)}</span>
 				</div>
 			</div>
-			<div className="flex items-center justify-end gap-1">
+			<div className="flex items-center justify-end gap-1" role="group" aria-label="Player options">
 				{extra}
 				<Button
 					variant="ghost"
@@ -127,7 +127,7 @@ export function PlayerBar({
 				>
 					<ListMusicIcon />
 				</Button>
-				<div className="flex items-center gap-1" onWheel={onVolumeWheel}>
+				<div className="flex items-center gap-1 pl-1" onWheel={onVolumeWheel}>
 					<Button variant="ghost" size="icon-sm" aria-label={muted ? "Unmute" : "Mute"} onClick={() => player.setMuted((m) => !m)}>
 						{muted || volume === 0 ? <VolumeXIcon /> : <Volume2Icon />}
 					</Button>

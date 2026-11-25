@@ -44,18 +44,18 @@ export function OutputMenu({ elements }: { elements: RefObject<HTMLAudioElement 
 			<PopoverTrigger render={<Button variant="ghost" size="icon-sm" aria-label={`Speaker: ${label}`} title={`Speaker: ${label}`} className={cn(wanted !== DEFAULT_DEVICE && "text-primary")} />}>
 				<SpeakerIcon />
 			</PopoverTrigger>
-			<PopoverContent side="top" className="w-64 gap-0.5 p-1.5">
+			<PopoverContent side="top" className="w-64 gap-0.5 rounded-xl p-1">
 				{devices.map((d) => (
 					<button
 						key={d.deviceId}
 						type="button"
-						className={cn("w-full truncate rounded px-2 py-1.5 text-left text-sm hover:bg-foreground/5", d.deviceId === wanted && "text-primary")}
+						className={cn("flex h-8 w-full items-center rounded-md px-2 text-left text-sm hover:bg-foreground/5", d.deviceId === wanted && "bg-foreground/[0.07] font-medium")}
 						onClick={() => {
 							setWanted(d.deviceId);
 							setOpen(false);
 						}}
 					>
-						{d.label}
+						<span className="truncate">{d.label}</span>
 					</button>
 				))}
 			</PopoverContent>

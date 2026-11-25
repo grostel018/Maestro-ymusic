@@ -86,7 +86,7 @@ export function SleepMenu({ sleep }: { sleep: ReturnType<typeof useSleepTimer> }
 		setOpen(false);
 	};
 	const item = (text: string, t: SleepTimer, active: boolean) => (
-		<button key={text} type="button" className={cn("w-full rounded px-2 py-1.5 text-left text-sm hover:bg-foreground/5", active && "text-primary")} onClick={() => pick(t)}>
+		<button key={text} type="button" className={cn("flex h-8 w-full items-center rounded-md px-2 text-left text-sm hover:bg-foreground/5", active && "bg-foreground/[0.07] font-medium")} onClick={() => pick(t)}>
 			{text}
 		</button>
 	);
@@ -95,8 +95,8 @@ export function SleepMenu({ sleep }: { sleep: ReturnType<typeof useSleepTimer> }
 			<PopoverTrigger render={<Button variant="ghost" size="icon-sm" aria-label={label} title={label} className={cn(on && "text-primary")} />}>
 				<MoonIcon />
 			</PopoverTrigger>
-			<PopoverContent side="top" className="w-52 gap-0.5 p-1.5">
-				<p className="px-2 pt-1 pb-1.5 text-xs font-medium text-muted-foreground">{on ? label : "Sleep timer"}</p>
+			<PopoverContent side="top" className="w-52 gap-0.5 rounded-xl p-1">
+				<p className="px-2 pt-1 pb-1 text-xs text-muted-foreground">{on ? label : "Sleep timer"}</p>
 				{item("Off", { kind: "off" }, !on)}
 				{MINUTES.map((m) => item(`${m} minutes`, { kind: "at", endsAt: Date.now() + m * 60_000 }, false))}
 				{item("End of this song", { kind: "end-of-track" }, sleep.timer.kind === "end-of-track")}
